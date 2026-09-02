@@ -81,12 +81,7 @@ export function HistoryChart({
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-gray-500">{label}</span>
-      {/* relative: echarts positions its hover-interaction canvas layer
-          absolutely against the nearest positioned ancestor — without this,
-          it lands relative to some ancestor further up the tree and the
-          hovered/clicked line/area appears to vanish until the layer merges
-          back on mouseout. */}
-      <div ref={containerRef} className="relative h-48 w-full" />
+      <div ref={containerRef} className="h-48 w-full" />
     </div>
   )
 }
