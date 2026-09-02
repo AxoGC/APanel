@@ -39,9 +39,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="flex min-h-0 grow flex-col">
-        <div className="mb-2 flex items-end justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">{t('dashboard.sort')}</span>
             <Select value={sort} onValueChange={(v) => setSort(v as ProcessSort)}>
               <SelectTrigger size="sm">
