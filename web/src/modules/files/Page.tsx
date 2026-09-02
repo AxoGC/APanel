@@ -250,11 +250,11 @@ export default function FilesPage() {
           )}
           <Button variant="outline" size="sm" onClick={() => setMkdirOpen(true)}>
             <FolderPlus />
-            {t('files.newFolder')}
+            <span className="hidden md:inline">{t('files.newFolder')}</span>
           </Button>
           <Button variant="outline" size="sm" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
             {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-            {t('files.upload')}
+            <span className="hidden md:inline">{t('files.upload')}</span>
           </Button>
           <input ref={fileInputRef} type="file" multiple hidden onChange={onFilesSelected} />
         </div>

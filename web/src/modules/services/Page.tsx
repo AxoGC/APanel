@@ -53,7 +53,6 @@ export default function ServicesPage() {
     <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t('services.search.label')}</span>
           <div className="relative w-48 sm:w-64">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
             <Input

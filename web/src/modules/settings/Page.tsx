@@ -100,7 +100,7 @@ export default function SettingsPage() {
       <Section label={t('settings.account')}>
         <Button variant="outline" size="sm" onClick={() => void logout()}>
           <LogOut />
-          {t('settings.signOut')}
+          <span className="hidden md:inline">{t('settings.signOut')}</span>
         </Button>
       </Section>
     </div>
