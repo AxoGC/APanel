@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 )
@@ -26,8 +28,20 @@ type Unit struct {
 	UnitFileState string `json:"unitFileState"`
 }
 
+// unitFilesTTL bounds how stale the cached unit-file catalog (see
+// unitFiles below) can get. ListUnitFilesContext measured at ~550ms for a
+// few hundred units — it walks and parses every unit file on disk, unlike
+// the live-state D-Bus calls (sub-2ms) — so List() would otherwise pay that
+// cost on every request, including every debounced keystroke in the
+// frontend's search box.
+const unitFilesTTL = 5 * time.Second
+
 type Manager struct {
 	conn *systemdDbus.Conn
+
+	mu      sync.Mutex
+	files   []systemdDbus.UnitFile
+	filesAt time.Time
 }
 
 func New(ctx context.Context) (*Manager, error) {
@@ -38,6 +52,37 @@ func New(ctx context.Context) (*Manager, error) {
 	return &Manager{conn: conn}, nil
 }
 
+// unitFiles returns the installed unit-file catalog, cached for unitFilesTTL.
+// invalidateUnitFiles drops the cache immediately after our own Enable/
+// Disable calls; a short TTL otherwise covers changes made outside apanel
+// (e.g. a package install symlinking a new unit).
+func (m *Manager) unitFiles(ctx context.Context) ([]systemdDbus.UnitFile, error) {
+	m.mu.Lock()
+	if m.files != nil && time.Since(m.filesAt) < unitFilesTTL {
+		files := m.files
+		m.mu.Unlock()
+		return files, nil
+	}
+	m.mu.Unlock()
+
+	files, err := m.conn.ListUnitFilesContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	m.mu.Lock()
+	m.files = files
+	m.filesAt = time.Now()
+	m.mu.Unlock()
+	return files, nil
+}
+
+func (m *Manager) invalidateUnitFiles() {
+	m.mu.Lock()
+	m.files = nil
+	m.mu.Unlock()
+}
+
 // List returns .service units. With states set, it filters at the D-Bus
 // level via systemd's own ListUnitsFiltered (e.g. []string{"running"}) — this
 // only sees units systemd currently has loaded. With states empty, it falls
@@ -45,7 +90,7 @@ func New(ctx context.Context) (*Manager, error) {
 // so services that are installed but were never started still show up.
 // Template units (name@.service) are skipped: they have no single state.
 func (m *Manager) List(ctx context.Context, states []string) ([]Unit, error) {
-	files, err := m.conn.ListUnitFilesContext(ctx)
+	files, err := m.unitFiles(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +209,11 @@ func (m *Manager) Enable(ctx context.Context, name string) error {
 		return err
 	}
 	_, _, err := m.conn.EnableUnitFilesContext(ctx, []string{name}, false, false)
-	return err
+	if err != nil {
+		return err
+	}
+	m.invalidateUnitFiles()
+	return nil
 }
 
 func (m *Manager) Disable(ctx context.Context, name string) error {
@@ -172,5 +221,9 @@ func (m *Manager) Disable(ctx context.Context, name string) error {
 		return err
 	}
 	_, err := m.conn.DisableUnitFilesContext(ctx, []string{name}, false)
-	return err
+	if err != nil {
+		return err
+	}
+	m.invalidateUnitFiles()
+	return nil
 }
