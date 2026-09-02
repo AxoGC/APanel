@@ -68,6 +68,56 @@ func (m *Manager) Status(ctx context.Context) (Status, error) {
 	return parseStatus(string(out)), nil
 }
 
+var ErrInvalidRule = fmt.Errorf("invalid firewall rule")
+
+var validActions = map[string]bool{"allow": true, "deny": true, "reject": true, "limit": true}
+var portPattern = regexp.MustCompile(`^\d{1,5}(:\d{1,5})?$`)
+
+// AddRule adds a rule via ufw's "full" command syntax, e.g.
+// "ufw allow from 10.0.0.0/8 to any port 22 proto tcp". An empty from
+// defaults to "any" (ufw's own keyword for "anywhere"); an empty or "any"
+// protocol omits the proto clause entirely, matching both TCP and UDP.
+func (m *Manager) AddRule(ctx context.Context, action, from, port, protocol string) error {
+	if !m.Available() {
+		return fmt.Errorf("ufw is not available")
+	}
+
+	action = strings.ToLower(strings.TrimSpace(action))
+	if !validActions[action] {
+		return fmt.Errorf("%w: action", ErrInvalidRule)
+	}
+
+	port = strings.TrimSpace(port)
+	if !portPattern.MatchString(port) {
+		return fmt.Errorf("%w: port", ErrInvalidRule)
+	}
+
+	from = strings.TrimSpace(from)
+	if from == "" {
+		from = "any"
+	}
+	if strings.HasPrefix(from, "-") {
+		return fmt.Errorf("%w: from", ErrInvalidRule)
+	}
+
+	protocol = strings.ToLower(strings.TrimSpace(protocol))
+	if protocol != "" && protocol != "any" && protocol != "tcp" && protocol != "udp" {
+		return fmt.Errorf("%w: protocol", ErrInvalidRule)
+	}
+
+	args := []string{action, "from", from, "to", "any", "port", port}
+	if protocol != "" && protocol != "any" {
+		args = append(args, "proto", protocol)
+	}
+
+	cmd := exec.CommandContext(ctx, m.ufwPath, args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("running ufw %s: %w: %s", action, err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
 // rawRule is one line of ufw's numbered status, before v4/v6 pairing.
 type rawRule struct {
 	number   int
