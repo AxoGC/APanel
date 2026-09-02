@@ -18,6 +18,10 @@
 /api/internal/httpserver/dist/*
 !/api/internal/httpserver/dist/index.html
 
+# local dev convenience script (build + reinstall over the running
+# systemd service); not part of the repo
+/deploy.sh
+
 # misc
 *.log
 .DS_Store
