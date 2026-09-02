@@ -17,8 +17,8 @@ const items = [
 
 function itemClasses(isActive: boolean): string {
   return cn(
-    'flex min-w-16 shrink-0 flex-col items-center justify-center gap-1 text-xs',
-    'md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
+    'flex h-14 min-w-16 shrink-0 flex-col items-center justify-center gap-1 text-xs',
+    'md:h-auto md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
     isActive ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
   )
 }
