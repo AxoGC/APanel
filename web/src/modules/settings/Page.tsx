@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
 import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useAuth } from '@/lib/auth'
 import { getStoredDataLayout, setStoredDataLayout, type DataLayout } from '@/lib/dataLayout'
 import { useI18n, type Locale } from '@/lib/i18n'
@@ -22,9 +23,9 @@ const DATA_LAYOUTS: DataLayout[] = ['table', 'grid']
 
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-b border-gray-200 py-4 first:pt-0 last:border-b-0 dark:border-gray-800">
-      <p className="text-xs text-gray-500">{label}</p>
-      {children}
+    <div className="flex items-center gap-6 py-4 first:pt-0">
+      <p className="w-24 shrink-0 text-xs text-gray-500">{label}</p>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
 }
@@ -41,42 +42,22 @@ export default function SettingsPage() {
       <h1 className="mb-2 text-base text-gray-900 dark:text-gray-100">{t('nav.settings')}</h1>
 
       <Section label={t('settings.language')}>
-        <div className="flex gap-4">
-          {LOCALES.map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLocale(l)}
-              className={cn(
-                'cursor-pointer text-sm',
-                locale === l ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
-              )}
-            >
-              {l === 'en' ? 'English' : '中文'}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={locale}
+          onChange={setLocale}
+          options={LOCALES.map((l) => ({ value: l, label: l === 'en' ? 'English' : '中文' }))}
+        />
       </Section>
 
       <Section label={t('settings.appearance')}>
-        <div className="flex gap-4">
-          {SCHEMES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => {
-                setStoredScheme(s)
-                setScheme(s)
-              }}
-              className={cn(
-                'cursor-pointer text-sm capitalize',
-                scheme === s ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
-              )}
-            >
-              {t(`settings.appearance.${s}` as const)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={scheme}
+          onChange={(value) => {
+            setStoredScheme(value)
+            setScheme(value)
+          }}
+          options={SCHEMES.map((s) => ({ value: s, label: t(`settings.appearance.${s}` as const) }))}
+        />
       </Section>
 
       <Section label={t('settings.themeColor')}>
@@ -104,24 +85,17 @@ export default function SettingsPage() {
           so the control is hidden there rather than shown but inert. */}
       <div className="hidden md:block">
         <Section label={t('settings.dataLayout')}>
-          <div className="flex gap-4">
-            {DATA_LAYOUTS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => {
-                  setStoredDataLayout(l)
-                  setDataLayout(l)
-                }}
-                className={cn(
-                  'cursor-pointer text-sm',
-                  dataLayout === l ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
-                )}
-              >
-                {t(l === 'table' ? 'settings.dataLayout.table' : 'settings.dataLayout.grid')}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            value={dataLayout}
+            onChange={(value) => {
+              setStoredDataLayout(value)
+              setDataLayout(value)
+            }}
+            options={DATA_LAYOUTS.map((l) => ({
+              value: l,
+              label: t(l === 'table' ? 'settings.dataLayout.table' : 'settings.dataLayout.grid'),
+            }))}
+          />
         </Section>
       </div>
 
