@@ -51,27 +51,33 @@ export default function ServicesPage() {
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center gap-3">
-        <div className="relative w-48 sm:w-64">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('services.search')}
-            className="pl-8"
-          />
+      <div className="flex items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-gray-500">{t('services.search.label')}</span>
+          <div className="relative w-48 sm:w-64">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('services.search')}
+              className="pl-8"
+            />
+          </div>
         </div>
-        <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="running">{t('services.filter.running')}</SelectItem>
-            <SelectItem value="failed">{t('services.filter.failed')}</SelectItem>
-            <SelectItem value="stopped">{t('services.filter.stopped')}</SelectItem>
-            <SelectItem value="all">{t('services.filter.all')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-gray-500">{t('services.status')}</span>
+          <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="running">{t('services.filter.running')}</SelectItem>
+              <SelectItem value="failed">{t('services.filter.failed')}</SelectItem>
+              <SelectItem value="stopped">{t('services.filter.stopped')}</SelectItem>
+              <SelectItem value="all">{t('services.filter.all')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
