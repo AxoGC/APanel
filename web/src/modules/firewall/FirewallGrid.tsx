@@ -1,12 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { FirewallRule } from './api'
-import { PORT_SERVICES } from './ports'
-
-function actionClasses(action: string): string {
-  if (action.startsWith('ALLOW')) return 'text-green-600 dark:text-green-400'
-  if (action.startsWith('DENY') || action.startsWith('REJECT')) return 'text-red-600 dark:text-red-400'
-  return 'text-gray-500' // LIMIT and anything else
-}
+import { actionClasses, portNameFor, tagsFor } from './format'
 
 // Tag colors are fixed, not theme-derived — unlike the rest of the UI, this
 // is a small closed set of protocol/family badges, so a stable color per
@@ -20,43 +14,22 @@ const TAG_CLASSES: Record<string, string> = {
   IPv6: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
 }
 
-function Tag({ label }: { label: string }) {
+export function Tag({ label }: { label: string }) {
   return <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', TAG_CLASSES[label])}>{label}</span>
 }
 
-function tagsFor(rule: FirewallRule): string[] {
-  const tags: string[] = []
-  if (rule.protocol === 'tcp') tags.push('TCP')
-  if (rule.protocol === 'udp') tags.push('UDP')
-  if (rule.ipv4) tags.push('IPv4')
-  if (rule.ipv6) tags.push('IPv6')
-  return tags
-}
-
-// rule.to is ufw's own text for the rule's destination — a bare port, a
-// port range ("6000:6007"), comma-separated ports, or a named
-// service/"Anywhere" with no port at all. Pulling out every number and
-// looking each up covers all of those without parsing the specific shape.
-function portNameFor(to: string): string | null {
-  const numbers = to.match(/\d{1,5}/g)
-  if (!numbers) return null
-  const names = new Set<string>()
-  for (const n of numbers) {
-    const name = PORT_SERVICES[n]
-    if (name) names.add(name)
-  }
-  return names.size > 0 ? Array.from(names).join(' / ') : null
-}
-
-// Each rule is one grid cell (a card); layout inside a card is flex-col of
-// flex-row rows, matching the services/containers card grids.
+// Each rule is one grid cell (a card), matching the services/containers card
+// grids. The container uses the classic gap-px + background trick so a 1px
+// gray-100 line shows through between cells in both directions without
+// needing per-cell border bookkeeping across the responsive column-count
+// breakpoints.
 export function FirewallGrid({ rules }: { rules: FirewallRule[] }) {
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-px bg-gray-100 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 dark:bg-gray-800">
       {rules.map((rule) => {
         const portName = portNameFor(rule.to)
         return (
-          <div key={rule.numbers.join('-')} className="flex flex-col gap-2">
+          <div key={rule.numbers.join('-')} className="flex flex-col gap-2 bg-background p-4">
             <div className="flex flex-row items-center justify-between gap-2">
               <div className="flex min-w-0 items-baseline gap-1.5">
                 <span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>

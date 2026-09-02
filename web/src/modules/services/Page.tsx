@@ -1,25 +1,33 @@
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
+import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
 import {
+  getServiceLogs,
   listServices,
   runServiceAction,
+  serviceLogsStreamUrl,
   type ServiceActionName,
   type ServiceUnit,
   type StatusFilter,
 } from './api'
+import { displayName } from './format'
 import { ServiceGrid } from './ServiceGrid'
+import { ServiceTable } from './ServiceTable'
 
 export default function ServicesPage() {
   const { t } = useI18n()
+  const dataLayout = useDataLayout()
   const [units, setUnits] = useState<ServiceUnit[] | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ServiceActionName | undefined>>({})
   const [error, setError] = useState<string | null>(null)
+  const [logsFor, setLogsFor] = useState<ServiceUnit | null>(null)
 
   function refresh() {
     return listServices({ status, q: query }).then(setUnits)
@@ -83,8 +91,23 @@ export default function ServicesPage() {
 
       <div className="min-h-0 grow overflow-y-auto">
         {units && units.length === 0 && <p className="text-sm text-gray-500">{t('services.empty')}</p>}
-        {units && units.length > 0 && <ServiceGrid units={units} pending={pending} onAction={handleAction} />}
+        {units &&
+          units.length > 0 &&
+          (dataLayout === 'table' ? (
+            <ServiceTable units={units} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+          ) : (
+            <ServiceGrid units={units} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+          ))}
       </div>
+
+      <LogsDialog
+        open={logsFor !== null}
+        onOpenChange={(open) => !open && setLogsFor(null)}
+        title={logsFor ? `${displayName(logsFor.name)} — ${t('services.logs')}` : ''}
+        id={logsFor?.name ?? ''}
+        fetchLogs={getServiceLogs}
+        streamUrl={serviceLogsStreamUrl}
+      />
     </div>
   )
 }

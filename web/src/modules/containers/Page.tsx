@@ -1,10 +1,14 @@
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
+import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
 import {
+  containerLogsStreamUrl,
+  getContainerLogs,
   listContainers,
   runContainerAction,
   type ContainerActionName,
@@ -12,14 +16,17 @@ import {
   type StatusFilter,
 } from './api'
 import { ContainerGrid } from './ContainerGrid'
+import { ContainerTable } from './ContainerTable'
 
 export default function ContainersPage() {
   const { t } = useI18n()
+  const dataLayout = useDataLayout()
   const [containers, setContainers] = useState<ContainerInfo[] | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ContainerActionName | undefined>>({})
   const [error, setError] = useState<string | null>(null)
+  const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -82,10 +89,23 @@ export default function ContainersPage() {
 
       <div className="min-h-0 grow overflow-y-auto">
         {containers && containers.length === 0 && <p className="text-sm text-gray-500">{t('containers.empty')}</p>}
-        {containers && containers.length > 0 && (
-          <ContainerGrid containers={containers} pending={pending} onAction={handleAction} />
-        )}
+        {containers &&
+          containers.length > 0 &&
+          (dataLayout === 'table' ? (
+            <ContainerTable containers={containers} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+          ) : (
+            <ContainerGrid containers={containers} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+          ))}
       </div>
+
+      <LogsDialog
+        open={logsFor !== null}
+        onOpenChange={(open) => !open && setLogsFor(null)}
+        title={logsFor ? `${logsFor.name} — ${t('containers.logs')}` : ''}
+        id={logsFor?.id ?? ''}
+        fetchLogs={getContainerLogs}
+        streamUrl={containerLogsStreamUrl}
+      />
     </div>
   )
 }

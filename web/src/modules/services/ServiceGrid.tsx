@@ -1,61 +1,30 @@
 import { Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
-import { useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
-import { LogsDialog } from '@/components/LogsDialog'
 import { Button } from '@/components/ui/button'
-import { useI18n, type TranslationKey } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { getServiceLogs, serviceLogsStreamUrl, type ServiceActionName, type ServiceUnit } from './api'
+import type { ServiceActionName, ServiceUnit } from './api'
+import { displayName, statusClasses, SUBSTATE_LABELS, UNIT_FILE_STATE_LABELS } from './format'
 
-function statusClasses(subState: string): [dot: string, text: string] {
-  if (subState === 'running') return ['bg-green-500', 'text-green-600 dark:text-green-400']
-  if (subState === 'dead') return ['bg-red-500', 'text-red-600 dark:text-red-400']
-  return ['bg-gray-400', 'text-gray-500']
-}
-
-// The status column reuses the filter's own vocabulary (services.filter.*)
-// so a card's displayed status always matches whichever filter option would
-// select it — see statesForStatus on the backend for the running/exited/dead
-// SubState mapping this mirrors.
-const SUBSTATE_LABELS: Record<string, TranslationKey> = {
-  running: 'services.filter.running',
-  exited: 'services.filter.stopped',
-  dead: 'services.filter.failed',
-}
-
-const UNIT_FILE_STATE_LABELS: Record<string, TranslationKey> = {
-  enabled: 'services.unitFileState.enabled',
-  static: 'services.unitFileState.static',
-  alias: 'services.unitFileState.alias',
-  disabled: 'services.unitFileState.disabled',
-  masked: 'services.unitFileState.masked',
-  'enabled-runtime': 'services.unitFileState.enabledRuntime',
-  bad: 'services.unitFileState.bad',
-}
-
-// Display only — actions still key off the full unit name (u.name), since
-// systemd needs the ".service" suffix for the actual API calls.
-function displayName(name: string): string {
-  return name.endsWith('.service') ? name.slice(0, -'.service'.length) : name
-}
-
-// Each unit is one grid cell (a card); layout inside a card is flex-col of
-// flex-row rows, not a shared table-like grid — this is what lets it reflow
-// cleanly at every breakpoint instead of just collapsing columns.
+// Each unit is one grid cell (a card). The container uses the classic
+// gap-px + background trick so a 1px gray-100 line shows through between
+// cells in both directions without needing per-cell border bookkeeping
+// across the responsive column-count breakpoints.
 export function ServiceGrid({
   units,
   pending,
   onAction,
+  onShowLogs,
 }: {
   units: ServiceUnit[]
   pending: Record<string, ServiceActionName | undefined>
   onAction: (name: string, action: ServiceActionName) => void
+  onShowLogs: (unit: ServiceUnit) => void
 }) {
   const { t } = useI18n()
-  const [logsFor, setLogsFor] = useState<ServiceUnit | null>(null)
 
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-px bg-gray-100 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 dark:bg-gray-800">
       {units.map((u) => {
         const busy = pending[u.name]
         const [dot, text] = statusClasses(u.subState)
@@ -63,7 +32,7 @@ export function ServiceGrid({
         return (
           <div
             key={u.name}
-            className="flex flex-col gap-2"
+            className="flex flex-col gap-2 bg-background p-4"
           >
             <div className="flex flex-row items-center justify-between gap-2">
               <span className="truncate text-sm text-gray-900 dark:text-gray-100">{displayName(u.name)}</span>
@@ -98,7 +67,7 @@ export function ServiceGrid({
             </div>
 
             <div className="flex flex-row items-center justify-end gap-0.5">
-              <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => setLogsFor(u)}>
+              <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => onShowLogs(u)}>
                 <ScrollText />
               </Button>
               {u.activeState !== 'active' && (
@@ -148,14 +117,6 @@ export function ServiceGrid({
           </div>
         )
       })}
-      <LogsDialog
-        open={logsFor !== null}
-        onOpenChange={(open) => !open && setLogsFor(null)}
-        title={logsFor ? `${displayName(logsFor.name)} — ${t('services.logs')}` : ''}
-        id={logsFor?.name ?? ''}
-        fetchLogs={getServiceLogs}
-        streamUrl={serviceLogsStreamUrl}
-      />
     </div>
   )
 }

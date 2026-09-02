@@ -11,10 +11,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
+import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { addFirewallRule, getFirewallStatus, type FirewallStatus, type NewFirewallRule } from './api'
 import { FirewallGrid } from './FirewallGrid'
+import { FirewallTable } from './FirewallTable'
 
 function ToggleChip({
   active,
@@ -53,6 +55,7 @@ function FormRow({ label, children }: { label: string; children: ReactNode }) {
 
 export default function FirewallPage() {
   const { t } = useI18n()
+  const dataLayout = useDataLayout()
   const [status, setStatus] = useState<FirewallStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -128,7 +131,7 @@ export default function FirewallPage() {
 
       {status && status.rules.length > 0 && (
         <div className="min-h-0 grow overflow-y-auto">
-          <FirewallGrid rules={status.rules} />
+          {dataLayout === 'table' ? <FirewallTable rules={status.rules} /> : <FirewallGrid rules={status.rules} />}
         </div>
       )}
 

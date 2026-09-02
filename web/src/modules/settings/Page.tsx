@@ -3,6 +3,7 @@ import colors from 'tailwindcss/colors'
 import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
+import { getStoredDataLayout, setStoredDataLayout, type DataLayout } from '@/lib/dataLayout'
 import { useI18n, type Locale } from '@/lib/i18n'
 import {
   getStoredScheme,
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
 const LOCALES: Locale[] = ['en', 'zh']
+const DATA_LAYOUTS: DataLayout[] = ['table', 'grid']
 
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -32,6 +34,7 @@ export default function SettingsPage() {
   const { logout } = useAuth()
   const [scheme, setScheme] = useState<ColorScheme>(getStoredScheme)
   const [hue, setHue] = useState<ThemeHue>(getStoredThemeHue)
+  const [dataLayout, setDataLayout] = useState<DataLayout>(getStoredDataLayout)
 
   return (
     <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6">
@@ -96,6 +99,31 @@ export default function SettingsPage() {
           ))}
         </div>
       </Section>
+
+      {/* Only meaningful on wide screens — narrow screens always use grid,
+          so the control is hidden there rather than shown but inert. */}
+      <div className="hidden md:block">
+        <Section label={t('settings.dataLayout')}>
+          <div className="flex gap-4">
+            {DATA_LAYOUTS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => {
+                  setStoredDataLayout(l)
+                  setDataLayout(l)
+                }}
+                className={cn(
+                  'text-sm',
+                  dataLayout === l ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
+                )}
+              >
+                {t(l === 'table' ? 'settings.dataLayout.table' : 'settings.dataLayout.grid')}
+              </button>
+            ))}
+          </div>
+        </Section>
+      </div>
 
       <Section label={t('settings.account')}>
         <Button variant="outline" size="sm" onClick={() => void logout()}>
