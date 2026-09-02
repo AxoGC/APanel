@@ -75,10 +75,6 @@ func (s *Server) dashboardStream(w http.ResponseWriter, r *http.Request) {
 		return true
 	}
 
-	// Prime the collector's cumulative counters before the first real
-	// sample, otherwise the very first CPU/process percentages read as 0.
-	s.stats.Sample()
-
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
