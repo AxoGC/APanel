@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { Gauge } from './Gauge'
@@ -9,6 +10,7 @@ import { useDashboardStream, type ProcessSort } from './useDashboardStream'
 export default function DashboardPage() {
   const { t } = useI18n()
   const [sort, setSort] = useState<ProcessSort>('mem')
+  const [tree, setTree] = useState(true)
   const overview = useDashboardStream(sort)
 
   const memPercent = overview ? (overview.memUsed / overview.memTotal) * 100 : 0
@@ -41,21 +43,27 @@ export default function DashboardPage() {
       <div className="flex min-h-0 grow flex-col">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">{t('dashboard.sort')}</span>
-            <Select value={sort} onValueChange={(v) => setSort(v as ProcessSort)}>
-              <SelectTrigger size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mem">{t('dashboard.memory')}</SelectItem>
-                <SelectItem value="cpu">{t('dashboard.cpu')}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">{t('dashboard.tree')}</span>
+              <Switch checked={tree} onCheckedChange={setTree} />
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">{t('dashboard.sort')}</span>
+              <Select value={sort} onValueChange={(v) => setSort(v as ProcessSort)}>
+                <SelectTrigger size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mem">{t('dashboard.memory')}</SelectItem>
+                  <SelectItem value="cpu">{t('dashboard.cpu')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
         <div className="min-h-0 grow overflow-y-auto">
-          <ProcessGrid processes={overview?.processes ?? []} />
+          <ProcessGrid processes={overview?.processes ?? []} sort={sort} tree={tree} />
         </div>
       </div>
     </div>

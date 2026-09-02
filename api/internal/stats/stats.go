@@ -31,6 +31,7 @@ type Overview struct {
 
 type Process struct {
 	PID        int     `json:"pid"`
+	PPID       int     `json:"ppid"`
 	Name       string  `json:"name"`
 	User       string  `json:"user"`
 	CPUPercent float64 `json:"cpuPercent"`
@@ -60,10 +61,10 @@ func NewCollector() *Collector {
 	return &Collector{prevProcs: map[int]procSample{}, usernames: map[uint32]string{}}
 }
 
-// ProcessSort picks which metric the top-50 process cut (and its order) is
-// taken by. Sorting happens before the cut, not after — sorting the client's
-// already-truncated top-50-by-CPU list by memory instead would silently drop
-// high-memory/low-CPU processes that never made that cut.
+// ProcessSort picks which metric the full process list is ordered by before
+// being sent to the client (the client itself re-sorts as needed — e.g. by
+// collapsed-subtree total in tree mode — but this sets the default order for
+// the flat view).
 type ProcessSort string
 
 const (
@@ -180,7 +181,7 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 			continue
 		}
 
-		name, ticks, ok := readProcStat(pid)
+		name, ppid, ticks, ok := readProcStat(pid)
 		if !ok {
 			continue
 		}
@@ -199,6 +200,7 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 
 		procs = append(procs, Process{
 			PID:        pid,
+			PPID:       ppid,
 			Name:       name,
 			User:       c.lookupUsername(uid),
 			CPUPercent: cpuPercent,
@@ -213,37 +215,36 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 	} else {
 		sort.Slice(procs, func(i, j int) bool { return procs[i].CPUPercent > procs[j].CPUPercent })
 	}
-	if len(procs) > 50 {
-		procs = procs[:50]
-	}
 	return procs, nil
 }
 
-// readProcStat parses /proc/[pid]/stat for the process name and total
-// (user+system) cpu ticks. The comm field is parenthesized and may itself
-// contain spaces/parens, so it's located by the last ')' rather than split.
-func readProcStat(pid int) (name string, ticks uint64, ok bool) {
+// readProcStat parses /proc/[pid]/stat for the process name, parent pid, and
+// total (user+system) cpu ticks. The comm field is parenthesized and may
+// itself contain spaces/parens, so it's located by the last ')' rather than
+// split.
+func readProcStat(pid int) (name string, ppid int, ticks uint64, ok bool) {
 	data, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
 	if err != nil {
-		return "", 0, false
+		return "", 0, 0, false
 	}
 	line := string(data)
 	open := strings.IndexByte(line, '(')
 	closeIdx := strings.LastIndexByte(line, ')')
 	if open < 0 || closeIdx < 0 || closeIdx < open {
-		return "", 0, false
+		return "", 0, 0, false
 	}
 	name = line[open+1 : closeIdx]
 
 	fields := strings.Fields(line[closeIdx+1:])
-	// fields[0] is state; utime/stime are fields[11] and [12] (0-indexed
-	// from state) per proc(5).
+	// fields[0] is state, fields[1] is ppid; utime/stime are fields[11] and
+	// [12] (0-indexed from state) per proc(5).
 	if len(fields) < 15 {
-		return "", 0, false
+		return "", 0, 0, false
 	}
+	ppidVal, _ := strconv.Atoi(fields[1])
 	utime, _ := strconv.ParseUint(fields[11], 10, 64)
 	stime, _ := strconv.ParseUint(fields[12], 10, 64)
-	return name, utime + stime, true
+	return name, ppidVal, utime + stime, true
 }
 
 func readProcStatus(pid int) (rss uint64, uid uint32, ok bool) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 export interface ProcessInfo {
   pid: number
+  ppid: number
   name: string
   user: string
   cpuPercent: number
@@ -20,11 +21,11 @@ export interface Overview {
 export type ProcessSort = 'cpu' | 'mem'
 
 /** Subscribes to the dashboard's live CPU/memory/process SSE stream. The
- * process sort is server-side (the backend only keeps the top 50 by
- * whichever metric is requested, so sorting client-side after the fact
- * would miss processes that never made that cut) — changing it reconnects
- * the stream. The browser's EventSource otherwise retries on its own if the
- * connection drops. */
+ * server sends every process (with its default sort order set by `sort`,
+ * used by the flat view); the tree view re-sorts client-side by
+ * collapsed-subtree totals instead. Changing `sort` reconnects the stream.
+ * The browser's EventSource otherwise retries on its own if the connection
+ * drops. */
 export function useDashboardStream(sort: ProcessSort) {
   const [overview, setOverview] = useState<Overview | null>(null)
 
