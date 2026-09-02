@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
@@ -17,6 +16,12 @@ import { cn } from '@/lib/utils'
 import { addFirewallRule, getFirewallStatus, type FirewallStatus, type NewFirewallRule } from './api'
 import { FirewallGrid } from './FirewallGrid'
 import { FirewallTable } from './FirewallTable'
+
+type Protocol = Exclude<NewFirewallRule['protocol'], 'any'>
+type Family = Exclude<NewFirewallRule['family'], 'any'>
+
+const PROTOCOLS: Protocol[] = ['tcp', 'udp']
+const FAMILIES: Family[] = ['ipv4', 'ipv6']
 
 function ToggleChip({
   active,
@@ -63,8 +68,8 @@ export default function FirewallPage() {
   const [action, setAction] = useState<NewFirewallRule['action']>('allow')
   const [from, setFrom] = useState('')
   const [port, setPort] = useState('')
-  const [protocol, setProtocol] = useState<NewFirewallRule['protocol']>('any')
-  const [family, setFamily] = useState<NewFirewallRule['family']>('any')
+  const [protocols, setProtocols] = useState<ReadonlySet<Protocol>>(() => new Set(PROTOCOLS))
+  const [families, setFamilies] = useState<ReadonlySet<Family>>(() => new Set(FAMILIES))
   const [addError, setAddError] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
 
@@ -78,8 +83,8 @@ export default function FirewallPage() {
     setAction('allow')
     setFrom('')
     setPort('')
-    setProtocol('any')
-    setFamily('any')
+    setProtocols(new Set(PROTOCOLS))
+    setFamilies(new Set(FAMILIES))
     setAddError(null)
   }
 
@@ -88,6 +93,8 @@ export default function FirewallPage() {
     setAdding(true)
     setAddError(null)
     try {
+      const protocol: NewFirewallRule['protocol'] = protocols.size === PROTOCOLS.length ? 'any' : protocols.has('tcp') ? 'tcp' : 'udp'
+      const family: NewFirewallRule['family'] = families.size === FAMILIES.length ? 'any' : families.has('ipv4') ? 'ipv4' : 'ipv6'
       const next = await addFirewallRule({ action, from, port, protocol, family })
       setStatus(next)
       setAddOpen(false)
@@ -149,17 +156,20 @@ export default function FirewallPage() {
             </DialogHeader>
 
             <FormRow label={t('firewall.addRule.action')}>
-              <Select value={action} onValueChange={(v) => setAction(v as NewFirewallRule['action'])}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="allow">{t('firewall.action.allow')}</SelectItem>
-                  <SelectItem value="deny">{t('firewall.action.deny')}</SelectItem>
-                  <SelectItem value="reject">{t('firewall.action.reject')}</SelectItem>
-                  <SelectItem value="limit">{t('firewall.action.limit')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap justify-start gap-2">
+                <ToggleChip active={action === 'allow'} onClick={() => setAction('allow')}>
+                  {t('firewall.action.allow')}
+                </ToggleChip>
+                <ToggleChip active={action === 'deny'} onClick={() => setAction('deny')}>
+                  {t('firewall.action.deny')}
+                </ToggleChip>
+                <ToggleChip active={action === 'reject'} onClick={() => setAction('reject')}>
+                  {t('firewall.action.reject')}
+                </ToggleChip>
+                <ToggleChip active={action === 'limit'} onClick={() => setAction('limit')}>
+                  {t('firewall.action.limit')}
+                </ToggleChip>
+              </div>
             </FormRow>
 
             <FormRow label={t('firewall.addRule.port')}>
@@ -173,13 +183,30 @@ export default function FirewallPage() {
 
             <FormRow label={t('firewall.addRule.protocol')}>
               <div className="flex justify-start gap-2">
-                <ToggleChip active={protocol === 'any'} onClick={() => setProtocol('any')}>
-                  {t('firewall.protocol.any')}
-                </ToggleChip>
-                <ToggleChip active={protocol === 'tcp'} onClick={() => setProtocol('tcp')}>
+                <ToggleChip
+                  active={protocols.has('tcp')}
+                  onClick={() =>
+                    setProtocols((current) => {
+                      if (current.size === 1 && current.has('tcp')) return current
+                      const next = new Set(current)
+                      next.has('tcp') ? next.delete('tcp') : next.add('tcp')
+                      return next
+                    })
+                  }
+                >
                   {t('firewall.protocol.tcp')}
                 </ToggleChip>
-                <ToggleChip active={protocol === 'udp'} onClick={() => setProtocol('udp')}>
+                <ToggleChip
+                  active={protocols.has('udp')}
+                  onClick={() =>
+                    setProtocols((current) => {
+                      if (current.size === 1 && current.has('udp')) return current
+                      const next = new Set(current)
+                      next.has('udp') ? next.delete('udp') : next.add('udp')
+                      return next
+                    })
+                  }
+                >
                   {t('firewall.protocol.udp')}
                 </ToggleChip>
               </div>
@@ -187,13 +214,30 @@ export default function FirewallPage() {
 
             <FormRow label={t('firewall.addRule.family')}>
               <div className="flex justify-start gap-2">
-                <ToggleChip active={family === 'any'} onClick={() => setFamily('any')}>
-                  {t('firewall.family.any')}
-                </ToggleChip>
-                <ToggleChip active={family === 'ipv4'} onClick={() => setFamily('ipv4')}>
+                <ToggleChip
+                  active={families.has('ipv4')}
+                  onClick={() =>
+                    setFamilies((current) => {
+                      if (current.size === 1 && current.has('ipv4')) return current
+                      const next = new Set(current)
+                      next.has('ipv4') ? next.delete('ipv4') : next.add('ipv4')
+                      return next
+                    })
+                  }
+                >
                   {t('firewall.family.ipv4')}
                 </ToggleChip>
-                <ToggleChip active={family === 'ipv6'} onClick={() => setFamily('ipv6')}>
+                <ToggleChip
+                  active={families.has('ipv6')}
+                  onClick={() =>
+                    setFamilies((current) => {
+                      if (current.size === 1 && current.has('ipv6')) return current
+                      const next = new Set(current)
+                      next.has('ipv6') ? next.delete('ipv6') : next.add('ipv6')
+                      return next
+                    })
+                  }
+                >
                   {t('firewall.family.ipv6')}
                 </ToggleChip>
               </div>
