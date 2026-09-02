@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Nav } from '@/components/Nav'
 import { AuthProvider, useAuth } from '@/lib/auth'
@@ -12,6 +13,8 @@ import LoginPage from '@/modules/login/Page'
 import ServicesPage from '@/modules/services/Page'
 import SettingsPage from '@/modules/settings/Page'
 
+const TerminalPage = lazy(() => import('@/modules/terminal/Page'))
+
 function Shell() {
   const { state } = useAuth()
 
@@ -23,6 +26,14 @@ function Shell() {
       <div className="min-h-0 grow overflow-y-auto">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route
+            path="/terminal"
+            element={
+              <Suspense fallback={null}>
+                <TerminalPage />
+              </Suspense>
+            }
+          />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/files" element={<FilesPage />} />
           <Route path="/containers" element={<ContainersPage />} />
