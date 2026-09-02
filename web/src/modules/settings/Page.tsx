@@ -40,7 +40,7 @@ export default function SettingsPage() {
     <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6">
       <h1 className="mb-2 text-base text-gray-900 dark:text-gray-100">{t('nav.settings')}</h1>
 
-      <Section label="Language">
+      <Section label={t('settings.language')}>
         <div className="flex gap-4">
           {LOCALES.map((l) => (
             <button
@@ -58,7 +58,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section label="Appearance">
+      <Section label={t('settings.appearance')}>
         <div className="flex gap-4">
           {SCHEMES.map((s) => (
             <button
@@ -73,13 +73,13 @@ export default function SettingsPage() {
                 scheme === s ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
               )}
             >
-              {s}
+              {t(`settings.appearance.${s}` as const)}
             </button>
           ))}
         </div>
       </Section>
 
-      <Section label="Theme color">
+      <Section label={t('settings.themeColor')}>
         <div className="flex flex-wrap gap-3">
           {THEME_HUES.map((h) => (
             <button

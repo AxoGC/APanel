@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { ContainerActionName, ContainerInfo } from './api'
-import { STATE_LABELS, statusClasses } from './format'
+import { formatContainerStatus, STATE_LABELS, statusClasses } from './format'
 
 // Row-based rather than a literal <table> — matches the app's own
 // object-array-data convention (see ProcessGrid) — with a gray-200 divider
@@ -38,7 +38,7 @@ export function ContainerTable({
             <div key={c.id} className="flex items-center gap-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm text-gray-900 dark:text-gray-100">{c.name}</div>
-                <div className="truncate text-xs text-gray-500">{c.status}</div>
+                <div className="truncate text-xs text-gray-500">{formatContainerStatus(c.status, t)}</div>
               </div>
 
               <div className="hidden w-40 shrink-0 truncate text-xs text-gray-500 lg:block">{c.image}</div>

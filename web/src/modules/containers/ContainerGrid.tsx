@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { ContainerActionName, ContainerInfo } from './api'
-import { STATE_LABELS, statusClasses } from './format'
+import { formatContainerStatus, STATE_LABELS, statusClasses } from './format'
 
 // Each container is one grid cell (a card). The container uses the classic
 // gap-px + background trick so a 1px gray-100 line shows through between
@@ -41,7 +41,7 @@ export function ContainerGrid({
               </div>
             </div>
 
-            <div className="truncate text-xs text-gray-500">{c.status}</div>
+            <div className="truncate text-xs text-gray-500">{formatContainerStatus(c.status, t)}</div>
 
             <div className="flex flex-row items-center justify-between gap-2">
               <span className="text-xs text-gray-500">{t('containers.image')}</span>

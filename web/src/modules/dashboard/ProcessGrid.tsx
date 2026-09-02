@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { formatBytes, formatPercent } from '@/lib/format'
+import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { buildProcessForest, sortProcessForest, type ProcessNode } from './processTree'
 import type { ProcessInfo, ProcessSort } from './useDashboardStream'
@@ -108,16 +109,18 @@ function ProcessTreeRow({
   )
 }
 
-const HEADER_ROW = (
+function HeaderRow({ t }: { t: (key: TranslationKey) => string }) {
+  return (
   <div className="flex items-center gap-2 pb-1.5">
     <div className="flex min-w-0 flex-1 items-center gap-1 pl-[calc(0.875rem+0.25rem)] text-xs text-gray-500">
-      Process
+      {t('dashboard.process')}
     </div>
-    <div className="hidden w-20 shrink-0 text-xs text-gray-500 sm:block">User</div>
-    <div className="w-14 shrink-0 text-right text-xs text-gray-500">CPU</div>
-    <div className="w-20 shrink-0 text-right text-xs text-gray-500">Memory</div>
+    <div className="hidden w-20 shrink-0 text-xs text-gray-500 sm:block">{t('dashboard.user')}</div>
+    <div className="w-14 shrink-0 text-right text-xs text-gray-500">{t('dashboard.cpu')}</div>
+    <div className="w-20 shrink-0 text-right text-xs text-gray-500">{t('dashboard.memory')}</div>
   </div>
-)
+  )
+}
 
 // Object-array data uses rows, never a <table>: tables don't reflow onto
 // small screens, and this panel is meant to be read from a phone. Tree mode
@@ -134,6 +137,7 @@ export function ProcessGrid({
   sort: ProcessSort
   tree: boolean
 }) {
+  const { t } = useI18n()
   // Empty by default: every collapsible (depth > 0) node starts collapsed.
   // Root nodes render pre-expanded regardless (see ProcessTreeRow), so the
   // tree still opens showing systemd/kthreadd's direct children.
@@ -157,7 +161,7 @@ export function ProcessGrid({
 
   return (
     <div className="max-w-2xl">
-      {HEADER_ROW}
+      <HeaderRow t={t} />
       {tree
         ? forest.map((root) => (
             <ProcessTreeRow key={root.pid} node={root} depth={0} expanded={expanded} onToggle={toggle} />
