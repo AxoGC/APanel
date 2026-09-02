@@ -66,8 +66,12 @@ function ProcessTreeRow({
   onToggle: (pid: number) => void
 }) {
   const hasChildren = node.children.length > 0
+  // The root level (depth 0) is always systemd/kthreadd's whole-machine
+  // subtree — collapsing it away would hide almost everything, so it has no
+  // collapse affordance at all and is always shown expanded.
+  const collapsible = depth > 0 && hasChildren
   const isExpanded = expanded.has(node.pid)
-  const collapsed = hasChildren && !isExpanded
+  const collapsed = collapsible && !isExpanded
 
   const row = (
     <ProcessRow
@@ -77,20 +81,29 @@ function ProcessTreeRow({
       memRSS={collapsed ? node.totalMemRSS : node.memRSS}
       count={collapsed ? node.totalCount : undefined}
       depth={depth}
-      trigger={hasChildren ? { expanded: isExpanded, onToggle: () => onToggle(node.pid) } : undefined}
+      trigger={collapsible ? { expanded: isExpanded, onToggle: () => onToggle(node.pid) } : undefined}
     />
   )
 
   if (!hasChildren) return row
 
+  const children = node.children.map((child) => (
+    <ProcessTreeRow key={child.pid} node={child} depth={depth + 1} expanded={expanded} onToggle={onToggle} />
+  ))
+
+  if (!collapsible) {
+    return (
+      <>
+        {row}
+        {children}
+      </>
+    )
+  }
+
   return (
     <Collapsible open={isExpanded}>
       {row}
-      <CollapsibleContent>
-        {node.children.map((child) => (
-          <ProcessTreeRow key={child.pid} node={child} depth={depth + 1} expanded={expanded} onToggle={onToggle} />
-        ))}
-      </CollapsibleContent>
+      <CollapsibleContent>{children}</CollapsibleContent>
     </Collapsible>
   )
 }
@@ -121,6 +134,9 @@ export function ProcessGrid({
   sort: ProcessSort
   tree: boolean
 }) {
+  // Empty by default: every collapsible (depth > 0) node starts collapsed.
+  // Root nodes render pre-expanded regardless (see ProcessTreeRow), so the
+  // tree still opens showing systemd/kthreadd's direct children.
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set())
 
   const toggle = (pid: number) => {

@@ -44,24 +44,25 @@ export function buildProcessForest(processes: ProcessInfo[]): ProcessNode[] {
 
 export type ProcessMetric = 'cpu' | 'mem'
 
-function metricValue(node: ProcessNode, metric: ProcessMetric, collapsed: boolean): number {
-  if (metric === 'cpu') return collapsed ? node.totalCpuPercent : node.cpuPercent
-  return collapsed ? node.totalMemRSS : node.memRSS
+function metricValue(node: ProcessNode, metric: ProcessMetric): number {
+  return metric === 'cpu' ? node.totalCpuPercent : node.totalMemRSS
 }
 
-/** Sorts a forest in place, recursively, by the given metric. A node with
- * children that isn't in `expanded` is collapsed and sorts by its subtree
- * total; an expanded node (or a leaf) sorts by its own value — matching
- * whichever number is actually displayed for it. */
-export function sortProcessForest(nodes: ProcessNode[], metric: ProcessMetric, expanded: ReadonlySet<number>): void {
-  nodes.sort((a, b) => {
-    const aCollapsed = a.children.length > 0 && !expanded.has(a.pid)
-    const bCollapsed = b.children.length > 0 && !expanded.has(b.pid)
-    return metricValue(b, metric, bCollapsed) - metricValue(a, metric, aCollapsed)
-  })
+/** Sorts a forest in place, recursively, by the given metric. Always sorts
+ * by each node's subtree total (equal to its own value for a leaf), even
+ * when expanded — expanding a node changes what's *displayed* for it (see
+ * ProcessTreeRow), not where it sits in the order, so a row never jumps
+ * position just because the user opened it. */
+export function sortProcessForest(
+  nodes: ProcessNode[],
+  metric: ProcessMetric,
+  expanded: ReadonlySet<number>,
+  depth = 0,
+): void {
+  nodes.sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
   for (const node of nodes) {
-    if (node.children.length > 0 && expanded.has(node.pid)) {
-      sortProcessForest(node.children, metric, expanded)
+    if (node.children.length > 0 && (depth === 0 || expanded.has(node.pid))) {
+      sortProcessForest(node.children, metric, expanded, depth + 1)
     }
   }
 }

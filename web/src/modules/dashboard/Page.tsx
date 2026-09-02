@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import { Gauge } from './Gauge'
 import { ProcessGrid } from './ProcessGrid'
 import { useDashboardStream, type ProcessSort } from './useDashboardStream'
@@ -44,22 +44,27 @@ export default function DashboardPage() {
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">{t('dashboard.tree')}</span>
-              <Switch checked={tree} onCheckedChange={setTree} />
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">{t('dashboard.sort')}</span>
-              <Select value={sort} onValueChange={(v) => setSort(v as ProcessSort)}>
-                <SelectTrigger size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mem">{t('dashboard.memory')}</SelectItem>
-                  <SelectItem value="cpu">{t('dashboard.cpu')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <button
+              type="button"
+              aria-pressed={tree}
+              onClick={() => setTree((v) => !v)}
+              className={cn(
+                'rounded-md border px-2.5 py-1 text-xs transition-colors',
+                tree
+                  ? 'border-theme-200 bg-theme-50 text-theme-700 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
+              )}
+            >
+              {t('dashboard.tree')}
+            </button>
+            <SegmentedControl
+              value={sort}
+              onChange={setSort}
+              options={[
+                { value: 'mem', label: t('dashboard.memory') },
+                { value: 'cpu', label: t('dashboard.cpu') },
+              ]}
+            />
           </div>
         </div>
         <div className="min-h-0 grow overflow-y-auto">
