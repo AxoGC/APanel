@@ -13,22 +13,26 @@ import (
 // SERVICE_NOT_FOUND is returned when the requested systemd unit doesn't exist.
 const SERVICE_NOT_FOUND response.Code = "SERVICE_NOT_FOUND"
 
-// statesForStatus maps the frontend's status filter to systemd's own
-// ActiveState vocabulary, so the D-Bus call itself does the filtering
-// instead of us fetching everything and filtering in Go. "all" (and any
-// unrecognized value) falls back to service.Manager's unfiltered catalog
-// listing, since systemd has no single native "everything, including units
-// it's never loaded" query.
+// statesForStatus maps the frontend's status filter to a systemd D-Bus
+// "states" filter, so the call itself does the filtering instead of us
+// fetching everything and filtering in Go. systemd's states filter matches
+// against a unit's load, active, *or* sub state — so passing the SubState
+// value directly ("running", "dead", "failed") is exact, unlike e.g.
+// ActiveState "active", which also matches SubState "exited" (a completed
+// RemainAfterExit=yes oneshot) and would lump exited units in with running
+// ones. "all" (and any unrecognized value) falls back to service.Manager's
+// unfiltered catalog listing, since systemd has no single native
+// "everything, including units it's never loaded" query.
 func statesForStatus(status string) []string {
 	switch status {
 	case "failed":
 		return []string{"failed"}
 	case "stopped":
-		return []string{"inactive"}
+		return []string{"dead"}
 	case "all":
 		return nil
 	default: // "running", and no status given at all
-		return []string{"active"}
+		return []string{"running"}
 	}
 }
 

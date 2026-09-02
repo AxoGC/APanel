@@ -39,7 +39,7 @@ func New(ctx context.Context) (*Manager, error) {
 }
 
 // List returns .service units. With states set, it filters at the D-Bus
-// level via systemd's own ListUnitsFiltered (e.g. []string{"active"}) — this
+// level via systemd's own ListUnitsFiltered (e.g. []string{"running"}) — this
 // only sees units systemd currently has loaded. With states empty, it falls
 // back to the full installed catalog (ListUnitFiles merged with live state),
 // so services that are installed but were never started still show up.
