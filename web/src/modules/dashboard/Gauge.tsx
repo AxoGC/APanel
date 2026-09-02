@@ -78,7 +78,12 @@ export function Gauge({
 
   return (
     <div className="flex flex-col items-center">
-      <div ref={containerRef} className="h-32 w-full" />
+      {/* relative: echarts positions its hover-interaction canvas layer
+          absolutely against the nearest positioned ancestor — without this,
+          it lands relative to some ancestor further up the tree and the
+          hovered/clicked element appears to vanish until the layer merges
+          back on mouseout. */}
+      <div ref={containerRef} className="relative h-32 w-full" />
       {details && details.length > 0 && (
         <div className="-mt-2 flex flex-col items-center">
           {details.map((line) => (
