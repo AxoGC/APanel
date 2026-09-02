@@ -11,7 +11,7 @@ function statusClasses(subState: string): [dot: string, text: string] {
 }
 
 // The status column reuses the filter's own vocabulary (services.filter.*)
-// so a row's displayed status always matches whichever filter option would
+// so a card's displayed status always matches whichever filter option would
 // select it — see statesForStatus on the backend for the running/exited/dead
 // SubState mapping this mirrors.
 const SUBSTATE_LABELS: Record<string, TranslationKey> = {
@@ -36,8 +36,9 @@ function displayName(name: string): string {
   return name.endsWith('.service') ? name.slice(0, -'.service'.length) : name
 }
 
-// Object-array data uses a grid, never a <table>: it needs to reflow onto a
-// phone screen, same reasoning as the dashboard's process list.
+// Each unit is one grid cell (a card); layout inside a card is flex-col of
+// flex-row rows, not a shared table-like grid — this is what lets it reflow
+// cleanly at every breakpoint instead of just collapsing columns.
 export function ServiceGrid({
   units,
   pending,
@@ -50,26 +51,32 @@ export function ServiceGrid({
   const { t } = useI18n()
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto_auto_auto]">
-      <div className="text-xs text-gray-500">{t('services.name')}</div>
-      <div className="hidden text-xs text-gray-500 sm:block">{t('services.enablement')}</div>
-      <div className="text-xs text-gray-500">{t('services.status')}</div>
-      <div className="text-right text-xs text-gray-500">{t('services.actions')}</div>
-
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {units.map((u) => {
         const busy = pending[u.name]
         const [dot, text] = statusClasses(u.subState)
         const togglable = u.unitFileState === 'enabled' || u.unitFileState === 'disabled'
         return (
-          <div key={u.name} className="contents">
-            <div className="min-w-0 self-center">
-              <div className="truncate text-sm text-gray-700 dark:text-gray-300">{displayName(u.name)}</div>
-              {u.description && u.description !== u.name && (
-                <div className="truncate text-xs text-gray-500">{u.description}</div>
-              )}
+          <div
+            key={u.name}
+            className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-800"
+          >
+            <div className="flex flex-row items-center justify-between gap-2">
+              <span className="truncate text-sm text-gray-900 dark:text-gray-100">{displayName(u.name)}</span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className={cn('size-1.5 rounded-full', dot)} />
+                <span className={cn('text-xs', text)}>
+                  {SUBSTATE_LABELS[u.subState] ? t(SUBSTATE_LABELS[u.subState]) : u.subState}
+                </span>
+              </div>
             </div>
 
-            <div className="hidden items-center sm:flex">
+            {u.description && u.description !== u.name && (
+              <div className="truncate text-xs text-gray-500">{u.description}</div>
+            )}
+
+            <div className="flex flex-row items-center justify-between gap-2">
+              <span className="text-xs text-gray-500">{t('services.enablement')}</span>
               {togglable ? (
                 <button
                   type="button"
@@ -86,14 +93,7 @@ export function ServiceGrid({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <span className={cn('size-1.5 rounded-full', dot)} />
-              <span className={cn('text-xs', text)}>
-                {SUBSTATE_LABELS[u.subState] ? t(SUBSTATE_LABELS[u.subState]) : u.subState}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-end gap-0.5">
+            <div className="flex flex-row items-center justify-end gap-0.5">
               <Button
                 variant="ghost"
                 size="icon-sm"

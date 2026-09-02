@@ -20,8 +20,9 @@ const STATE_LABELS: Record<string, TranslationKey> = {
   dead: 'containers.state.dead',
 }
 
-// Object-array data uses a grid, never a <table>: it needs to reflow onto a
-// phone screen, same reasoning as the dashboard's process list.
+// Each container is one grid cell (a card); layout inside a card is flex-col
+// of flex-row rows, not a shared table-like grid — this is what lets it
+// reflow cleanly at every breakpoint instead of just collapsing columns.
 export function ContainerGrid({
   containers,
   pending,
@@ -34,32 +35,31 @@ export function ContainerGrid({
   const { t } = useI18n()
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto_auto_auto]">
-      <div className="text-xs text-gray-500">{t('containers.name')}</div>
-      <div className="hidden text-xs text-gray-500 sm:block">{t('containers.image')}</div>
-      <div className="text-xs text-gray-500">{t('containers.status')}</div>
-      <div className="text-right text-xs text-gray-500">{t('containers.actions')}</div>
-
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {containers.map((c) => {
         const busy = pending[c.id]
         const [dot, text] = statusClasses(c.state)
         return (
-          <div key={c.id} className="contents">
-            <div className="min-w-0 self-center">
-              <div className="truncate text-sm text-gray-700 dark:text-gray-300">{c.name}</div>
-              <div className="truncate text-xs text-gray-500">{c.status}</div>
+          <div
+            key={c.id}
+            className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-800"
+          >
+            <div className="flex flex-row items-center justify-between gap-2">
+              <span className="truncate text-sm text-gray-900 dark:text-gray-100">{c.name}</span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className={cn('size-1.5 rounded-full', dot)} />
+                <span className={cn('text-xs', text)}>{STATE_LABELS[c.state] ? t(STATE_LABELS[c.state]) : c.state}</span>
+              </div>
             </div>
 
-            <div className="hidden items-center sm:flex">
+            <div className="truncate text-xs text-gray-500">{c.status}</div>
+
+            <div className="flex flex-row items-center justify-between gap-2">
+              <span className="text-xs text-gray-500">{t('containers.image')}</span>
               <span className="truncate text-xs text-gray-500">{c.image}</span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <span className={cn('size-1.5 rounded-full', dot)} />
-              <span className={cn('text-xs', text)}>{STATE_LABELS[c.state] ? t(STATE_LABELS[c.state]) : c.state}</span>
-            </div>
-
-            <div className="flex items-center justify-end gap-0.5">
+            <div className="flex flex-row items-center justify-end gap-0.5">
               <Button
                 variant="ghost"
                 size="icon-sm"
