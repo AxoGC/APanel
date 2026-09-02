@@ -1,0 +1,17 @@
+# plan / notes (private, not part of the repo)
+/plan.txt
+
+# Go
+/api/apanel
+/api/*.db
+/api/*.db-journal
+/api/tmp/
+
+# frontend
+/web/node_modules/
+/web/dist/
+/web/.vite/
+
+# misc
+*.log
+.DS_Store

@@ -1,0 +1,11 @@
+[Unit]
+Description=apanel
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/apanel
+Environment=APANEL_PASSWORD=change-me
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
