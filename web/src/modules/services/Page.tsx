@@ -6,10 +6,13 @@ import { useI18n } from '@/lib/i18n'
 import { listServices, runServiceAction, type ServiceActionName, type ServiceUnit } from './api'
 import { ServiceGrid } from './ServiceGrid'
 
+type StatusFilter = 'running' | 'failed' | 'stopped' | 'all'
+
 export default function ServicesPage() {
   const { t } = useI18n()
   const [units, setUnits] = useState<ServiceUnit[] | null>(null)
   const [query, setQuery] = useState('')
+  const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ServiceActionName | undefined>>({})
   const [error, setError] = useState<string | null>(null)
 
@@ -36,15 +39,19 @@ export default function ServicesPage() {
 
   const filtered = useMemo(() => {
     if (!units) return []
+    let result = units
+    if (status === 'running') result = result.filter((u) => u.subState === 'running')
+    else if (status === 'failed') result = result.filter((u) => u.subState === 'failed')
+    else if (status === 'stopped') result = result.filter((u) => u.subState !== 'running' && u.subState !== 'failed')
+
     const q = query.trim().toLowerCase()
-    if (!q) return units
-    return units.filter((u) => u.name.toLowerCase().includes(q) || u.description.toLowerCase().includes(q))
-  }, [units, query])
+    if (q) result = result.filter((u) => u.name.toLowerCase().includes(q) || u.description.toLowerCase().includes(q))
+    return result
+  }, [units, query, status])
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.services')}</h1>
+      <div className="flex items-center gap-3">
         <div className="relative w-48 sm:w-64">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
           <Input
@@ -54,6 +61,16 @@ export default function ServicesPage() {
             className="pl-8"
           />
         </div>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as StatusFilter)}
+          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+        >
+          <option value="running">{t('services.filter.running')}</option>
+          <option value="failed">{t('services.filter.failed')}</option>
+          <option value="stopped">{t('services.filter.stopped')}</option>
+          <option value="all">{t('services.filter.all')}</option>
+        </select>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
