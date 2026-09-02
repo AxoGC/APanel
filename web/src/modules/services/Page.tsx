@@ -64,7 +64,7 @@ export default function ServicesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t('services.status')}</span>
+          <span className="hidden text-xs text-gray-500 md:inline">{t('services.status')}</span>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
             <SelectTrigger>
               <SelectValue />

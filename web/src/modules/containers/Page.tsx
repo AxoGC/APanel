@@ -64,7 +64,7 @@ export default function ContainersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t('containers.status')}</span>
+          <span className="hidden text-xs text-gray-500 md:inline">{t('containers.status')}</span>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
             <SelectTrigger>
               <SelectValue />
