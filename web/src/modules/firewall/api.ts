@@ -1,10 +1,13 @@
 import { apiFetch } from '@/lib/api'
 
 export interface FirewallRule {
-  number: number
+  numbers: number[]
   to: string
   action: string
   from: string
+  protocol?: 'tcp' | 'udp'
+  ipv4: boolean
+  ipv6: boolean
 }
 
 export interface FirewallStatus {
