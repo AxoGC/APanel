@@ -1,0 +1,66 @@
+package httpserver
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+
+	"apanel/internal/container"
+	"apanel/internal/response"
+)
+
+// CONTAINER_NOT_FOUND is returned when the requested container doesn't exist.
+const CONTAINER_NOT_FOUND response.Code = "CONTAINER_NOT_FOUND"
+
+// containerStatesForStatus maps the frontend's status filter straight onto
+// Docker's own container state vocabulary — unlike systemd units, a
+// container's single State field already is the concept the filter needs,
+// so no translation layer is needed here. "all" (and any unrecognized
+// value) returns every container regardless of state.
+func containerStatesForStatus(status string) []string {
+	switch status {
+	case "exited":
+		return []string{"exited"}
+	case "all":
+		return nil
+	default: // "running", and no status given at all
+		return []string{"running"}
+	}
+}
+
+func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
+	states := containerStatesForStatus(r.URL.Query().Get("status"))
+	containers, err := s.containers.List(r.Context(), states)
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+
+	if q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q"))); q != "" {
+		matched := containers[:0]
+		for _, c := range containers {
+			if strings.Contains(strings.ToLower(c.Name), q) || strings.Contains(strings.ToLower(c.Image), q) {
+				matched = append(matched, c)
+			}
+		}
+		containers = matched
+	}
+
+	response.WriteOK(w, containers)
+}
+
+func (s *Server) containerAction(action func(context.Context, string) error) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if err := action(r.Context(), id); err != nil {
+			if errors.Is(err, container.ErrNotFound) {
+				response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
+				return
+			}
+			response.WriteInternalError(w, err)
+			return
+		}
+		response.WriteOK(w, nil)
+	}
+}

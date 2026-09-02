@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"apanel/internal/auth"
+	"apanel/internal/container"
 	"apanel/internal/response"
 	"apanel/internal/service"
 	"apanel/internal/stats"
@@ -20,14 +21,15 @@ import (
 var embeddedDist embed.FS
 
 type Server struct {
-	auth     *auth.Service
-	stats    *stats.Collector
-	services *service.Manager
-	mux      *http.ServeMux
+	auth       *auth.Service
+	stats      *stats.Collector
+	services   *service.Manager
+	containers *container.Manager
+	mux        *http.ServeMux
 }
 
-func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager) *Server {
-	s := &Server{auth: authSvc, stats: statsCollector, services: services, mux: http.NewServeMux()}
+func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager) *Server {
+	s := &Server{auth: authSvc, stats: statsCollector, services: services, containers: containers, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -49,6 +51,11 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/services/{name}/restart", s.auth.Middleware(s.serviceAction(s.services.Restart)))
 	s.mux.Handle("POST /api/services/{name}/enable", s.auth.Middleware(s.serviceAction(s.services.Enable)))
 	s.mux.Handle("POST /api/services/{name}/disable", s.auth.Middleware(s.serviceAction(s.services.Disable)))
+
+	s.mux.Handle("GET /api/containers", s.auth.Middleware(http.HandlerFunc(s.listContainers)))
+	s.mux.Handle("POST /api/containers/{id}/start", s.auth.Middleware(s.containerAction(s.containers.Start)))
+	s.mux.Handle("POST /api/containers/{id}/stop", s.auth.Middleware(s.containerAction(s.containers.Stop)))
+	s.mux.Handle("POST /api/containers/{id}/restart", s.auth.Middleware(s.containerAction(s.containers.Restart)))
 
 	dist, err := fs.Sub(embeddedDist, "dist")
 	if err != nil {
