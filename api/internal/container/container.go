@@ -43,6 +43,13 @@ func New() (*Manager, error) {
 	return &Manager{cli: cli}, nil
 }
 
+// Available reports whether the Docker daemon is actually reachable right
+// now (unlike New, which never dials the daemon, this makes one real call).
+func (m *Manager) Available(ctx context.Context) bool {
+	_, err := m.cli.Ping(ctx)
+	return err == nil
+}
+
 // List returns containers, optionally filtered by Docker's own state
 // vocabulary (e.g. []string{"running"}) via the Engine API's native status
 // filter — the same "push filtering down to the source" approach used for

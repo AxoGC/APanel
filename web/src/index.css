@@ -173,3 +173,14 @@ body {
     @apply font-sans;
   }
 }
+
+/* Hides the scrollbar on an overflow-x-auto container (used by the mobile
+   bottom nav) while keeping it scrollable — the edge fade cues take over as
+   the scroll affordance instead. */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

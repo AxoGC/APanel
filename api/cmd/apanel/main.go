@@ -9,6 +9,7 @@ import (
 	"apanel/internal/config"
 	"apanel/internal/container"
 	"apanel/internal/db"
+	"apanel/internal/firewall"
 	"apanel/internal/history"
 	"apanel/internal/httpserver"
 	"apanel/internal/service"
@@ -37,10 +38,11 @@ func main() {
 	}
 
 	historyMgr := history.New()
+	firewallMgr := firewall.New()
 
 	authSvc := auth.New(gormDB, cfg.Password)
 	statsCollector := stats.NewCollector()
-	server := httpserver.New(authSvc, statsCollector, services, containers, historyMgr)
+	server := httpserver.New(authSvc, statsCollector, services, containers, historyMgr, firewallMgr)
 
 	log.Printf("apanel listening on %s", cfg.ListenAddr)
 	if err := http.ListenAndServe(cfg.ListenAddr, server); err != nil {

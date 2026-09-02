@@ -1,5 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
+import { LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/auth'
 import { useI18n, type Locale } from '@/lib/i18n'
 import {
   getStoredScheme,
@@ -26,6 +29,7 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
 
 export default function SettingsPage() {
   const { locale, setLocale, t } = useI18n()
+  const { logout } = useAuth()
   const [scheme, setScheme] = useState<ColorScheme>(getStoredScheme)
   const [hue, setHue] = useState<ThemeHue>(getStoredThemeHue)
 
@@ -91,6 +95,13 @@ export default function SettingsPage() {
             />
           ))}
         </div>
+      </Section>
+
+      <Section label={t('settings.account')}>
+        <Button variant="outline" size="sm" onClick={() => void logout()}>
+          <LogOut />
+          {t('settings.signOut')}
+        </Button>
       </Section>
     </div>
   )

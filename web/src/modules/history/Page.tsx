@@ -20,33 +20,14 @@ export default function HistoryPage() {
   const { t } = useI18n()
   const [daysAgo, setDaysAgo] = useState(0)
   const [day, setDay] = useState<HistoryDay | null>(null)
-  const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setError(null)
     getHistory(daysAgo)
-      .then((d) => {
-        setDay(d)
-        setUnavailable(false)
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.code === 'SYSSTAT_UNAVAILABLE') {
-          setUnavailable(true)
-          setDay(null)
-          return
-        }
-        setError(err instanceof ApiError ? err.message : String(err))
-      })
+      .then(setDay)
+      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
   }, [daysAgo])
-
-  if (unavailable) {
-    return (
-      <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-        <p className="text-sm text-gray-500">{t('history.unavailable')}</p>
-      </div>
-    )
-  }
 
   const last = day && day.points.length > 0 ? day.points[day.points.length - 1] : null
 

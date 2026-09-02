@@ -1,89 +1,81 @@
-import { Box, Gauge, History, LogOut, Menu, Server, Settings } from 'lucide-react'
+import { Box, Gauge, History, Server, Settings, Shield } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useAuth } from '@/lib/auth'
-import { useI18n } from '@/lib/i18n'
+import { useFeatures, type Features } from '@/lib/features'
+import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 const items = [
   { to: '/', labelKey: 'nav.dashboard', icon: Gauge },
   { to: '/services', labelKey: 'nav.services', icon: Server },
-  { to: '/containers', labelKey: 'nav.containers', icon: Box },
-  { to: '/history', labelKey: 'nav.history', icon: History },
+  { to: '/containers', labelKey: 'nav.containers', icon: Box, feature: 'containers' },
+  { to: '/history', labelKey: 'nav.history', icon: History, feature: 'history' },
+  { to: '/firewall', labelKey: 'nav.firewall', icon: Shield, feature: 'firewall' },
   { to: '/settings', labelKey: 'nav.settings', icon: Settings },
-] as const
+] satisfies { to: string; labelKey: TranslationKey; icon: typeof Gauge; feature?: keyof Features }[]
+
+function itemClasses(isActive: boolean): string {
+  return cn(
+    'flex shrink-0 flex-col items-center justify-center gap-1 px-3 py-2 text-xs',
+    'md:w-full md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
+    isActive ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
+  )
+}
+
+/** Fade cues at the ends of the mobile bottom nav, shown only while there's
+ * more to scroll to in that direction — the scrollbar itself is hidden. */
+function useScrollCues() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = () => {
+      setCanScrollLeft(el.scrollLeft > 4)
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener('scroll', update)
+      observer.disconnect()
+    }
+  }, [])
+
+  return { ref, canScrollLeft, canScrollRight }
+}
 
 export function Nav() {
   const { t } = useI18n()
-  const { logout } = useAuth()
+  const features = useFeatures()
+  const { ref, canScrollLeft, canScrollRight } = useScrollCues()
+
+  const visibleItems = items.filter((item) => !item.feature || features[item.feature])
 
   return (
-    <nav className="flex items-center justify-between px-4 py-3 sm:px-6">
-      <div className="hidden items-center gap-6 md:flex">
-        {items.map(({ to, labelKey, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-1.5 text-sm',
-                isActive ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
-              )
-            }
-          >
-            <Icon className="size-4" />
-            {t(labelKey)}
+    <nav className="relative shrink-0 border-t border-gray-200 md:w-48 md:border-t-0 md:border-r dark:border-gray-800">
+      <div
+        ref={ref}
+        className="scrollbar-hide flex overflow-x-auto md:h-full md:flex-col md:overflow-x-visible md:overflow-y-auto md:p-2"
+      >
+        {visibleItems.map(({ to, labelKey, icon: Icon }) => (
+          <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => itemClasses(isActive)}>
+            <Icon className="size-5 md:size-4" />
+            <span>{t(labelKey)}</span>
           </NavLink>
         ))}
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            aria-label={t('nav.menu')}
-            className="flex items-center gap-1.5 text-sm text-gray-700 md:hidden dark:text-gray-300"
-          >
-            <Menu className="size-4" />
-            {t('nav.menu')}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {items.map(({ to, labelKey, icon: Icon }) => (
-            <DropdownMenuItem key={to} asChild>
-              <NavLink
-                to={to}
-                end={to === '/'}
-                className={({ isActive }) =>
-                  cn('flex items-center gap-2', isActive && 'text-theme-600 dark:text-theme-400')
-                }
-              >
-                <Icon className="size-4" />
-                {t(labelKey)}
-              </NavLink>
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuItem onSelect={() => void logout()} className="flex items-center gap-2">
-            <LogOut className="size-4" />
-            {t('nav.logout')}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <button
-        type="button"
-        onClick={() => void logout()}
-        aria-label={t('nav.logout')}
-        className="hidden items-center gap-1.5 text-sm text-gray-700 md:flex dark:text-gray-300"
-      >
-        <LogOut className="size-4" />
-      </button>
+      {canScrollLeft && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-background to-transparent md:hidden" />
+      )}
+      {canScrollRight && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background to-transparent md:hidden" />
+      )}
     </nav>
   )
 }
