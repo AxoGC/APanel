@@ -38,14 +38,45 @@ func New(ctx context.Context) (*Manager, error) {
 	return &Manager{conn: conn}, nil
 }
 
-// List returns every installed .service unit (not just the ones systemd
-// currently has loaded), enriched with live state where available.
+// List returns .service units. With states set, it filters at the D-Bus
+// level via systemd's own ListUnitsFiltered (e.g. []string{"active"}) — this
+// only sees units systemd currently has loaded. With states empty, it falls
+// back to the full installed catalog (ListUnitFiles merged with live state),
+// so services that are installed but were never started still show up.
 // Template units (name@.service) are skipped: they have no single state.
-func (m *Manager) List(ctx context.Context) ([]Unit, error) {
+func (m *Manager) List(ctx context.Context, states []string) ([]Unit, error) {
 	files, err := m.conn.ListUnitFilesContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+	enablement := make(map[string]string, len(files))
+	for _, f := range files {
+		enablement[filepath.Base(f.Path)] = f.Type
+	}
+
+	if len(states) > 0 {
+		loaded, err := m.conn.ListUnitsFilteredContext(ctx, states)
+		if err != nil {
+			return nil, err
+		}
+		var units []Unit
+		for _, st := range loaded {
+			if !strings.HasSuffix(st.Name, ".service") {
+				continue
+			}
+			units = append(units, Unit{
+				Name:          st.Name,
+				Description:   st.Description,
+				LoadState:     st.LoadState,
+				ActiveState:   st.ActiveState,
+				SubState:      st.SubState,
+				UnitFileState: enablement[st.Name],
+			})
+		}
+		sort.Slice(units, func(i, j int) bool { return units[i].Name < units[j].Name })
+		return units, nil
+	}
+
 	loaded, err := m.conn.ListUnitsContext(ctx)
 	if err != nil {
 		return nil, err

@@ -9,8 +9,12 @@ export interface ServiceUnit {
   unitFileState: string
 }
 
-export function listServices() {
-  return apiFetch<ServiceUnit[]>('/services')
+export type StatusFilter = 'running' | 'failed' | 'stopped' | 'all'
+
+export function listServices(params: { status: StatusFilter; q: string }) {
+  const search = new URLSearchParams({ status: params.status })
+  if (params.q) search.set('q', params.q)
+  return apiFetch<ServiceUnit[]>(`/services?${search}`)
 }
 
 export type ServiceActionName = 'start' | 'stop' | 'restart' | 'enable' | 'disable'

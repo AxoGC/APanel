@@ -1,12 +1,17 @@
 import { Search } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
-import { listServices, runServiceAction, type ServiceActionName, type ServiceUnit } from './api'
+import {
+  listServices,
+  runServiceAction,
+  type ServiceActionName,
+  type ServiceUnit,
+  type StatusFilter,
+} from './api'
 import { ServiceGrid } from './ServiceGrid'
-
-type StatusFilter = 'running' | 'failed' | 'stopped' | 'all'
 
 export default function ServicesPage() {
   const { t } = useI18n()
@@ -17,12 +22,19 @@ export default function ServicesPage() {
   const [error, setError] = useState<string | null>(null)
 
   function refresh() {
-    return listServices().then(setUnits)
+    return listServices({ status, q: query }).then(setUnits)
   }
 
+  // The backend owns filtering (status maps straight to systemd's own
+  // ListUnitsFiltered where possible); a fresh request goes out on every
+  // filter change, debounced so typing doesn't fire one per keystroke.
   useEffect(() => {
-    refresh().catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
-  }, [])
+    const timer = setTimeout(() => {
+      refresh().catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+    }, 250)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, query])
 
   async function handleAction(name: string, action: ServiceActionName) {
     setError(null)
@@ -37,18 +49,6 @@ export default function ServicesPage() {
     }
   }
 
-  const filtered = useMemo(() => {
-    if (!units) return []
-    let result = units
-    if (status === 'running') result = result.filter((u) => u.subState === 'running')
-    else if (status === 'failed') result = result.filter((u) => u.subState === 'failed')
-    else if (status === 'stopped') result = result.filter((u) => u.subState !== 'running' && u.subState !== 'failed')
-
-    const q = query.trim().toLowerCase()
-    if (q) result = result.filter((u) => u.name.toLowerCase().includes(q) || u.description.toLowerCase().includes(q))
-    return result
-  }, [units, query, status])
-
   return (
     <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center gap-3">
@@ -61,23 +61,24 @@ export default function ServicesPage() {
             className="pl-8"
           />
         </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as StatusFilter)}
-          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-        >
-          <option value="running">{t('services.filter.running')}</option>
-          <option value="failed">{t('services.filter.failed')}</option>
-          <option value="stopped">{t('services.filter.stopped')}</option>
-          <option value="all">{t('services.filter.all')}</option>
-        </select>
+        <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="running">{t('services.filter.running')}</SelectItem>
+            <SelectItem value="failed">{t('services.filter.failed')}</SelectItem>
+            <SelectItem value="stopped">{t('services.filter.stopped')}</SelectItem>
+            <SelectItem value="all">{t('services.filter.all')}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="min-h-0 grow overflow-y-auto">
-        {units && filtered.length === 0 && <p className="text-sm text-gray-500">{t('services.empty')}</p>}
-        {filtered.length > 0 && <ServiceGrid units={filtered} pending={pending} onAction={handleAction} />}
+        {units && units.length === 0 && <p className="text-sm text-gray-500">{t('services.empty')}</p>}
+        {units && units.length > 0 && <ServiceGrid units={units} pending={pending} onAction={handleAction} />}
       </div>
     </div>
   )
