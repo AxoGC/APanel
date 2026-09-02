@@ -36,7 +36,7 @@ export function ServiceTable({
           const [dot, text] = statusClasses(u.subState)
           const togglable = u.unitFileState === 'enabled' || u.unitFileState === 'disabled'
           return (
-            <div key={u.name} className="flex items-center gap-3 py-2">
+            <div key={u.name} className="flex items-center gap-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm text-gray-900 dark:text-gray-100">{displayName(u.name)}</div>
                 {u.description && u.description !== u.name && (

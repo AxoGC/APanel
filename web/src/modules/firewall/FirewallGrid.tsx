@@ -29,7 +29,7 @@ export function FirewallGrid({ rules }: { rules: FirewallRule[] }) {
       {rules.map((rule) => {
         const portName = portNameFor(rule.to)
         return (
-          <div key={rule.numbers.join('-')} className="flex flex-col gap-2 bg-background p-4">
+          <div key={rule.numbers.join('-')} className="flex flex-col gap-2 bg-background p-4 hover:bg-gray-100 dark:hover:bg-gray-800">
             <div className="flex flex-row items-center justify-between gap-2">
               <div className="flex min-w-0 items-baseline gap-1.5">
                 <span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>

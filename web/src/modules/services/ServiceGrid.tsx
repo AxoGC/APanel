@@ -32,7 +32,7 @@ export function ServiceGrid({
         return (
           <div
             key={u.name}
-            className="flex flex-col gap-2 bg-background p-4"
+            className="flex flex-col gap-2 bg-background p-4 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <div className="flex flex-row items-center justify-between gap-2">
               <span className="truncate text-sm text-gray-900 dark:text-gray-100">{displayName(u.name)}</span>
