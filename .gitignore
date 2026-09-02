@@ -6,11 +6,17 @@
 /api/*.db
 /api/*.db-journal
 /api/tmp/
+/api/dev.env
 
 # frontend
 /web/node_modules/
 /web/dist/
 /web/.vite/
+
+# real frontend build embedded into the Go binary (produced by
+# `make build-web`); only the fallback placeholder index.html is tracked
+/api/internal/httpserver/dist/*
+!/api/internal/httpserver/dist/index.html
 
 # misc
 *.log

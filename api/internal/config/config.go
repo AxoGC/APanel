@@ -1,14 +1,13 @@
-// Package config loads apanel's startup configuration from environment
-// variables, optionally pre-populated from a dotenv-style file (default
-// /etc/apanel/config.env). Real environment variables always win over the
-// file, matching godotenv's load semantics.
+// Package config reads apanel's startup configuration straight from the
+// process environment. It has no opinion on where those variables come
+// from — in production that's systemd's EnvironmentFile= (see
+// deploy/apanel.service and deploy/config.example.env); in development
+// it's whatever the caller exported before running the binary.
 package config
 
 import (
 	"fmt"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -20,22 +19,9 @@ type Config struct {
 	Password string
 }
 
-const defaultConfigPath = "/etc/apanel/config.env"
 const defaultDSN = "sqlite://./apanel.db"
 
 func Load() (*Config, error) {
-	path := os.Getenv("APANEL_CONFIG")
-	if path == "" {
-		path = defaultConfigPath
-	}
-	if _, err := os.Stat(path); err == nil {
-		if err := godotenv.Load(path); err != nil {
-			return nil, fmt.Errorf("read config %s: %w", path, err)
-		}
-	} else if !os.IsNotExist(err) {
-		return nil, fmt.Errorf("read config %s: %w", path, err)
-	}
-
 	cfg := &Config{
 		ListenAddr: os.Getenv("APANEL_LISTEN_ADDR"),
 		DSN:        os.Getenv("APANEL_DSN"),
