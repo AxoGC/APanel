@@ -22,7 +22,7 @@ export function FirewallTable({ rules }: { rules: FirewallRule[] }) {
         {rules.map((rule) => {
           const portName = portNameFor(rule.to)
           return (
-            <div key={rule.numbers.join('-')} className="flex items-center gap-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <div key={rule.numbers.join('-')} className="flex items-center gap-3 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
               <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
                 <span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>
                 {portName && <span className="shrink-0 text-xs text-gray-500">{portName}</span>}

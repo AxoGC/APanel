@@ -35,7 +35,7 @@ export function ContainerTable({
           const busy = pending[c.id]
           const [dot, text] = statusClasses(c.state)
           return (
-            <div key={c.id} className="flex items-center gap-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <div key={c.id} className="flex items-center gap-3 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm text-gray-900 dark:text-gray-100">{c.name}</div>
                 <div className="truncate text-xs text-gray-500">{formatContainerStatus(c.status, t)}</div>
