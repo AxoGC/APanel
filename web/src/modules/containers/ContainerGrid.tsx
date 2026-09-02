@@ -52,30 +52,34 @@ export function ContainerGrid({
               <Button variant="ghost" size="icon-sm" aria-label={t('containers.logs')} onClick={() => onShowLogs(c)}>
                 <ScrollText />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('containers.start')}
-                disabled={!!busy || c.state === 'running'}
-                onClick={() => onAction(c.id, 'start')}
-              >
-                {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
-              </Button>
-              <ConfirmIconButton
-                icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
-                label={t('containers.stop')}
-                actionLabel={t('containers.stop')}
-                title={t('containers.confirmStop.title')}
-                description={
-                  <>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{c.name}</span>
-                    {' — '}
-                    {t('containers.confirmStop.description')}
-                  </>
-                }
-                disabled={!!busy || c.state !== 'running'}
-                onConfirm={() => onAction(c.id, 'stop')}
-              />
+              {c.state !== 'running' && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('containers.start')}
+                  disabled={!!busy}
+                  onClick={() => onAction(c.id, 'start')}
+                >
+                  {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
+                </Button>
+              )}
+              {c.state === 'running' && (
+                <ConfirmIconButton
+                  icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
+                  label={t('containers.stop')}
+                  actionLabel={t('containers.stop')}
+                  title={t('containers.confirmStop.title')}
+                  description={
+                    <>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{c.name}</span>
+                      {' — '}
+                      {t('containers.confirmStop.description')}
+                    </>
+                  }
+                  disabled={!!busy}
+                  onConfirm={() => onAction(c.id, 'stop')}
+                />
+              )}
               <ConfirmIconButton
                 icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />}
                 label={t('containers.restart')}
