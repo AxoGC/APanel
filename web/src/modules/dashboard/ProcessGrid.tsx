@@ -67,10 +67,7 @@ function ProcessTreeRow({
   onToggle: (pid: number) => void
 }) {
   const hasChildren = node.children.length > 0
-  // The root level (depth 0) is always systemd/kthreadd's whole-machine
-  // subtree — collapsing it away would hide almost everything, so it has no
-  // collapse affordance at all and is always shown expanded.
-  const collapsible = depth > 0 && hasChildren
+  const collapsible = hasChildren
   const isExpanded = expanded.has(node.pid)
   const collapsed = collapsible && !isExpanded
 
@@ -138,9 +135,7 @@ export function ProcessGrid({
   tree: boolean
 }) {
   const { t } = useI18n()
-  // Empty by default: every collapsible (depth > 0) node starts collapsed.
-  // Root nodes render pre-expanded regardless (see ProcessTreeRow), so the
-  // tree still opens showing systemd/kthreadd's direct children.
+  // Empty by default: every node with children starts collapsed.
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set())
 
   const toggle = (pid: number) => {
@@ -158,12 +153,13 @@ export function ProcessGrid({
     sortProcessForest(roots, sort, expanded)
     return roots
   }, [processes, sort, tree, expanded])
+  const visibleRoots = forest.length === 1 ? forest[0].children : forest
 
   return (
     <div className="max-w-2xl">
       <HeaderRow t={t} />
       {tree
-        ? forest.map((root) => (
+        ? visibleRoots.map((root) => (
             <ProcessTreeRow key={root.pid} node={root} depth={0} expanded={expanded} onToggle={toggle} />
           ))
         : processes.map((p) => (
