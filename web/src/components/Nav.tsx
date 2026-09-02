@@ -62,7 +62,7 @@ export function Nav() {
   }
 
   return (
-    <nav className="relative shrink-0 border-t border-gray-200 md:w-48 md:border-t-0 md:border-r dark:border-gray-800">
+    <nav className="relative shrink-0 border-t border-gray-200 md:w-36 md:border-t-0 md:border-r dark:border-gray-800">
       <div
         ref={ref}
         className="scrollbar-hide flex overflow-x-auto md:h-full md:flex-col md:overflow-x-visible md:overflow-y-auto md:p-2"
