@@ -8,8 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -225,5 +228,54 @@ func (m *Manager) Disable(ctx context.Context, name string) error {
 		return err
 	}
 	m.invalidateUnitFiles()
+	return nil
+}
+
+// Logs returns the unit's last n journal lines, oldest first. Shelling out
+// to journalctl is the only option here, same as ufw/sadf elsewhere — the
+// journal has no D-Bus query API of its own that this project depends on.
+func (m *Manager) Logs(ctx context.Context, name string, lines int) (string, error) {
+	if err := m.exists(ctx, name); err != nil {
+		return "", err
+	}
+	out, err := exec.CommandContext(ctx, "journalctl", "-u", name, "-n", strconv.Itoa(lines), "--no-pager", "-o", "short-iso").Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+// StreamLogs seeds with the unit's last n journal lines, then follows new
+// ones as journalctl -f writes them. The returned reader's Close stops the
+// underlying process; it also stops on its own when ctx is done.
+func (m *Manager) StreamLogs(ctx context.Context, name string, lines int) (io.ReadCloser, error) {
+	if err := m.exists(ctx, name); err != nil {
+		return nil, err
+	}
+	cmd := exec.CommandContext(ctx, "journalctl", "-u", name, "-n", strconv.Itoa(lines), "-f", "--no-pager", "-o", "short-iso")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return &cmdLogReader{ReadCloser: stdout, cmd: cmd}, nil
+}
+
+// cmdLogReader ties a pipe's lifetime to its owning process: closing it
+// (e.g. when the SSE client disconnects) kills journalctl -f instead of
+// leaving it running against a reader nobody's draining anymore.
+type cmdLogReader struct {
+	io.ReadCloser
+	cmd *exec.Cmd
+}
+
+func (c *cmdLogReader) Close() error {
+	_ = c.ReadCloser.Close()
+	if c.cmd.Process != nil {
+		_ = c.cmd.Process.Kill()
+	}
+	_ = c.cmd.Wait()
 	return nil
 }

@@ -22,3 +22,11 @@ export type ServiceActionName = 'start' | 'stop' | 'restart' | 'enable' | 'disab
 export function runServiceAction(name: string, action: ServiceActionName) {
   return apiFetch<null>(`/services/${encodeURIComponent(name)}/${action}`, { method: 'POST' })
 }
+
+export function getServiceLogs(name: string, lines: number) {
+  return apiFetch<string[]>(`/services/${encodeURIComponent(name)}/logs?lines=${lines}`)
+}
+
+export function serviceLogsStreamUrl(name: string, lines: number) {
+  return `/api/services/${encodeURIComponent(name)}/logs/stream?lines=${lines}`
+}

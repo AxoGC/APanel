@@ -59,6 +59,41 @@ func (s *Server) listServices(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, units)
 }
 
+func (s *Server) serviceLogs(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	out, err := s.services.Logs(r.Context(), name, logLines(r))
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			response.WriteCode(w, http.StatusNotFound, SERVICE_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, splitLogLines(out))
+}
+
+func (s *Server) serviceLogsStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := requireFlusher(w)
+	if !ok {
+		return
+	}
+	name := r.PathValue("name")
+	rc, err := s.services.StreamLogs(r.Context(), name, logLines(r))
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			response.WriteCode(w, http.StatusNotFound, SERVICE_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	defer rc.Close()
+
+	writeLogStreamHeaders(w, flusher)
+	streamLogLines(w, flusher, rc)
+}
+
 func (s *Server) serviceAction(action func(context.Context, string) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")

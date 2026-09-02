@@ -66,11 +66,15 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/services/{name}/restart", s.auth.Middleware(s.serviceAction(s.services.Restart)))
 	s.mux.Handle("POST /api/services/{name}/enable", s.auth.Middleware(s.serviceAction(s.services.Enable)))
 	s.mux.Handle("POST /api/services/{name}/disable", s.auth.Middleware(s.serviceAction(s.services.Disable)))
+	s.mux.Handle("GET /api/services/{name}/logs", s.auth.Middleware(http.HandlerFunc(s.serviceLogs)))
+	s.mux.Handle("GET /api/services/{name}/logs/stream", s.auth.Middleware(http.HandlerFunc(s.serviceLogsStream)))
 
 	s.mux.Handle("GET /api/containers", s.auth.Middleware(http.HandlerFunc(s.listContainers)))
 	s.mux.Handle("POST /api/containers/{id}/start", s.auth.Middleware(s.containerAction(s.containers.Start)))
 	s.mux.Handle("POST /api/containers/{id}/stop", s.auth.Middleware(s.containerAction(s.containers.Stop)))
 	s.mux.Handle("POST /api/containers/{id}/restart", s.auth.Middleware(s.containerAction(s.containers.Restart)))
+	s.mux.Handle("GET /api/containers/{id}/logs", s.auth.Middleware(http.HandlerFunc(s.containerLogs)))
+	s.mux.Handle("GET /api/containers/{id}/logs/stream", s.auth.Middleware(http.HandlerFunc(s.containerLogsStream)))
 
 	s.mux.Handle("GET /api/history", s.auth.Middleware(http.HandlerFunc(s.getHistory)))
 

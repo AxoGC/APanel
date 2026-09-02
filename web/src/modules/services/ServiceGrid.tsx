@@ -1,9 +1,11 @@
-import { Loader2, Play, RotateCw, Square } from 'lucide-react'
+import { Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
+import { useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
+import { LogsDialog } from '@/components/LogsDialog'
 import { Button } from '@/components/ui/button'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import type { ServiceActionName, ServiceUnit } from './api'
+import { getServiceLogs, serviceLogsStreamUrl, type ServiceActionName, type ServiceUnit } from './api'
 
 function statusClasses(subState: string): [dot: string, text: string] {
   if (subState === 'running') return ['bg-green-500', 'text-green-600 dark:text-green-400']
@@ -50,6 +52,7 @@ export function ServiceGrid({
   onAction: (name: string, action: ServiceActionName) => void
 }) {
   const { t } = useI18n()
+  const [logsFor, setLogsFor] = useState<ServiceUnit | null>(null)
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -95,30 +98,37 @@ export function ServiceGrid({
             </div>
 
             <div className="flex flex-row items-center justify-end gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('services.start')}
-                disabled={!!busy || u.activeState === 'active'}
-                onClick={() => onAction(u.name, 'start')}
-              >
-                {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
+              <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => setLogsFor(u)}>
+                <ScrollText />
               </Button>
-              <ConfirmIconButton
-                icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
-                label={t('services.stop')}
-                actionLabel={t('services.stop')}
-                title={t('services.confirmStop.title')}
-                description={
-                  <>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{displayName(u.name)}</span>
-                    {' — '}
-                    {t('services.confirmStop.description')}
-                  </>
-                }
-                disabled={!!busy || u.activeState !== 'active'}
-                onConfirm={() => onAction(u.name, 'stop')}
-              />
+              {u.activeState !== 'active' && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('services.start')}
+                  disabled={!!busy}
+                  onClick={() => onAction(u.name, 'start')}
+                >
+                  {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
+                </Button>
+              )}
+              {u.activeState === 'active' && (
+                <ConfirmIconButton
+                  icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
+                  label={t('services.stop')}
+                  actionLabel={t('services.stop')}
+                  title={t('services.confirmStop.title')}
+                  description={
+                    <>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{displayName(u.name)}</span>
+                      {' — '}
+                      {t('services.confirmStop.description')}
+                    </>
+                  }
+                  disabled={!!busy}
+                  onConfirm={() => onAction(u.name, 'stop')}
+                />
+              )}
               <ConfirmIconButton
                 icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />}
                 label={t('services.restart')}
@@ -138,6 +148,14 @@ export function ServiceGrid({
           </div>
         )
       })}
+      <LogsDialog
+        open={logsFor !== null}
+        onOpenChange={(open) => !open && setLogsFor(null)}
+        title={logsFor ? `${displayName(logsFor.name)} — ${t('services.logs')}` : ''}
+        id={logsFor?.name ?? ''}
+        fetchLogs={getServiceLogs}
+        streamUrl={serviceLogsStreamUrl}
+      />
     </div>
   )
 }

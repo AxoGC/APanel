@@ -21,3 +21,11 @@ export type ContainerActionName = 'start' | 'stop' | 'restart'
 export function runContainerAction(id: string, action: ContainerActionName) {
   return apiFetch<null>(`/containers/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
 }
+
+export function getContainerLogs(id: string, lines: number) {
+  return apiFetch<string[]>(`/containers/${encodeURIComponent(id)}/logs?lines=${lines}`)
+}
+
+export function containerLogsStreamUrl(id: string, lines: number) {
+  return `/api/containers/${encodeURIComponent(id)}/logs/stream?lines=${lines}`
+}

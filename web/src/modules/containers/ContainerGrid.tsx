@@ -1,9 +1,11 @@
-import { Loader2, Play, RotateCw, Square } from 'lucide-react'
+import { Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
+import { useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
+import { LogsDialog } from '@/components/LogsDialog'
 import { Button } from '@/components/ui/button'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import type { ContainerActionName, ContainerInfo } from './api'
+import { containerLogsStreamUrl, getContainerLogs, type ContainerActionName, type ContainerInfo } from './api'
 
 function statusClasses(state: string): [dot: string, text: string] {
   if (state === 'running') return ['bg-green-500', 'text-green-600 dark:text-green-400']
@@ -34,6 +36,7 @@ export function ContainerGrid({
   onAction: (id: string, action: ContainerActionName) => void
 }) {
   const { t } = useI18n()
+  const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -61,6 +64,9 @@ export function ContainerGrid({
             </div>
 
             <div className="flex flex-row items-center justify-end gap-0.5">
+              <Button variant="ghost" size="icon-sm" aria-label={t('containers.logs')} onClick={() => setLogsFor(c)}>
+                <ScrollText />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -104,6 +110,14 @@ export function ContainerGrid({
           </div>
         )
       })}
+      <LogsDialog
+        open={logsFor !== null}
+        onOpenChange={(open) => !open && setLogsFor(null)}
+        title={logsFor ? `${logsFor.name} — ${t('containers.logs')}` : ''}
+        id={logsFor?.id ?? ''}
+        fetchLogs={getContainerLogs}
+        streamUrl={containerLogsStreamUrl}
+      />
     </div>
   )
 }

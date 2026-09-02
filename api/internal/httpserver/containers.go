@@ -50,6 +50,41 @@ func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, containers)
 }
 
+func (s *Server) containerLogs(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	out, err := s.containers.Logs(r.Context(), id, logLines(r))
+	if err != nil {
+		if errors.Is(err, container.ErrNotFound) {
+			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, splitLogLines(out))
+}
+
+func (s *Server) containerLogsStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := requireFlusher(w)
+	if !ok {
+		return
+	}
+	id := r.PathValue("id")
+	rc, err := s.containers.StreamLogs(r.Context(), id, logLines(r))
+	if err != nil {
+		if errors.Is(err, container.ErrNotFound) {
+			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	defer rc.Close()
+
+	writeLogStreamHeaders(w, flusher)
+	streamLogLines(w, flusher, rc)
+}
+
 func (s *Server) containerAction(action func(context.Context, string) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
