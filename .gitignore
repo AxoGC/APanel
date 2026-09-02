@@ -25,3 +25,6 @@
 # misc
 *.log
 .DS_Store
+
+# Claude Code session-local runtime state, not project config
+/.claude/
