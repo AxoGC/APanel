@@ -52,7 +52,15 @@ func (m *Manager) resolve(reqPath string) (string, error) {
 	clean := path.Clean("/" + reqPath)
 	root := filepath.Clean(m.Root)
 	full := filepath.Join(root, clean)
-	if full != root && !strings.HasPrefix(full, root+string(filepath.Separator)) {
+
+	// root's own separator-terminated form, without doubling the slash when
+	// root is itself "/" (root + separator would otherwise be "//", which
+	// no cleaned path ever has as a prefix — rejecting everything under it).
+	rootPrefix := root
+	if rootPrefix != string(filepath.Separator) {
+		rootPrefix += string(filepath.Separator)
+	}
+	if full != root && !strings.HasPrefix(full, rootPrefix) {
 		return "", ErrInvalidPath
 	}
 	return full, nil
