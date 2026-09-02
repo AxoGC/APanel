@@ -8,12 +8,30 @@ export interface ContainerInfo {
   status: string
 }
 
+export interface ContainerImage {
+  id: string
+  name: string
+  size: number
+  containers: number
+}
+
 export type StatusFilter = 'running' | 'exited' | 'all'
 
 export function listContainers(params: { status: StatusFilter; q: string }) {
   const search = new URLSearchParams({ status: params.status })
   if (params.q) search.set('q', params.q)
   return apiFetch<ContainerInfo[]>(`/containers?${search}`)
+}
+
+export function listContainerImages() {
+  return apiFetch<ContainerImage[]>('/containers/images')
+}
+
+export function deleteContainerImages(ids: string[]) {
+  return apiFetch<null>('/containers/images/delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
 }
 
 export type ContainerActionName = 'start' | 'stop' | 'restart'

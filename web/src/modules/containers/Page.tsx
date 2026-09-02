@@ -1,4 +1,5 @@
-import { Search } from 'lucide-react'
+import { Images, Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,7 @@ import {
   type StatusFilter,
 } from './api'
 import { ContainerGrid } from './ContainerGrid'
+import { ImageManagerDialog } from './ImageManagerDialog'
 import { ContainerTable } from './ContainerTable'
 
 export default function ContainersPage() {
@@ -27,6 +29,7 @@ export default function ContainersPage() {
   const [pending, setPending] = useState<Record<string, ContainerActionName | undefined>>({})
   const [error, setError] = useState<string | null>(null)
   const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
+  const [imagesOpen, setImagesOpen] = useState(false)
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -83,6 +86,10 @@ export default function ContainersPage() {
             </SelectContent>
           </Select>
         </div>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setImagesOpen(true)}>
+          <Images />
+          {t('containers.images')}
+        </Button>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -106,6 +113,7 @@ export default function ContainersPage() {
         fetchLogs={getContainerLogs}
         streamUrl={containerLogsStreamUrl}
       />
+      <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
     </div>
   )
 }

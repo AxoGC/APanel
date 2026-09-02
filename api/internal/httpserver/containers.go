@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 // CONTAINER_NOT_FOUND is returned when the requested container doesn't exist.
 const CONTAINER_NOT_FOUND response.Code = "CONTAINER_NOT_FOUND"
+const INVALID_IMAGE_DELETE response.Code = "INVALID_IMAGE_DELETE"
 
 // containerStatesForStatus maps the frontend's status filter straight onto
 // Docker's own container state vocabulary — unlike systemd units, a
@@ -48,6 +50,35 @@ func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteOK(w, containers)
+}
+
+func (s *Server) listContainerImages(w http.ResponseWriter, r *http.Request) {
+	images, err := s.containers.ListImages(r.Context())
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, images)
+}
+
+func (s *Server) deleteContainerImages(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.IDs) == 0 {
+		response.WriteCode(w, http.StatusBadRequest, INVALID_IMAGE_DELETE)
+		return
+	}
+
+	if err := s.containers.DeleteImages(r.Context(), body.IDs); err != nil {
+		if errors.Is(err, container.ErrInvalidImage) {
+			response.WriteCode(w, http.StatusBadRequest, INVALID_IMAGE_DELETE)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, nil)
 }
 
 func (s *Server) containerLogs(w http.ResponseWriter, r *http.Request) {

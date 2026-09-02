@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"sort"
 	"strconv"
@@ -17,11 +18,15 @@ import (
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
-var ErrNotFound = errors.New("container not found")
+var (
+	ErrNotFound     = errors.New("container not found")
+	ErrInvalidImage = errors.New("invalid image")
+)
 
 type Container struct {
 	ID     string `json:"id"`
@@ -29,6 +34,13 @@ type Container struct {
 	Image  string `json:"image"`
 	State  string `json:"state"`  // Docker's own vocabulary: running, exited, created, paused, restarting, removing, dead
 	Status string `json:"status"` // human-readable, e.g. "Up 3 hours" / "Exited (0) 5 minutes ago"
+}
+
+type Image struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Size       int64  `json:"size"`
+	Containers int64  `json:"containers"`
 }
 
 type Manager struct {
@@ -91,6 +103,48 @@ func (m *Manager) List(ctx context.Context, states []string) ([]Container, error
 
 	sort.Slice(containers, func(i, j int) bool { return containers[i].Name < containers[j].Name })
 	return containers, nil
+}
+
+// ListImages returns local images together with Docker's count of containers
+// that reference each image. Images in use are intentionally exposed so the
+// UI can keep them out of destructive bulk-selection actions.
+func (m *Manager) ListImages(ctx context.Context) ([]Image, error) {
+	raw, err := m.cli.ImageList(ctx, image.ListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	images := make([]Image, 0, len(raw))
+	for _, item := range raw {
+		name := strings.Join(item.RepoTags, ", ")
+		if name == "" {
+			name = "<none>:<none>"
+		}
+		images = append(images, Image{
+			ID:         item.ID,
+			Name:       name,
+			Size:       item.Size,
+			Containers: item.Containers,
+		})
+	}
+
+	sort.Slice(images, func(i, j int) bool { return images[i].Name < images[j].Name })
+	return images, nil
+}
+
+// DeleteImages removes the supplied unused images without forcing removal.
+// Docker remains the final authority and rejects any image that becomes used
+// between listing and deletion.
+func (m *Manager) DeleteImages(ctx context.Context, ids []string) error {
+	for _, id := range ids {
+		if strings.TrimSpace(id) == "" {
+			return fmt.Errorf("%w: image id", ErrInvalidImage)
+		}
+		if _, err := m.cli.ImageRemove(ctx, id, image.RemoveOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *Manager) Start(ctx context.Context, id string) error {
