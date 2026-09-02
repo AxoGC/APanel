@@ -12,6 +12,7 @@ import (
 
 	"apanel/internal/auth"
 	"apanel/internal/container"
+	"apanel/internal/files"
 	"apanel/internal/firewall"
 	"apanel/internal/history"
 	"apanel/internal/response"
@@ -29,10 +30,11 @@ type Server struct {
 	containers *container.Manager
 	history    *history.Manager
 	firewall   *firewall.Manager
+	files      *files.Manager
 	mux        *http.ServeMux
 }
 
-func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager, historyMgr *history.Manager, firewallMgr *firewall.Manager) *Server {
+func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager, historyMgr *history.Manager, firewallMgr *firewall.Manager, filesMgr *files.Manager) *Server {
 	s := &Server{
 		auth:       authSvc,
 		stats:      statsCollector,
@@ -40,6 +42,7 @@ func New(authSvc *auth.Service, statsCollector *stats.Collector, services *servi
 		containers: containers,
 		history:    historyMgr,
 		firewall:   firewallMgr,
+		files:      filesMgr,
 		mux:        http.NewServeMux(),
 	}
 	s.routes()
@@ -72,6 +75,15 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/history", s.auth.Middleware(http.HandlerFunc(s.getHistory)))
 
 	s.mux.Handle("GET /api/firewall/status", s.auth.Middleware(http.HandlerFunc(s.getFirewallStatus)))
+
+	s.mux.Handle("GET /api/files", s.auth.Middleware(http.HandlerFunc(s.listFiles)))
+	s.mux.Handle("GET /api/files/content", s.auth.Middleware(http.HandlerFunc(s.readFileContent)))
+	s.mux.Handle("PUT /api/files/content", s.auth.Middleware(http.HandlerFunc(s.writeFileContent)))
+	s.mux.Handle("POST /api/files/mkdir", s.auth.Middleware(http.HandlerFunc(s.mkdir)))
+	s.mux.Handle("POST /api/files/rename", s.auth.Middleware(http.HandlerFunc(s.renameFile)))
+	s.mux.Handle("POST /api/files/delete", s.auth.Middleware(http.HandlerFunc(s.deleteFiles)))
+	s.mux.Handle("GET /api/files/download", s.auth.Middleware(http.HandlerFunc(s.downloadFile)))
+	s.mux.Handle("POST /api/files/upload", s.auth.Middleware(http.HandlerFunc(s.uploadFile)))
 
 	s.mux.Handle("GET /api/status", s.auth.Middleware(http.HandlerFunc(s.getStatus)))
 

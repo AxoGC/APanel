@@ -1,4 +1,4 @@
-import { Box, ChevronLeft, ChevronRight, Gauge, History, Server, Settings, Shield } from 'lucide-react'
+import { Box, ChevronLeft, ChevronRight, FolderOpen, Gauge, History, Server, Settings, Shield } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useFeatures, type Features } from '@/lib/features'
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 const items = [
   { to: '/', labelKey: 'nav.dashboard', icon: Gauge },
   { to: '/services', labelKey: 'nav.services', icon: Server },
+  { to: '/files', labelKey: 'nav.files', icon: FolderOpen },
   { to: '/containers', labelKey: 'nav.containers', icon: Box, feature: 'containers' },
   { to: '/history', labelKey: 'nav.history', icon: History, feature: 'history' },
   { to: '/firewall', labelKey: 'nav.firewall', icon: Shield, feature: 'firewall' },

@@ -5,6 +5,7 @@ import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
 import ContainersPage from '@/modules/containers/Page'
 import DashboardPage from '@/modules/dashboard/Page'
+import FilesPage from '@/modules/files/Page'
 import FirewallPage from '@/modules/firewall/Page'
 import HistoryPage from '@/modules/history/Page'
 import LoginPage from '@/modules/login/Page'
@@ -23,6 +24,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/services" element={<ServicesPage />} />
+          <Route path="/files" element={<FilesPage />} />
           <Route path="/containers" element={<ContainersPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/firewall" element={<FirewallPage />} />
