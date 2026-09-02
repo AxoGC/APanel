@@ -68,6 +68,11 @@ export function HistoryChart({
           smooth: true,
           lineStyle: { color: colors.line, width: 2 },
           areaStyle: { color: colors.area },
+          // Without this, echarts' built-in hover/click emphasis-blur state
+          // fades the line and area down to near-invisible on tap/click,
+          // leaving only the axis-pointer tooltip marker visible until the
+          // pointer leaves — the tooltip itself doesn't need emphasis on.
+          emphasis: { disabled: true },
         },
       ],
     })

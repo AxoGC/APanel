@@ -49,6 +49,11 @@ export function Gauge({
           min: 0,
           max: 100,
           radius: '100%',
+          // This gauge is a static readout, not an interactive chart — without
+          // this, echarts' built-in hover/click emphasis-blur state kicks in
+          // on tap/click and fades the progress arc down to near-invisible
+          // until the pointer leaves.
+          emphasis: { disabled: true },
           pointer: { show: false },
           progress: { show: true, width: 10, roundCap: true, itemStyle: { color: colors.progress } },
           axisLine: { lineStyle: { width: 10, color: [[1, colors.track]] } },
