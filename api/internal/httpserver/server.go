@@ -17,6 +17,7 @@ import (
 	"apanel/internal/history"
 	"apanel/internal/response"
 	"apanel/internal/service"
+	"apanel/internal/settings"
 	"apanel/internal/stats"
 )
 
@@ -31,10 +32,11 @@ type Server struct {
 	history    *history.Manager
 	firewall   *firewall.Manager
 	files      *files.Manager
+	settings   *settings.Manager
 	mux        *http.ServeMux
 }
 
-func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager, historyMgr *history.Manager, firewallMgr *firewall.Manager, filesMgr *files.Manager) *Server {
+func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager, historyMgr *history.Manager, firewallMgr *firewall.Manager, filesMgr *files.Manager, settingsMgr *settings.Manager) *Server {
 	s := &Server{
 		auth:       authSvc,
 		stats:      statsCollector,
@@ -43,6 +45,7 @@ func New(authSvc *auth.Service, statsCollector *stats.Collector, services *servi
 		history:    historyMgr,
 		firewall:   firewallMgr,
 		files:      filesMgr,
+		settings:   settingsMgr,
 		mux:        http.NewServeMux(),
 	}
 	s.routes()
@@ -77,6 +80,8 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/containers/{id}/logs/stream", s.auth.Middleware(http.HandlerFunc(s.containerLogsStream)))
 
 	s.mux.Handle("GET /api/history", s.auth.Middleware(http.HandlerFunc(s.getHistory)))
+	s.mux.Handle("GET /api/history/settings", s.auth.Middleware(http.HandlerFunc(s.getHistorySettings)))
+	s.mux.Handle("PUT /api/history/settings", s.auth.Middleware(http.HandlerFunc(s.putHistorySettings)))
 
 	s.mux.Handle("GET /api/firewall/status", s.auth.Middleware(http.HandlerFunc(s.getFirewallStatus)))
 	s.mux.Handle("POST /api/firewall/rules", s.auth.Middleware(http.HandlerFunc(s.addFirewallRule)))

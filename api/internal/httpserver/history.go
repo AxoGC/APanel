@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -14,6 +15,76 @@ import (
 const SYSSTAT_UNAVAILABLE response.Code = "SYSSTAT_UNAVAILABLE"
 
 const INVALID_DAYS_AGO response.Code = "INVALID_DAYS_AGO"
+
+const INVALID_SETTINGS response.Code = "INVALID_SETTINGS"
+
+const historySettingsKey = "history.collectionSettings"
+
+// CollectionTarget holds the per-metric settings shown on the history
+// page's settings dialog. This is a shell: sampling is still entirely
+// sysstat/sadf-driven (see history.Manager), so changing these values is
+// persisted but doesn't yet affect what's actually collected — that needs
+// a real self-collection path, which this stage doesn't have.
+type CollectionTarget struct {
+	Enabled         bool `json:"enabled"`
+	IntervalMinutes int  `json:"intervalMinutes"`
+	RetentionDays   int  `json:"retentionDays"`
+}
+
+type HistoryCollectionSettings struct {
+	CPU    CollectionTarget `json:"cpu"`
+	Memory CollectionTarget `json:"memory"`
+	Swap   CollectionTarget `json:"swap"`
+}
+
+func defaultHistoryCollectionSettings() HistoryCollectionSettings {
+	target := CollectionTarget{Enabled: true, IntervalMinutes: 10, RetentionDays: 7}
+	return HistoryCollectionSettings{CPU: target, Memory: target, Swap: target}
+}
+
+func (s *Server) getHistorySettings(w http.ResponseWriter, r *http.Request) {
+	raw, ok, err := s.settings.Get(historySettingsKey)
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	if !ok {
+		response.WriteOK(w, defaultHistoryCollectionSettings())
+		return
+	}
+
+	var parsed HistoryCollectionSettings
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, parsed)
+}
+
+func (s *Server) putHistorySettings(w http.ResponseWriter, r *http.Request) {
+	var body HistoryCollectionSettings
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		response.WriteCode(w, http.StatusBadRequest, INVALID_SETTINGS)
+		return
+	}
+	for _, target := range []CollectionTarget{body.CPU, body.Memory, body.Swap} {
+		if target.IntervalMinutes <= 0 || target.RetentionDays <= 0 {
+			response.WriteCode(w, http.StatusBadRequest, INVALID_SETTINGS)
+			return
+		}
+	}
+
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	if err := s.settings.Set(historySettingsKey, string(encoded)); err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, body)
+}
 
 func (s *Server) getHistory(w http.ResponseWriter, r *http.Request) {
 	if !s.history.Available() {
