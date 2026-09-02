@@ -50,13 +50,7 @@ function AlertDialogHeader({ className, ...props }: React.ComponentProps<'div'>)
 }
 
 function AlertDialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="alert-dialog-footer"
-      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
-      {...props}
-    />
-  )
+  return <div data-slot="alert-dialog-footer" className={cn('flex flex-row justify-end gap-2', className)} {...props} />
 }
 
 function AlertDialogTitle({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
