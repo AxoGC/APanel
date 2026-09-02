@@ -24,6 +24,8 @@ type Overview struct {
 	CPUPercent float64   `json:"cpuPercent"`
 	MemTotal   uint64    `json:"memTotal"`
 	MemUsed    uint64    `json:"memUsed"`
+	SwapTotal  uint64    `json:"swapTotal"`
+	SwapUsed   uint64    `json:"swapUsed"`
 	Processes  []Process `json:"processes"`
 }
 
@@ -69,7 +71,7 @@ func (c *Collector) Sample() (Overview, error) {
 		return Overview{}, err
 	}
 
-	memTotal, memUsed, err := readMem()
+	memTotal, memUsed, swapTotal, swapUsed, err := readMem()
 	if err != nil {
 		return Overview{}, err
 	}
@@ -84,6 +86,8 @@ func (c *Collector) Sample() (Overview, error) {
 		CPUPercent: cpuPercent,
 		MemTotal:   memTotal,
 		MemUsed:    memUsed,
+		SwapTotal:  swapTotal,
+		SwapUsed:   swapUsed,
 		Processes:  procs,
 	}, nil
 }
@@ -120,14 +124,14 @@ func (c *Collector) sampleCPU() (float64, error) {
 	return (1 - dIdle/dTotal) * 100, nil
 }
 
-func readMem() (total, used uint64, err error) {
+func readMem() (total, used, swapTotal, swapUsed uint64, err error) {
 	f, err := os.Open("/proc/meminfo")
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	defer f.Close()
 
-	var available uint64
+	var available, swapFree uint64
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
@@ -140,9 +144,13 @@ func readMem() (total, used uint64, err error) {
 			total = v * 1024
 		case "MemAvailable:":
 			available = v * 1024
+		case "SwapTotal:":
+			swapTotal = v * 1024
+		case "SwapFree:":
+			swapFree = v * 1024
 		}
 	}
-	return total, total - available, nil
+	return total, total - available, swapTotal, swapTotal - swapFree, nil
 }
 
 func (c *Collector) sampleProcesses(now time.Time) ([]Process, error) {

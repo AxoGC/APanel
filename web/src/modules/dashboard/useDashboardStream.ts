@@ -12,6 +12,8 @@ export interface Overview {
   cpuPercent: number
   memTotal: number
   memUsed: number
+  swapTotal: number
+  swapUsed: number
   processes: ProcessInfo[]
 }
 
