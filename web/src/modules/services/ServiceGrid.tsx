@@ -1,13 +1,33 @@
 import { Loader2, Play, RotateCw, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { ServiceActionName, ServiceUnit } from './api'
 
 function statusClasses(subState: string): [dot: string, text: string] {
   if (subState === 'running') return ['bg-green-500', 'text-green-600 dark:text-green-400']
-  if (subState === 'failed') return ['bg-red-500', 'text-red-600 dark:text-red-400']
+  if (subState === 'dead') return ['bg-red-500', 'text-red-600 dark:text-red-400']
   return ['bg-gray-400', 'text-gray-500']
+}
+
+// The status column reuses the filter's own vocabulary (services.filter.*)
+// so a row's displayed status always matches whichever filter option would
+// select it — see statesForStatus on the backend for the running/exited/dead
+// SubState mapping this mirrors.
+const SUBSTATE_LABELS: Record<string, TranslationKey> = {
+  running: 'services.filter.running',
+  exited: 'services.filter.stopped',
+  dead: 'services.filter.failed',
+}
+
+const UNIT_FILE_STATE_LABELS: Record<string, TranslationKey> = {
+  enabled: 'services.unitFileState.enabled',
+  static: 'services.unitFileState.static',
+  alias: 'services.unitFileState.alias',
+  disabled: 'services.unitFileState.disabled',
+  masked: 'services.unitFileState.masked',
+  'enabled-runtime': 'services.unitFileState.enabledRuntime',
+  bad: 'services.unitFileState.bad',
 }
 
 // Object-array data uses a grid, never a <table>: it needs to reflow onto a
@@ -51,16 +71,20 @@ export function ServiceGrid({
                   onClick={() => onAction(u.name, u.unitFileState === 'enabled' ? 'disable' : 'enable')}
                   className="text-xs text-gray-500 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-gray-300"
                 >
-                  {u.unitFileState}
+                  {UNIT_FILE_STATE_LABELS[u.unitFileState] ? t(UNIT_FILE_STATE_LABELS[u.unitFileState]) : u.unitFileState}
                 </button>
               ) : (
-                <span className="text-xs text-gray-500">{u.unitFileState}</span>
+                <span className="text-xs text-gray-500">
+                  {UNIT_FILE_STATE_LABELS[u.unitFileState] ? t(UNIT_FILE_STATE_LABELS[u.unitFileState]) : u.unitFileState}
+                </span>
               )}
             </div>
 
             <div className="flex items-center gap-1.5">
               <span className={cn('size-1.5 rounded-full', dot)} />
-              <span className={cn('text-xs', text)}>{u.subState}</span>
+              <span className={cn('text-xs', text)}>
+                {SUBSTATE_LABELS[u.subState] ? t(SUBSTATE_LABELS[u.subState]) : u.subState}
+              </span>
             </div>
 
             <div className="flex items-center justify-end gap-0.5">

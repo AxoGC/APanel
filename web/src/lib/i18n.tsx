@@ -40,6 +40,13 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'services.start': 'Start',
     'services.stop': 'Stop',
     'services.restart': 'Restart',
+    'services.unitFileState.enabled': 'Enabled',
+    'services.unitFileState.static': 'Static',
+    'services.unitFileState.alias': 'Alias',
+    'services.unitFileState.disabled': 'Disabled',
+    'services.unitFileState.masked': 'Masked',
+    'services.unitFileState.enabledRuntime': 'Enabled (runtime)',
+    'services.unitFileState.bad': 'Bad',
     'placeholder.comingSoon': 'Coming soon.',
   },
   zh: {
@@ -76,14 +83,23 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'services.start': '启动',
     'services.stop': '停止',
     'services.restart': '重启',
+    'services.unitFileState.enabled': '已启用',
+    'services.unitFileState.static': '静态',
+    'services.unitFileState.alias': '别名',
+    'services.unitFileState.disabled': '未启用',
+    'services.unitFileState.masked': '已屏蔽',
+    'services.unitFileState.enabledRuntime': '临时启用',
+    'services.unitFileState.bad': '异常',
     'placeholder.comingSoon': '即将推出。',
   },
 }
 
+export type TranslationKey = keyof (typeof dictionaries)['en']
+
 interface I18nContextValue {
   locale: Locale
   setLocale: (locale: Locale) => void
-  t: (key: keyof (typeof dictionaries)['en']) => string
+  t: (key: TranslationKey) => string
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null)
