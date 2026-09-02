@@ -21,7 +21,7 @@ function itemClasses(isActive: boolean, collapsed: boolean): string {
     collapsed
       ? 'md:size-10 md:min-w-0 md:flex-row md:justify-center md:px-0 md:py-0'
       : 'md:h-auto md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
-    isActive ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
+    isActive ? 'text-theme-700 dark:text-theme-300' : 'text-gray-700 dark:text-gray-300',
   )
 }
 
@@ -66,6 +66,12 @@ export function Nav() {
 
   return (
     <nav className="relative shrink-0 border-t border-gray-200 md:flex md:w-auto md:flex-col md:border-t-0 md:border-r dark:border-gray-800">
+      <div className="hidden h-14 items-center justify-center md:flex">
+        <span className="text-lg font-semibold italic text-theme-700 dark:text-theme-300">
+          {collapsed ? 'A' : 'Apanel'}
+        </span>
+      </div>
+
       <div
         ref={ref}
         className="scrollbar-hide flex overflow-x-auto md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:p-2"
