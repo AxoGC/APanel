@@ -51,9 +51,11 @@ function parentOf(dir: string): string | null {
   return idx <= 0 ? '/' : dir.slice(0, idx)
 }
 
+const PATH_STORAGE_KEY = 'apanel:files-path'
+
 export default function FilesPage() {
   const { t } = useI18n()
-  const [path, setPath] = useState('/')
+  const [path, setPath] = useState(() => localStorage.getItem(PATH_STORAGE_KEY) || '/')
   const [entries, setEntries] = useState<FileEntry[] | null>(null)
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -79,6 +81,7 @@ export default function FilesPage() {
   }
 
   useEffect(() => {
+    localStorage.setItem(PATH_STORAGE_KEY, path)
     setQuery('')
     setSelected(new Set())
     setError(null)
