@@ -1,12 +1,15 @@
+import { useState } from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { Gauge } from './Gauge'
 import { ProcessGrid } from './ProcessGrid'
-import { useDashboardStream } from './useDashboardStream'
+import { useDashboardStream, type ProcessSort } from './useDashboardStream'
 
 export default function DashboardPage() {
   const { t } = useI18n()
-  const overview = useDashboardStream()
+  const [sort, setSort] = useState<ProcessSort>('mem')
+  const overview = useDashboardStream(sort)
 
   const memPercent = overview ? (overview.memUsed / overview.memTotal) * 100 : 0
 
@@ -36,7 +39,18 @@ export default function DashboardPage() {
       </div>
 
       <div className="flex min-h-0 grow flex-col">
-        <p className="mb-2 text-xs text-gray-500">{t('dashboard.processes')}</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
+          <Select value={sort} onValueChange={(v) => setSort(v as ProcessSort)}>
+            <SelectTrigger size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mem">{t('dashboard.memory')}</SelectItem>
+              <SelectItem value="cpu">{t('dashboard.cpu')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="min-h-0 grow overflow-y-auto">
           <ProcessGrid processes={overview?.processes ?? []} />
         </div>

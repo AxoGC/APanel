@@ -60,7 +60,18 @@ func NewCollector() *Collector {
 	return &Collector{prevProcs: map[int]procSample{}, usernames: map[uint32]string{}}
 }
 
-func (c *Collector) Sample() (Overview, error) {
+// ProcessSort picks which metric the top-50 process cut (and its order) is
+// taken by. Sorting happens before the cut, not after — sorting the client's
+// already-truncated top-50-by-CPU list by memory instead would silently drop
+// high-memory/low-CPU processes that never made that cut.
+type ProcessSort string
+
+const (
+	SortByCPU ProcessSort = "cpu"
+	SortByMem ProcessSort = "mem"
+)
+
+func (c *Collector) Sample(sortBy ProcessSort) (Overview, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -76,7 +87,7 @@ func (c *Collector) Sample() (Overview, error) {
 		return Overview{}, err
 	}
 
-	procs, err := c.sampleProcesses(now)
+	procs, err := c.sampleProcesses(now, sortBy)
 	if err != nil {
 		return Overview{}, err
 	}
@@ -153,7 +164,7 @@ func readMem() (total, used, swapTotal, swapUsed uint64, err error) {
 	return total, total - available, swapTotal, swapTotal - swapFree, nil
 }
 
-func (c *Collector) sampleProcesses(now time.Time) ([]Process, error) {
+func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Process, error) {
 	entries, err := os.ReadDir("/proc")
 	if err != nil {
 		return nil, err
@@ -197,7 +208,11 @@ func (c *Collector) sampleProcesses(now time.Time) ([]Process, error) {
 
 	c.prevProcs = nextProcs
 
-	sort.Slice(procs, func(i, j int) bool { return procs[i].CPUPercent > procs[j].CPUPercent })
+	if sortBy == SortByMem {
+		sort.Slice(procs, func(i, j int) bool { return procs[i].MemRSS > procs[j].MemRSS })
+	} else {
+		sort.Slice(procs, func(i, j int) bool { return procs[i].CPUPercent > procs[j].CPUPercent })
+	}
 	if len(procs) > 50 {
 		procs = procs[:50]
 	}

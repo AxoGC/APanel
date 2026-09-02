@@ -68,8 +68,13 @@ func (s *Server) dashboardStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
+	sortBy := stats.SortByMem
+	if r.URL.Query().Get("sort") == "cpu" {
+		sortBy = stats.SortByCPU
+	}
+
 	send := func() bool {
-		overview, err := s.stats.Sample()
+		overview, err := s.stats.Sample(sortBy)
 		if err != nil {
 			return false
 		}
