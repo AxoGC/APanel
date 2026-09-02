@@ -30,6 +30,12 @@ const UNIT_FILE_STATE_LABELS: Record<string, TranslationKey> = {
   bad: 'services.unitFileState.bad',
 }
 
+// Display only — actions still key off the full unit name (u.name), since
+// systemd needs the ".service" suffix for the actual API calls.
+function displayName(name: string): string {
+  return name.endsWith('.service') ? name.slice(0, -'.service'.length) : name
+}
+
 // Object-array data uses a grid, never a <table>: it needs to reflow onto a
 // phone screen, same reasoning as the dashboard's process list.
 export function ServiceGrid({
@@ -57,7 +63,7 @@ export function ServiceGrid({
         return (
           <div key={u.name} className="contents">
             <div className="min-w-0 self-center">
-              <div className="truncate text-sm text-gray-700 dark:text-gray-300">{u.name}</div>
+              <div className="truncate text-sm text-gray-700 dark:text-gray-300">{displayName(u.name)}</div>
               {u.description && u.description !== u.name && (
                 <div className="truncate text-xs text-gray-500">{u.description}</div>
               )}
