@@ -1,4 +1,5 @@
 import { Loader2, Play, RotateCw, Square } from 'lucide-react'
+import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Button } from '@/components/ui/button'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -69,24 +70,36 @@ export function ContainerGrid({
               >
                 {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
               </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('containers.stop')}
+              <ConfirmIconButton
+                icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
+                label={t('containers.stop')}
+                actionLabel={t('containers.stop')}
+                title={t('containers.confirmStop.title')}
+                description={
+                  <>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{c.name}</span>
+                    {' — '}
+                    {t('containers.confirmStop.description')}
+                  </>
+                }
                 disabled={!!busy || c.state !== 'running'}
-                onClick={() => onAction(c.id, 'stop')}
-              >
-                {busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('containers.restart')}
+                onConfirm={() => onAction(c.id, 'stop')}
+              />
+              <ConfirmIconButton
+                icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />}
+                label={t('containers.restart')}
+                actionLabel={t('containers.restart')}
+                title={t('containers.confirmRestart.title')}
+                description={
+                  <>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{c.name}</span>
+                    {' — '}
+                    {t('containers.confirmRestart.description')}
+                  </>
+                }
                 disabled={!!busy}
-                onClick={() => onAction(c.id, 'restart')}
-              >
-                {busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />}
-              </Button>
+                onConfirm={() => onAction(c.id, 'restart')}
+              />
             </div>
           </div>
         )
