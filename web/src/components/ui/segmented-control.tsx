@@ -17,7 +17,7 @@ export function SegmentedControl<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-md bg-gray-100 p-0.5 dark:bg-gray-800">
+    <div className="inline-flex w-fit items-center gap-0.5 rounded-md bg-gray-100 p-0.5 dark:bg-gray-800">
       {options.map((opt) => (
         <button
           key={opt.value}

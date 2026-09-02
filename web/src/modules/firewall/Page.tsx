@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,6 +16,41 @@ import { cn } from '@/lib/utils'
 import { addFirewallRule, getFirewallStatus, type FirewallStatus, type NewFirewallRule } from './api'
 import { FirewallGrid } from './FirewallGrid'
 
+function ToggleChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        'rounded-md border px-2.5 py-1 text-xs transition-colors',
+        active
+          ? 'border-theme-300 bg-theme-50 text-theme-600 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-400'
+          : 'border-gray-200 text-gray-500 hover:text-gray-700 dark:border-gray-700 dark:hover:text-gray-300',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function FormRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-24 shrink-0 text-xs text-gray-500">{label}</span>
+      <div className="flex flex-1 justify-start">{children}</div>
+    </div>
+  )
+}
+
 export default function FirewallPage() {
   const { t } = useI18n()
   const [status, setStatus] = useState<FirewallStatus | null>(null)
@@ -26,6 +61,7 @@ export default function FirewallPage() {
   const [from, setFrom] = useState('')
   const [port, setPort] = useState('')
   const [protocol, setProtocol] = useState<NewFirewallRule['protocol']>('any')
+  const [family, setFamily] = useState<NewFirewallRule['family']>('any')
   const [addError, setAddError] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
 
@@ -40,6 +76,7 @@ export default function FirewallPage() {
     setFrom('')
     setPort('')
     setProtocol('any')
+    setFamily('any')
     setAddError(null)
   }
 
@@ -48,7 +85,7 @@ export default function FirewallPage() {
     setAdding(true)
     setAddError(null)
     try {
-      const next = await addFirewallRule({ action, from, port, protocol })
+      const next = await addFirewallRule({ action, from, port, protocol, family })
       setStatus(next)
       setAddOpen(false)
       resetAddForm()
@@ -108,10 +145,9 @@ export default function FirewallPage() {
               <DialogTitle>{t('firewall.addRule.title')}</DialogTitle>
             </DialogHeader>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-500">{t('firewall.addRule.action')}</span>
+            <FormRow label={t('firewall.addRule.action')}>
               <Select value={action} onValueChange={(v) => setAction(v as NewFirewallRule['action'])}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="flex-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -121,40 +157,52 @@ export default function FirewallPage() {
                   <SelectItem value="limit">{t('firewall.action.limit')}</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FormRow>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-500">{t('firewall.addRule.port')}</span>
+            <FormRow label={t('firewall.addRule.port')}>
               <Input
                 autoFocus
                 value={port}
                 onChange={(e) => setPort(e.target.value)}
                 placeholder={t('firewall.addRule.port.placeholder')}
               />
-            </div>
+            </FormRow>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-500">{t('firewall.addRule.protocol')}</span>
-              <Select value={protocol} onValueChange={(v) => setProtocol(v as NewFirewallRule['protocol'])}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">{t('firewall.protocol.any')}</SelectItem>
-                  <SelectItem value="tcp">{t('firewall.protocol.tcp')}</SelectItem>
-                  <SelectItem value="udp">{t('firewall.protocol.udp')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <FormRow label={t('firewall.addRule.protocol')}>
+              <div className="flex justify-start gap-2">
+                <ToggleChip active={protocol === 'any'} onClick={() => setProtocol('any')}>
+                  {t('firewall.protocol.any')}
+                </ToggleChip>
+                <ToggleChip active={protocol === 'tcp'} onClick={() => setProtocol('tcp')}>
+                  {t('firewall.protocol.tcp')}
+                </ToggleChip>
+                <ToggleChip active={protocol === 'udp'} onClick={() => setProtocol('udp')}>
+                  {t('firewall.protocol.udp')}
+                </ToggleChip>
+              </div>
+            </FormRow>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-gray-500">{t('firewall.addRule.from')}</span>
+            <FormRow label={t('firewall.addRule.family')}>
+              <div className="flex justify-start gap-2">
+                <ToggleChip active={family === 'any'} onClick={() => setFamily('any')}>
+                  {t('firewall.family.any')}
+                </ToggleChip>
+                <ToggleChip active={family === 'ipv4'} onClick={() => setFamily('ipv4')}>
+                  {t('firewall.family.ipv4')}
+                </ToggleChip>
+                <ToggleChip active={family === 'ipv6'} onClick={() => setFamily('ipv6')}>
+                  {t('firewall.family.ipv6')}
+                </ToggleChip>
+              </div>
+            </FormRow>
+
+            <FormRow label={t('firewall.addRule.from')}>
               <Input
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
                 placeholder={t('firewall.addRule.from.placeholder')}
               />
-            </div>
+            </FormRow>
 
             {addError && <p className="text-xs text-red-600">{addError}</p>}
 

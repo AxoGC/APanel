@@ -77,7 +77,12 @@ var portPattern = regexp.MustCompile(`^\d{1,5}(:\d{1,5})?$`)
 // "ufw allow from 10.0.0.0/8 to any port 22 proto tcp". An empty from
 // defaults to "any" (ufw's own keyword for "anywhere"); an empty or "any"
 // protocol omits the proto clause entirely, matching both TCP and UDP.
-func (m *Manager) AddRule(ctx context.Context, action, from, port, protocol string) error {
+//
+// family restricts the default "any" from to one address family — "any"
+// itself already matches both (ufw expands it into a v4+v6 rule pair), so
+// family only has an effect when from is left blank; an explicit from
+// address already carries its own family and takes precedence.
+func (m *Manager) AddRule(ctx context.Context, action, from, port, protocol, family string) error {
 	if !m.Available() {
 		return fmt.Errorf("ufw is not available")
 	}
@@ -92,9 +97,21 @@ func (m *Manager) AddRule(ctx context.Context, action, from, port, protocol stri
 		return fmt.Errorf("%w: port", ErrInvalidRule)
 	}
 
+	family = strings.ToLower(strings.TrimSpace(family))
+	if family != "" && family != "any" && family != "ipv4" && family != "ipv6" {
+		return fmt.Errorf("%w: family", ErrInvalidRule)
+	}
+
 	from = strings.TrimSpace(from)
 	if from == "" {
-		from = "any"
+		switch family {
+		case "ipv4":
+			from = "0.0.0.0/0"
+		case "ipv6":
+			from = "::/0"
+		default:
+			from = "any"
+		}
 	}
 	if strings.HasPrefix(from, "-") {
 		return fmt.Errorf("%w: from", ErrInvalidRule)

@@ -24,6 +24,7 @@ export interface NewFirewallRule {
   from: string
   port: string
   protocol: 'any' | 'tcp' | 'udp'
+  family: 'any' | 'ipv4' | 'ipv6'
 }
 
 export function addFirewallRule(rule: NewFirewallRule) {

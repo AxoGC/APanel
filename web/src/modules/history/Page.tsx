@@ -148,8 +148,8 @@ export default function HistoryPage() {
 
             {target && settings && (
               <>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-gray-500">{t('history.settings.enabled')}</span>
+                <div className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.enabled')}</span>
                   <Switch
                     checked={target.enabled}
                     onCheckedChange={(enabled) =>
@@ -158,8 +158,8 @@ export default function HistoryPage() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-gray-500">{t('history.settings.interval')}</span>
+                <div className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.interval')}</span>
                   <Input
                     type="number"
                     min={1}
@@ -173,8 +173,8 @@ export default function HistoryPage() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-gray-500">{t('history.settings.retention')}</span>
+                <div className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.retention')}</span>
                   <Input
                     type="number"
                     min={1}

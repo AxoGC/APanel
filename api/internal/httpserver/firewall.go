@@ -40,13 +40,14 @@ func (s *Server) addFirewallRule(w http.ResponseWriter, r *http.Request) {
 		From     string `json:"from"`
 		Port     string `json:"port"`
 		Protocol string `json:"protocol"`
+		Family   string `json:"family"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		response.WriteCode(w, http.StatusBadRequest, INVALID_RULE)
 		return
 	}
 
-	if err := s.firewall.AddRule(r.Context(), body.Action, body.From, body.Port, body.Protocol); err != nil {
+	if err := s.firewall.AddRule(r.Context(), body.Action, body.From, body.Port, body.Protocol, body.Family); err != nil {
 		if errors.Is(err, firewall.ErrInvalidRule) {
 			response.WriteCode(w, http.StatusBadRequest, INVALID_RULE)
 			return
