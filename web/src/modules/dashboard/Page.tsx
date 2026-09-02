@@ -49,7 +49,7 @@ export default function DashboardPage() {
               aria-pressed={tree}
               onClick={() => setTree((v) => !v)}
               className={cn(
-                'rounded-md border px-2.5 py-1 text-xs transition-colors',
+                'cursor-pointer rounded-md border px-2.5 py-1 text-xs transition-colors',
                 tree
                   ? 'border-theme-200 bg-theme-50 text-theme-700 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',

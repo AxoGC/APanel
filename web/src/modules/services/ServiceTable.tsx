@@ -50,7 +50,7 @@ export function ServiceTable({
                     type="button"
                     disabled={!!busy}
                     onClick={() => onAction(u.name, u.unitFileState === 'enabled' ? 'disable' : 'enable')}
-                    className="text-xs text-gray-500 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-gray-300"
+                    className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-gray-300"
                   >
                     {UNIT_FILE_STATE_LABELS[u.unitFileState] ? t(UNIT_FILE_STATE_LABELS[u.unitFileState]) : u.unitFileState}
                   </button>

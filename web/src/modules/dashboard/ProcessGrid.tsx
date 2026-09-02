@@ -31,7 +31,7 @@ function ProcessRow({
             <button
               type="button"
               onClick={trigger.onToggle}
-              className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="shrink-0 cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               aria-label={trigger.expanded ? 'Collapse' : 'Expand'}
             >
               <ChevronRight className={cn('size-3.5 transition-transform', trigger.expanded && 'rotate-90')} />

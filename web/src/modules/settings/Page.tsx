@@ -48,7 +48,7 @@ export default function SettingsPage() {
               type="button"
               onClick={() => setLocale(l)}
               className={cn(
-                'text-sm',
+                'cursor-pointer text-sm',
                 locale === l ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
               )}
             >
@@ -69,7 +69,7 @@ export default function SettingsPage() {
                 setScheme(s)
               }}
               className={cn(
-                'text-sm capitalize',
+                'cursor-pointer text-sm capitalize',
                 scheme === s ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
               )}
             >
@@ -91,7 +91,7 @@ export default function SettingsPage() {
                 setHue(h)
               }}
               className={cn(
-                'size-6 rounded-full',
+                'size-6 cursor-pointer rounded-full',
                 hue === h && 'ring-2 ring-gray-400 ring-offset-2 dark:ring-gray-500',
               )}
               style={{ backgroundColor: colors[h][500] }}
@@ -114,7 +114,7 @@ export default function SettingsPage() {
                   setDataLayout(l)
                 }}
                 className={cn(
-                  'text-sm',
+                  'cursor-pointer text-sm',
                   dataLayout === l ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
                 )}
               >

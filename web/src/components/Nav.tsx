@@ -81,7 +81,7 @@ export function Nav() {
             type="button"
             aria-label="Scroll left"
             onClick={() => scrollBy(-120)}
-            className="flex items-center justify-center text-gray-500"
+            className="flex cursor-pointer items-center justify-center text-gray-500"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -93,7 +93,7 @@ export function Nav() {
             type="button"
             aria-label="Scroll right"
             onClick={() => scrollBy(120)}
-            className="flex items-center justify-center text-gray-500"
+            className="flex cursor-pointer items-center justify-center text-gray-500"
           >
             <ChevronRight className="size-4" />
           </button>

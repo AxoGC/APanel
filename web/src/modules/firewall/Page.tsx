@@ -33,7 +33,7 @@ function ToggleChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'rounded-md border px-2.5 py-1 text-xs transition-colors',
+        'cursor-pointer rounded-md border px-2.5 py-1 text-xs transition-colors',
         active
           ? 'border-theme-300 bg-theme-50 text-theme-600 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-400'
           : 'border-gray-200 text-gray-500 hover:text-gray-700 dark:border-gray-700 dark:hover:text-gray-300',

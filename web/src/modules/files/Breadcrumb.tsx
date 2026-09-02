@@ -21,8 +21,8 @@ export function Breadcrumb({ path, onNavigate }: { path: string; onNavigate: (pa
         onClick={() => onNavigate('/')}
         className={
           path === '/'
-            ? 'flex items-center text-gray-900 dark:text-gray-100'
-            : 'flex items-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            ? 'flex cursor-pointer items-center text-gray-900 dark:text-gray-100'
+            : 'flex cursor-pointer items-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
         }
         aria-label="Root"
       >
@@ -36,8 +36,8 @@ export function Breadcrumb({ path, onNavigate }: { path: string; onNavigate: (pa
             onClick={() => onNavigate(seg.path)}
             className={
               i === arr.length - 1
-                ? 'text-gray-900 dark:text-gray-100'
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'cursor-pointer text-gray-900 dark:text-gray-100'
+                : 'cursor-pointer text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }
           >
             {seg.name}

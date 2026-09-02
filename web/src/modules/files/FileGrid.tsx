@@ -46,7 +46,7 @@ function FileRow({
       <button
         type="button"
         onClick={() => onOpen(entry)}
-        className="min-w-0 flex-1 truncate text-left text-sm text-gray-900 hover:underline dark:text-gray-100"
+        className="min-w-0 flex-1 cursor-pointer truncate text-left text-sm text-gray-900 hover:underline dark:text-gray-100"
       >
         {entry.name}
       </button>
