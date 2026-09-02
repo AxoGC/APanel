@@ -1,4 +1,4 @@
-import { Box, Gauge, History, Server, Settings, Shield } from 'lucide-react'
+import { Box, ChevronLeft, ChevronRight, Gauge, History, Server, Settings, Shield } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useFeatures, type Features } from '@/lib/features'
@@ -56,6 +56,10 @@ export function Nav() {
 
   const visibleItems = items.filter((item) => !item.feature || features[item.feature])
 
+  const scrollBy = (delta: number) => {
+    ref.current?.scrollBy({ left: delta, behavior: 'smooth' })
+  }
+
   return (
     <nav className="relative shrink-0 border-t border-gray-200 md:w-48 md:border-t-0 md:border-r dark:border-gray-800">
       <div
@@ -71,10 +75,28 @@ export function Nav() {
       </div>
 
       {canScrollLeft && (
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-background to-transparent md:hidden" />
+        <div className="absolute inset-y-0 left-0 flex items-center bg-gradient-to-r from-background to-transparent pr-3 md:hidden">
+          <button
+            type="button"
+            aria-label="Scroll left"
+            onClick={() => scrollBy(-120)}
+            className="flex items-center justify-center text-gray-500"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        </div>
       )}
       {canScrollRight && (
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background to-transparent md:hidden" />
+        <div className="absolute inset-y-0 right-0 flex items-center bg-gradient-to-l from-background to-transparent pl-3 md:hidden">
+          <button
+            type="button"
+            aria-label="Scroll right"
+            onClick={() => scrollBy(120)}
+            className="flex items-center justify-center text-gray-500"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
       )}
     </nav>
   )

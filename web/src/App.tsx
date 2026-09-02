@@ -18,7 +18,7 @@ function Shell() {
   if (state === 'unauthenticated') return <LoginPage />
 
   return (
-    <div className="flex h-screen flex-col md:flex-row-reverse">
+    <div className="flex h-dvh flex-col md:flex-row-reverse">
       <div className="min-h-0 grow overflow-y-auto">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
