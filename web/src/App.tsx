@@ -16,16 +16,20 @@ function Shell() {
   if (state === 'unauthenticated') return <LoginPage />
 
   return (
-    <>
-      <Nav />
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/services" element={<ServicesPage />} />
-        <Route path="/containers" element={<ContainersPage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
-    </>
+    <div className="flex h-screen flex-col">
+      <div className="shrink-0">
+        <Nav />
+      </div>
+      <div className="min-h-0 grow overflow-y-auto">
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/containers" element={<ContainersPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </div>
+    </div>
   )
 }
 
