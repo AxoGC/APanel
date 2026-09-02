@@ -1,8 +1,9 @@
+import { XIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
@@ -77,12 +78,16 @@ export function LogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col gap-3">
-        <DialogHeader>
-          <DialogTitle className="truncate pr-6">{title}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0" showCloseButton={false}>
+        <div className="flex items-center justify-between gap-2 p-4 pb-3">
+          <DialogTitle className="truncate">{title}</DialogTitle>
+          <DialogClose className="shrink-0 rounded-sm text-gray-500 outline-none hover:text-gray-700 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:text-gray-300">
+            <XIcon className="size-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+        </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 px-4 pb-3">
           <SegmentedControl
             options={LINE_OPTIONS.map((n) => ({
               value: String(n),
@@ -97,11 +102,13 @@ export function LogsDialog({
           </label>
         </div>
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="px-4 pb-3 text-xs text-red-600">{error}</p>}
+
+        <div className="border-t border-gray-200 dark:border-gray-800" />
 
         <div
           ref={bodyRef}
-          className="min-h-0 grow overflow-y-auto rounded-md bg-gray-950 p-3 font-mono text-xs text-gray-100"
+          className="min-h-0 grow overflow-y-auto p-4 font-mono text-xs text-gray-700 dark:text-gray-300"
         >
           {content.length === 0 ? (
             <p className="text-gray-500">{t('logs.empty')}</p>
