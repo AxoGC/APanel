@@ -1,4 +1,4 @@
-import { Box, ChevronLeft, ChevronRight, FolderOpen, Gauge, History, Server, Settings, Shield } from 'lucide-react'
+import { Box, ChevronLeft, ChevronRight, FolderOpen, Gauge, History, PanelRightClose, PanelRightOpen, Server, Settings, Shield } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useFeatures, type Features } from '@/lib/features'
@@ -15,10 +15,12 @@ const items = [
   { to: '/settings', labelKey: 'nav.settings', icon: Settings },
 ] satisfies { to: string; labelKey: TranslationKey; icon: typeof Gauge; feature?: keyof Features }[]
 
-function itemClasses(isActive: boolean): string {
+function itemClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
     'flex h-14 min-w-16 shrink-0 flex-col items-center justify-center gap-1 text-xs',
-    'md:h-auto md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
+    collapsed
+      ? 'md:size-10 md:min-w-0 md:flex-row md:justify-center md:px-0 md:py-0'
+      : 'md:h-auto md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
     isActive ? 'text-theme-600 dark:text-theme-400' : 'text-gray-700 dark:text-gray-300',
   )
 }
@@ -54,6 +56,7 @@ export function Nav() {
   const { t } = useI18n()
   const features = useFeatures()
   const { ref, canScrollLeft, canScrollRight } = useScrollCues()
+  const [collapsed, setCollapsed] = useState(false)
 
   const visibleItems = items.filter((item) => !item.feature || features[item.feature])
 
@@ -62,18 +65,33 @@ export function Nav() {
   }
 
   return (
-    <nav className="relative shrink-0 border-t border-gray-200 md:w-36 md:border-t-0 md:border-r dark:border-gray-800">
+    <nav className="relative shrink-0 border-t border-gray-200 md:flex md:w-auto md:flex-col md:border-t-0 md:border-r dark:border-gray-800">
       <div
         ref={ref}
-        className="scrollbar-hide flex overflow-x-auto md:h-full md:flex-col md:overflow-x-visible md:overflow-y-auto md:p-2"
+        className="scrollbar-hide flex overflow-x-auto md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:p-2"
       >
         {visibleItems.map(({ to, labelKey, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => itemClasses(isActive)}>
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            aria-label={t(labelKey)}
+            className={({ isActive }) => itemClasses(isActive, collapsed)}
+          >
             <Icon className="size-5 md:size-4" />
-            <span>{t(labelKey)}</span>
+            <span className={cn(collapsed && 'md:hidden')}>{t(labelKey)}</span>
           </NavLink>
         ))}
       </div>
+
+      <button
+        type="button"
+        aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+        onClick={() => setCollapsed((value) => !value)}
+        className="mt-auto mx-2 mb-2 hidden size-10 cursor-pointer items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300 md:flex"
+      >
+        {collapsed ? <PanelRightOpen className="size-4" /> : <PanelRightClose className="size-4" />}
+      </button>
 
       {canScrollLeft && (
         <div className="absolute inset-y-0 left-0 flex items-center bg-gradient-to-r from-background to-transparent pr-3 md:hidden">
