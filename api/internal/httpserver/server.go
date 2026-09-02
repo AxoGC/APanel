@@ -12,6 +12,7 @@ import (
 
 	"apanel/internal/auth"
 	"apanel/internal/container"
+	"apanel/internal/history"
 	"apanel/internal/response"
 	"apanel/internal/service"
 	"apanel/internal/stats"
@@ -25,11 +26,12 @@ type Server struct {
 	stats      *stats.Collector
 	services   *service.Manager
 	containers *container.Manager
+	history    *history.Manager
 	mux        *http.ServeMux
 }
 
-func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager) *Server {
-	s := &Server{auth: authSvc, stats: statsCollector, services: services, containers: containers, mux: http.NewServeMux()}
+func New(authSvc *auth.Service, statsCollector *stats.Collector, services *service.Manager, containers *container.Manager, historyMgr *history.Manager) *Server {
+	s := &Server{auth: authSvc, stats: statsCollector, services: services, containers: containers, history: historyMgr, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -56,6 +58,8 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/containers/{id}/start", s.auth.Middleware(s.containerAction(s.containers.Start)))
 	s.mux.Handle("POST /api/containers/{id}/stop", s.auth.Middleware(s.containerAction(s.containers.Stop)))
 	s.mux.Handle("POST /api/containers/{id}/restart", s.auth.Middleware(s.containerAction(s.containers.Restart)))
+
+	s.mux.Handle("GET /api/history", s.auth.Middleware(http.HandlerFunc(s.getHistory)))
 
 	dist, err := fs.Sub(embeddedDist, "dist")
 	if err != nil {

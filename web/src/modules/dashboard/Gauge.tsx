@@ -1,53 +1,10 @@
 import * as echarts from 'echarts/core'
 import { GaugeChart } from 'echarts/charts'
 import { CanvasRenderer } from 'echarts/renderers'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { useThemeColors } from '@/lib/chartColors'
 
 echarts.use([GaugeChart, CanvasRenderer])
-
-// echarts (canvas-based) can't parse the app's oklch() theme colors
-// directly, so colors are resolved through a hidden probe element: give it
-// the same Tailwind classes the rest of the UI uses (letting the `dark:`
-// variant and the runtime theme-hue CSS vars do their normal job), read the
-// computed `color`, then round-trip it through a canvas 2D context — which
-// the spec guarantees serializes back out as a plain hex/rgba string.
-function resolveColor(el: HTMLElement, ctx: CanvasRenderingContext2D): string {
-  ctx.fillStyle = getComputedStyle(el).color
-  return ctx.fillStyle
-}
-
-function readGaugeColors() {
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')!
-  const probe = document.createElement('div')
-  probe.style.display = 'none'
-  document.body.appendChild(probe)
-  const get = (className: string) => {
-    probe.className = className
-    return resolveColor(probe, ctx)
-  }
-  const colors = {
-    progress: get('text-theme-500'),
-    track: get('text-gray-200 dark:text-gray-800'),
-    emphasis: get('text-gray-900 dark:text-gray-100'),
-    muted: get('text-gray-500'),
-  }
-  document.body.removeChild(probe)
-  return colors
-}
-
-/** Re-reads the resolved colors whenever the color scheme (data-theme) or
- * the user-switchable theme hue (a `style` attribute mutation on <html>,
- * see lib/theme.ts) changes. */
-function useGaugeColors() {
-  const [colors, setColors] = useState(readGaugeColors)
-  useEffect(() => {
-    const observer = new MutationObserver(() => setColors(readGaugeColors()))
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] })
-    return () => observer.disconnect()
-  }, [])
-  return colors
-}
 
 export function Gauge({
   label,
@@ -62,7 +19,12 @@ export function Gauge({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<echarts.ECharts | null>(null)
-  const colors = useGaugeColors()
+  const colors = useThemeColors({
+    progress: 'text-theme-500',
+    track: 'text-gray-200 dark:text-gray-800',
+    emphasis: 'text-gray-900 dark:text-gray-100',
+    muted: 'text-gray-500',
+  })
 
   useEffect(() => {
     if (!containerRef.current) return
