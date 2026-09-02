@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const overview = useDashboardStream()
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
+    <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
       <h1 className="text-base text-gray-900 dark:text-gray-100">{t('dashboard.title')}</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -25,9 +25,11 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div>
+      <div className="flex min-h-0 grow flex-col">
         <p className="mb-2 text-xs text-gray-500">{t('dashboard.processes')}</p>
-        <ProcessGrid processes={overview?.processes ?? []} />
+        <div className="min-h-0 grow overflow-y-auto">
+          <ProcessGrid processes={overview?.processes ?? []} />
+        </div>
       </div>
     </div>
   )
