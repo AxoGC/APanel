@@ -213,7 +213,11 @@ export default function FirewallPage() {
               <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
                 {t('confirm.cancel')}
               </Button>
-              <Button type="submit" disabled={adding}>
+              <Button
+                type="submit"
+                disabled={adding}
+                className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+              >
                 {t('firewall.addRule.submit')}
               </Button>
             </DialogFooter>
