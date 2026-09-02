@@ -4,8 +4,10 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/apanel
-Environment=APANEL_PASSWORD=change-me
 Restart=on-failure
+
+# apanel reads /etc/apanel/config.env itself (see config.example.env), so
+# APANEL_PASSWORD and friends belong there rather than in this unit file.
 
 [Install]
 WantedBy=multi-user.target

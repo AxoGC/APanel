@@ -1,9 +1,0 @@
-# Copy to /etc/apanel/config.yaml (or point APANEL_CONFIG at another path).
-# Everything here is optional; apanel falls back to sane defaults.
-
-listen_addr: ":8080"
-
-# sqlite://<path>, postgres://user:pass@host:5432/dbname,
-# or mysql://user:pass@tcp(host:3306)/dbname
-# Defaults to sqlite://./apanel.db if omitted.
-dsn: "sqlite:///var/lib/apanel/apanel.db"
