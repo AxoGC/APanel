@@ -14,22 +14,19 @@ export function ServiceTable({
   pending,
   onAction,
   onShowLogs,
+  hideHeader = false,
 }: {
   units: ServiceUnit[]
   pending: Record<string, ServiceActionName | undefined>
   onAction: (name: string, action: ServiceActionName) => void
   onShowLogs: (unit: ServiceUnit) => void
+  hideHeader?: boolean
 }) {
   const { t } = useI18n()
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
-        <div className="min-w-0 flex-1 text-xs text-gray-500">{t('services.name')}</div>
-        <div className="hidden w-32 shrink-0 text-xs text-gray-500 lg:block">{t('services.enablement')}</div>
-        <div className="w-24 shrink-0 text-xs text-gray-500">{t('services.status')}</div>
-        <div className="w-28 shrink-0 text-right text-xs text-gray-500">{t('services.actions')}</div>
-      </div>
+      {!hideHeader && <ServiceTableHeader />}
       <div className="divide-y divide-gray-100 dark:divide-gray-800">
         {units.map((u) => {
           const busy = pending[u.name]
@@ -120,6 +117,19 @@ export function ServiceTable({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+export function ServiceTableHeader() {
+  const { t } = useI18n()
+
+  return (
+    <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
+      <div className="min-w-0 flex-1 text-xs text-gray-500">{t('services.name')}</div>
+      <div className="hidden w-32 shrink-0 text-xs text-gray-500 lg:block">{t('services.enablement')}</div>
+      <div className="w-24 shrink-0 text-xs text-gray-500">{t('services.status')}</div>
+      <div className="w-28 shrink-0 text-right text-xs text-gray-500">{t('services.actions')}</div>
     </div>
   )
 }

@@ -15,23 +15,19 @@ export function FirewallTable({
   deleting,
   onEdit,
   onDelete,
+  hideHeader = false,
 }: {
   rules: FirewallRule[]
   deleting: Record<string, boolean>
   onEdit: (rule: FirewallRule) => void
   onDelete: (rule: FirewallRule) => void
+  hideHeader?: boolean
 }) {
   const { t } = useI18n()
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
-        <div className="min-w-0 flex-1 text-xs text-gray-500">{t('firewall.to')}</div>
-        <div className="w-32 shrink-0 text-xs text-gray-500">{t('firewall.tags')}</div>
-        <div className="min-w-0 flex-1 text-xs text-gray-500">{t('firewall.addRule.from')}</div>
-        <div className="w-20 shrink-0 text-right text-xs text-gray-500">{t('firewall.addRule.action')}</div>
-        <div className="w-16 shrink-0" />
-      </div>
+      {!hideHeader && <FirewallTableHeader />}
       <div className="divide-y divide-gray-100 dark:divide-gray-800">
         {rules.map((rule) => {
           const key = rule.numbers.join('-')
@@ -78,6 +74,20 @@ export function FirewallTable({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+export function FirewallTableHeader() {
+  const { t } = useI18n()
+
+  return (
+    <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
+      <div className="min-w-0 flex-1 text-xs text-gray-500">{t('firewall.to')}</div>
+      <div className="w-32 shrink-0 text-xs text-gray-500">{t('firewall.tags')}</div>
+      <div className="min-w-0 flex-1 text-xs text-gray-500">{t('firewall.addRule.from')}</div>
+      <div className="w-20 shrink-0 text-right text-xs text-gray-500">{t('firewall.addRule.action')}</div>
+      <div className="w-16 shrink-0" />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import '@xterm/xterm/css/xterm.css'
 import { Folder } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { apiFetch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 
@@ -28,7 +29,21 @@ function terminalSocketURL(shell: Shell) {
 }
 
 function terminalTheme(mode: ThemeMode) {
-  const dark = mode === 'dark' || (mode === 'app' && document.documentElement.dataset.theme === 'dark')
+  // In follow-app mode the terminal canvas should disappear into the page
+  // rather than introducing a competing white/near-black surface. Reading
+  // the computed body colors also follows the runtime theme variables.
+  if (mode === 'app') {
+    const page = getComputedStyle(document.body)
+    const foreground = page.color
+    return {
+      background: page.backgroundColor,
+      foreground,
+      cursor: foreground,
+      selectionBackground: document.documentElement.dataset.theme === 'dark' ? '#374151' : '#d1d5db',
+    }
+  }
+
+  const dark = mode === 'dark'
   return dark
     ? { background: '#030712', foreground: '#f3f4f6', cursor: '#f3f4f6', selectionBackground: '#374151' }
     : { background: '#ffffff', foreground: '#1f2937', cursor: '#1f2937', selectionBackground: '#d1d5db' }
@@ -191,21 +206,23 @@ export default function TerminalPage() {
           <span className="min-w-0 shrink truncate text-xs text-gray-500" title={cwd}>
             {cwd || '…'}
           </span>
-          <div className="scrollbar-hide flex min-w-0 flex-1 gap-2 overflow-x-auto">
-            {directories?.map((directory) => (
-              <button
-                key={directory.path}
-                type="button"
-                disabled={connectionState !== 'connected'}
-                onClick={() => changeDirectory(directory)}
-                className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                <Folder className="size-3.5" />
-                {directory.name}
-              </button>
-            ))}
-            {directories?.length === 0 && <span className="text-xs text-gray-500">{t('terminal.directories.empty')}</span>}
-          </div>
+          <ScrollArea orientation="horizontal" className="min-w-0 flex-1" viewportClassName="pb-2">
+            <div className="flex w-max gap-2">
+              {directories?.map((directory) => (
+                <button
+                  key={directory.path}
+                  type="button"
+                  disabled={connectionState !== 'connected'}
+                  onClick={() => changeDirectory(directory)}
+                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  <Folder className="size-3.5" />
+                  {directory.name}
+                </button>
+              ))}
+              {directories?.length === 0 && <span className="text-xs text-gray-500">{t('terminal.directories.empty')}</span>}
+            </div>
+          </ScrollArea>
         </div>
       </div>
       <div className="min-h-0 grow p-4 sm:p-6">

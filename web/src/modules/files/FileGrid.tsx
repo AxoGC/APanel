@@ -93,6 +93,7 @@ export function FileGrid({
   onOpen,
   onRename,
   onDeleteOne,
+  hideHeader = false,
 }: {
   entries: FileEntry[]
   selected: ReadonlySet<string>
@@ -101,19 +102,11 @@ export function FileGrid({
   onOpen: (entry: FileEntry) => void
   onRename: (entry: FileEntry) => void
   onDeleteOne: (path: string) => void
+  hideHeader?: boolean
 }) {
-  const { t } = useI18n()
-  const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.path))
-
   return (
     <div className="flex flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-200 pb-2 text-xs text-gray-500 dark:border-gray-800">
-        <Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} aria-label={t('files.selectAll')} />
-        <span className="flex-1">{t('files.name')}</span>
-        <span className="hidden w-20 shrink-0 text-right sm:block">{t('files.size')}</span>
-        <span className="hidden w-36 shrink-0 text-right md:block">{t('files.modified')}</span>
-        <span className="w-7 shrink-0" />
-      </div>
+      {!hideHeader && <FileGridHeader entries={entries} selected={selected} onToggleSelectAll={onToggleSelectAll} />}
       {entries.map((entry) => (
         <FileRow
           key={entry.path}
@@ -125,6 +118,29 @@ export function FileGrid({
           onDeleteOne={onDeleteOne}
         />
       ))}
+    </div>
+  )
+}
+
+export function FileGridHeader({
+  entries,
+  selected,
+  onToggleSelectAll,
+}: {
+  entries: FileEntry[]
+  selected: ReadonlySet<string>
+  onToggleSelectAll: () => void
+}) {
+  const { t } = useI18n()
+  const allSelected = entries.length > 0 && entries.every((entry) => selected.has(entry.path))
+
+  return (
+    <div className="flex items-center gap-3 border-b border-gray-200 pb-2 text-xs text-gray-500 dark:border-gray-800">
+      <Checkbox checked={allSelected} onCheckedChange={onToggleSelectAll} aria-label={t('files.selectAll')} />
+      <span className="flex-1">{t('files.name')}</span>
+      <span className="hidden w-20 shrink-0 text-right sm:block">{t('files.size')}</span>
+      <span className="hidden w-36 shrink-0 text-right md:block">{t('files.modified')}</span>
+      <span className="w-7 shrink-0" />
     </div>
   )
 }

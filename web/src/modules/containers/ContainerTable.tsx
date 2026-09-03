@@ -15,23 +15,20 @@ export function ContainerTable({
   onAction,
   onShowLogs,
   onShowDetail,
+  hideHeader = false,
 }: {
   containers: ContainerInfo[]
   pending: Record<string, ContainerActionName | undefined>
   onAction: (id: string, action: ContainerActionName) => void
   onShowLogs: (container: ContainerInfo) => void
   onShowDetail: (container: ContainerInfo) => void
+  hideHeader?: boolean
 }) {
   const { t } = useI18n()
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
-        <div className="min-w-0 flex-1 text-xs text-gray-500">{t('containers.name')}</div>
-        <div className="hidden w-40 shrink-0 text-xs text-gray-500 lg:block">{t('containers.image')}</div>
-        <div className="w-28 shrink-0 text-xs text-gray-500">{t('containers.status')}</div>
-        <div className="w-28 shrink-0 text-right text-xs text-gray-500">{t('containers.actions')}</div>
-      </div>
+      {!hideHeader && <ContainerTableHeader />}
       <div className="divide-y divide-gray-100 dark:divide-gray-800">
         {containers.map((c) => {
           const busy = pending[c.id]
@@ -105,6 +102,19 @@ export function ContainerTable({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+export function ContainerTableHeader() {
+  const { t } = useI18n()
+
+  return (
+    <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
+      <div className="min-w-0 flex-1 text-xs text-gray-500">{t('containers.name')}</div>
+      <div className="hidden w-40 shrink-0 text-xs text-gray-500 lg:block">{t('containers.image')}</div>
+      <div className="w-28 shrink-0 text-xs text-gray-500">{t('containers.status')}</div>
+      <div className="w-28 shrink-0 text-right text-xs text-gray-500">{t('containers.actions')}</div>
     </div>
   )
 }

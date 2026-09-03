@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
@@ -106,20 +107,19 @@ export function LogsDialog({
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
-        <div
-          ref={bodyRef}
-          className="min-h-0 grow overflow-y-auto p-4 font-mono text-xs text-gray-700 dark:text-gray-300"
-        >
-          {content.length === 0 ? (
-            <p className="text-gray-500">{t('logs.empty')}</p>
-          ) : (
-            content.map((line, i) => (
-              <div key={i} className="whitespace-pre-wrap break-all">
-                {line}
-              </div>
-            ))
-          )}
-        </div>
+        <ScrollArea className="min-h-0 grow" viewportRef={bodyRef}>
+          <div className="p-4 font-mono text-xs text-gray-700 dark:text-gray-300">
+            {content.length === 0 ? (
+              <p className="text-gray-500">{t('logs.empty')}</p>
+            ) : (
+              content.map((line, i) => (
+                <div key={i} className="whitespace-pre-wrap break-all">
+                  {line}
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

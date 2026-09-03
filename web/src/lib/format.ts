@@ -10,6 +10,10 @@ export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
-export function formatMbps(bytesPerSec: number): string {
-  return ((Math.max(0, bytesPerSec) * 8) / 1_000_000).toFixed(1)
+export function formatBitrate(bytesPerSec: number): { value: string; unit: 'Kbps' | 'Mbps' } {
+  const bitsPerSec = Math.max(0, bytesPerSec) * 8
+  if (bitsPerSec < 1_000_000) {
+    return { value: (bitsPerSec / 1_000).toFixed(1), unit: 'Kbps' }
+  }
+  return { value: (bitsPerSec / 1_000_000).toFixed(1), unit: 'Mbps' }
 }

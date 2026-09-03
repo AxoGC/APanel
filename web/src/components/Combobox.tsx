@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
 // A free-text input with a filtered suggestion dropdown — not a strict
@@ -57,7 +58,7 @@ export function Combobox({
         }}
         className="w-(--radix-popover-trigger-width) p-1"
       >
-        <div className="max-h-56 overflow-y-auto">
+        <ScrollArea className="max-h-56" viewportClassName="max-h-56">
           {filtered.map((opt) => (
             <button
               key={opt}
@@ -74,7 +75,7 @@ export function Combobox({
               {opt}
             </button>
           ))}
-        </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   )

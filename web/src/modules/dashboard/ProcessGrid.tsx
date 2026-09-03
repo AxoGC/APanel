@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { formatBytes, formatPercent } from '@/lib/format'
-import { useI18n, type TranslationKey } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { buildProcessForest, sortProcessForest, type ProcessNode } from './processTree'
 import type { ProcessInfo, ProcessSort } from './useDashboardStream'
@@ -134,7 +134,9 @@ function ProcessTreeRow({
   )
 }
 
-function HeaderRow({ t }: { t: (key: TranslationKey) => string }) {
+export function ProcessGridHeader() {
+  const { t } = useI18n()
+
   return (
   <div className="flex items-center gap-2 pb-1.5">
     <div className="flex min-w-0 flex-1 items-center gap-1 pl-[calc(0.875rem+0.25rem)] text-xs text-gray-500">
@@ -161,6 +163,7 @@ export function ProcessGrid({
   expanded,
   onToggle,
   onShowDetail,
+  hideHeader = false,
 }: {
   processes: ProcessInfo[]
   sort: ProcessSort
@@ -168,9 +171,8 @@ export function ProcessGrid({
   expanded: ReadonlySet<number>
   onToggle: (pid: number) => void
   onShowDetail: (pid: number) => void
+  hideHeader?: boolean
 }) {
-  const { t } = useI18n()
-
   const forest = useMemo(() => {
     if (!tree) return []
     const roots = buildProcessForest(processes)
@@ -181,7 +183,7 @@ export function ProcessGrid({
 
   return (
     <div className="w-full">
-      <HeaderRow t={t} />
+      {!hideHeader && <ProcessGridHeader />}
       {tree
         ? visibleRoots.map((root) => (
             <ProcessTreeRow

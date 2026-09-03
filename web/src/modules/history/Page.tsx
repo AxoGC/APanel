@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { formatBytes } from '@/lib/format'
 import { ApiError } from '@/lib/api'
@@ -110,27 +111,29 @@ export default function HistoryPage() {
       {day && day.points.length === 0 && <p className="text-sm text-gray-500">{t('history.empty')}</p>}
 
       {day && day.points.length > 0 && (
-        <div className="flex min-h-0 grow flex-col gap-6 overflow-y-auto">
-          <HistoryChart
-            label={t('history.cpu')}
-            times={day.points.map((p) => p.time)}
-            values={day.points.map((p) => p.cpuUsedPercent)}
-            unit="%"
-          />
-          <div className="flex flex-col gap-1">
+        <ScrollArea className="min-h-0 grow">
+          <div className="flex flex-col gap-6">
             <HistoryChart
-              label={t('history.memory')}
+              label={t('history.cpu')}
               times={day.points.map((p) => p.time)}
-              values={day.points.map((p) => p.memUsedPercent)}
+              values={day.points.map((p) => p.cpuUsedPercent)}
               unit="%"
             />
-            {last && (
-              <span className="text-xs text-gray-500">
-                {formatBytes(last.memUsed)} / {formatBytes(last.memTotal)}
-              </span>
-            )}
+            <div className="flex flex-col gap-1">
+              <HistoryChart
+                label={t('history.memory')}
+                times={day.points.map((p) => p.time)}
+                values={day.points.map((p) => p.memUsedPercent)}
+                unit="%"
+              />
+              {last && (
+                <span className="text-xs text-gray-500">
+                  {formatBytes(last.memUsed)} / {formatBytes(last.memTotal)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       )}
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>

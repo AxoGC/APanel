@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { Nav } from '@/components/Nav'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
@@ -34,7 +35,7 @@ function Shell() {
 
   return (
     <div className="mx-auto flex h-dvh max-w-5xl flex-col md:flex-row-reverse">
-      <div className="min-h-0 grow overflow-y-auto">
+      <ScrollArea className="min-h-0 grow" viewportClassName="[&>div]:h-full [&>div]:block!">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/services" element={<ServicesPage />} />
@@ -51,7 +52,7 @@ function Shell() {
             </Suspense>
           </div>
         )}
-      </div>
+      </ScrollArea>
       <Nav />
     </div>
   )

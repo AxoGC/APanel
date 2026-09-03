@@ -20,10 +20,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { Breadcrumb } from './Breadcrumb'
-import { FileGrid } from './FileGrid'
+import { FileGrid, FileGridHeader } from './FileGrid'
 import {
   deleteFiles,
   downloadUrl,
@@ -265,20 +266,24 @@ export default function FilesPage() {
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <div className="min-h-0 grow overflow-y-auto">
-        {entries && filtered.length === 0 && <p className="text-sm text-gray-500">{t('files.empty')}</p>}
-        {entries && filtered.length > 0 && (
-          <FileGrid
-            entries={filtered}
-            selected={selected}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAll}
-            onOpen={openEntry}
-            onRename={openRename}
-            onDeleteOne={(p) => setConfirmDeletePaths([p])}
-          />
-        )}
-      </div>
+      {entries && filtered.length === 0 && <p className="text-sm text-gray-500">{t('files.empty')}</p>}
+      {entries && filtered.length > 0 && (
+        <div className="flex min-h-0 grow flex-col">
+          <FileGridHeader entries={filtered} selected={selected} onToggleSelectAll={toggleSelectAll} />
+          <ScrollArea className="min-h-0 grow">
+            <FileGrid
+              entries={filtered}
+              selected={selected}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              onOpen={openEntry}
+              onRename={openRename}
+              onDeleteOne={(p) => setConfirmDeletePaths([p])}
+              hideHeader
+            />
+          </ScrollArea>
+        </div>
+      )}
 
       <Dialog open={mkdirOpen} onOpenChange={setMkdirOpen}>
         <DialogContent>

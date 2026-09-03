@@ -1,6 +1,7 @@
 import { Box, ChevronLeft, ChevronRight, FolderOpen, Gauge, History, PanelRightClose, PanelRightOpen, Server, Settings, Shield, SquareTerminal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useFeatures, type Features } from '@/lib/features'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -75,7 +76,7 @@ export function Nav() {
 
       <div
         ref={ref}
-        className="scrollbar-hide flex overflow-x-auto md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:p-2"
+        className="scrollbar-hide flex overflow-x-auto md:hidden"
       >
         {visibleItems.map(({ to, labelKey, icon: Icon }) => (
           <NavLink
@@ -90,6 +91,23 @@ export function Nav() {
           </NavLink>
         ))}
       </div>
+
+      <ScrollArea className="hidden min-h-0 flex-1 md:block">
+        <div className="flex flex-col p-2">
+          {visibleItems.map(({ to, labelKey, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              aria-label={t(labelKey)}
+              className={({ isActive }) => itemClasses(isActive, collapsed)}
+            >
+              <Icon className="size-5 md:size-4" />
+              <span className={cn(collapsed && 'md:hidden')}>{t(labelKey)}</span>
+            </NavLink>
+          ))}
+        </div>
+      </ScrollArea>
 
       <button
         type="button"

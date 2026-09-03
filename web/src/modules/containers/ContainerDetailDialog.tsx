@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -54,7 +55,7 @@ export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null;
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         {detail && (
-          <div className="min-h-0 grow overflow-y-auto">
+          <ScrollArea className="min-h-0 grow">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Field label={t('containers.detail.id')} value={detail.id} wrap />
@@ -105,7 +106,7 @@ export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null;
                 </div>
               )}
             </div>
-          </div>
+          </ScrollArea>
         )}
       </DialogContent>
     </Dialog>

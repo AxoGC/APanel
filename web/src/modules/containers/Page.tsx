@@ -2,6 +2,7 @@ import { Images, Network, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useDataLayout } from '@/lib/dataLayout'
@@ -19,7 +20,7 @@ import { ContainerLogsDialog } from './ContainerLogsDialog'
 import { CreateContainerDialog } from './CreateContainerDialog'
 import { ImageManagerDialog } from './ImageManagerDialog'
 import { NetworkManagerDialog } from './NetworkManagerDialog'
-import { ContainerTable } from './ContainerTable'
+import { ContainerTable, ContainerTableHeader } from './ContainerTable'
 
 export default function ContainersPage() {
   const { t } = useI18n()
@@ -108,28 +109,33 @@ export default function ContainersPage() {
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <div className="min-h-0 grow overflow-y-auto">
-        {containers && containers.length === 0 && <p className="text-sm text-gray-500">{t('containers.empty')}</p>}
-        {containers &&
-          containers.length > 0 &&
-          (dataLayout === 'table' ? (
+      {containers && containers.length === 0 && <p className="text-sm text-gray-500">{t('containers.empty')}</p>}
+      {containers && containers.length > 0 && dataLayout === 'table' && (
+        <div className="flex min-h-0 grow flex-col">
+          <ContainerTableHeader />
+          <ScrollArea className="min-h-0 grow">
             <ContainerTable
               containers={containers}
               pending={pending}
               onAction={handleAction}
               onShowLogs={setLogsFor}
               onShowDetail={(c) => setDetailFor(c.id)}
+              hideHeader
             />
-          ) : (
-            <ContainerGrid
-              containers={containers}
-              pending={pending}
-              onAction={handleAction}
-              onShowLogs={setLogsFor}
-              onShowDetail={(c) => setDetailFor(c.id)}
-            />
-          ))}
-      </div>
+          </ScrollArea>
+        </div>
+      )}
+      {containers && containers.length > 0 && dataLayout === 'grid' && (
+        <ScrollArea className="min-h-0 grow">
+          <ContainerGrid
+            containers={containers}
+            pending={pending}
+            onAction={handleAction}
+            onShowLogs={setLogsFor}
+            onShowDetail={(c) => setDetailFor(c.id)}
+          />
+        </ScrollArea>
+      )}
 
       <ContainerLogsDialog
         open={logsFor !== null}

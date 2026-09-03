@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
@@ -131,7 +132,7 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
 
         {error && <p className="text-xs text-red-600">{error}</p>}
 
-        <div className="max-h-[60vh] overflow-y-auto">
+        <div className="flex max-h-[60vh] flex-col">
           <div className="flex items-center gap-3 border-b border-gray-200 px-2 pb-1.5 dark:border-gray-800">
             <div className="w-4 shrink-0">
               <Checkbox
@@ -146,30 +147,32 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
             <div className="w-24 shrink-0 text-right text-xs text-gray-500">{t('containers.usage')}</div>
           </div>
 
-          {images && filteredImages.length === 0 && <p className="px-2 py-4 text-sm text-gray-500">{t('containers.images.empty')}</p>}
-          {filteredImages.map((image) => {
-            const inUse = image.usedBy.length > 0
-            return (
-              <div
-                key={image.id}
-                className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
-              >
-                <div className="w-4 shrink-0">
-                  <Checkbox
-                    checked={selected.has(image.id)}
-                    disabled={inUse}
-                    onCheckedChange={() => toggleImage(image)}
-                    aria-label={image.name}
-                  />
+          <ScrollArea className="min-h-0 grow">
+            {images && filteredImages.length === 0 && <p className="px-2 py-4 text-sm text-gray-500">{t('containers.images.empty')}</p>}
+            {filteredImages.map((image) => {
+              const inUse = image.usedBy.length > 0
+              return (
+                <div
+                  key={image.id}
+                  className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
+                >
+                  <div className="w-4 shrink-0">
+                    <Checkbox
+                      checked={selected.has(image.id)}
+                      disabled={inUse}
+                      onCheckedChange={() => toggleImage(image)}
+                      aria-label={image.name}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{image.name}</div>
+                  <div className="w-24 shrink-0 text-right text-xs text-gray-500">{formatBytes(image.size)}</div>
+                  <div className="w-24 shrink-0 text-right">
+                    <UsageCell usedBy={image.usedBy} />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{image.name}</div>
-                <div className="w-24 shrink-0 text-right text-xs text-gray-500">{formatBytes(image.size)}</div>
-                <div className="w-24 shrink-0 text-right">
-                  <UsageCell usedBy={image.usedBy} />
-                </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>

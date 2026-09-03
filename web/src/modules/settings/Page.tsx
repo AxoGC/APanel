@@ -24,8 +24,8 @@ const DATA_LAYOUTS: DataLayout[] = ['table', 'grid']
 
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-6 py-4 first:pt-0">
-      <p className="w-24 shrink-0 text-xs text-gray-500">{label}</p>
+    <div className="flex items-center gap-4 py-4 first:pt-0">
+      <p className="w-18 shrink-0 text-xs text-gray-500">{label}</p>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
@@ -160,6 +160,28 @@ export default function SettingsPage() {
           {t('settings.signOut')}
         </Button>
       </Section>
+
+      <div className="border-t border-gray-200 pt-4 dark:border-gray-800">
+        <p className="mb-3 text-xs text-gray-500">{t('settings.about')}</p>
+        <div className="flex flex-col gap-2 text-sm">
+          <a
+            href="https://apanel.axogc.net"
+            target="_blank"
+            rel="noreferrer"
+            className="w-fit cursor-pointer text-theme-700 hover:underline dark:text-theme-300"
+          >
+            {t('settings.about.documentation')} · apanel.axogc.net
+          </a>
+          <a
+            href="https://github.com/axogc/apanel"
+            target="_blank"
+            rel="noreferrer"
+            className="w-fit cursor-pointer text-theme-700 hover:underline dark:text-theme-300"
+          >
+            GitHub · github.com/axogc/apanel
+          </a>
+        </div>
+      </div>
     </div>
   )
 }

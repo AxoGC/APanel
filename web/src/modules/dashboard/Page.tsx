@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ApiError } from '@/lib/api'
-import { formatBytes, formatMbps } from '@/lib/format'
+import { formatBitrate, formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { Gauge } from './Gauge'
 import { buildProcessForest, type ProcessNode } from './processTree'
 import { ProcessDetailDialog } from './ProcessDetailDialog'
-import { ProcessGrid } from './ProcessGrid'
+import { ProcessGrid, ProcessGridHeader } from './ProcessGrid'
 import {
   getDashboardNetworkSettings,
   putDashboardNetworkSettings,
@@ -76,6 +77,8 @@ export default function DashboardPage() {
   const memPercent = overview ? (overview.memUsed / overview.memTotal) * 100 : 0
   const uploadMbps = overview ? (overview.netTxBytesPerSec * 8) / 1_000_000 : 0
   const netPercent = maxMbps > 0 ? (uploadMbps / maxMbps) * 100 : 0
+  const uploadRate = overview ? formatBitrate(overview.netTxBytesPerSec) : null
+  const downloadRate = overview ? formatBitrate(overview.netRxBytesPerSec) : null
 
   function toggleExpanded(pid: number) {
     setExpanded((prev) => {
@@ -142,9 +145,9 @@ export default function DashboardPage() {
           <Gauge
             label={overview?.netInterface ? `${overview.netInterface} ${t('dashboard.upload')}` : t('dashboard.upload')}
             value={netPercent}
-            mainText={overview ? formatMbps(overview.netTxBytesPerSec) : '–'}
-            unitText={overview ? 'Mbps' : undefined}
-            details={overview ? [`${t('dashboard.download')} ${formatMbps(overview.netRxBytesPerSec)}Mbps`] : undefined}
+            mainText={uploadRate?.value ?? '–'}
+            unitText={uploadRate?.unit}
+            details={downloadRate ? [`${t('dashboard.download')} ${downloadRate.value} ${downloadRate.unit}`] : undefined}
           />
         </div>
       </div>
@@ -171,7 +174,8 @@ export default function DashboardPage() {
             />
           </div>
         </div>
-        <div className="min-h-0 grow overflow-y-auto">
+        <ProcessGridHeader />
+        <ScrollArea className="min-h-0 grow">
           <ProcessGrid
             processes={overview?.processes ?? []}
             sort={sort}
@@ -179,8 +183,9 @@ export default function DashboardPage() {
             expanded={expanded}
             onToggle={toggleExpanded}
             onShowDetail={setDetailPid}
+            hideHeader
           />
-        </div>
+        </ScrollArea>
       </div>
 
       <ProcessDetailDialog pid={detailPid} onOpenChange={(open) => !open && setDetailPid(null)} />

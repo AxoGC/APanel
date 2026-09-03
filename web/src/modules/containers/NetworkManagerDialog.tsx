@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
@@ -84,7 +85,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
 
         {error && <p className="text-xs text-red-600">{error}</p>}
 
-        <div className="max-h-[60vh] overflow-y-auto">
+        <div className="flex max-h-[60vh] flex-col">
           <div className="flex items-center gap-3 border-b border-gray-200 px-2 pb-1.5 dark:border-gray-800">
             <div className="min-w-0 flex-1 text-xs text-gray-500">{t('containers.networks.name')}</div>
             <div className="w-24 shrink-0 text-xs text-gray-500">{t('containers.networks.driver')}</div>
@@ -93,39 +94,41 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
             <div className="w-8 shrink-0" />
           </div>
 
-          {networks && filteredNetworks.length === 0 && (
-            <p className="px-2 py-4 text-sm text-gray-500">{t('containers.networks.empty')}</p>
-          )}
-          {filteredNetworks.map((n) => (
-            <div
-              key={n.id}
-              className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
-            >
-              <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{n.name}</div>
-              <div className="w-24 shrink-0 truncate text-xs text-gray-500">{n.driver}</div>
-              <div className="w-20 shrink-0 truncate text-xs text-gray-500">{n.scope}</div>
-              <div className="w-24 shrink-0 text-right">
-                <UsageCell usedBy={n.usedBy} />
+          <ScrollArea className="min-h-0 grow">
+            {networks && filteredNetworks.length === 0 && (
+              <p className="px-2 py-4 text-sm text-gray-500">{t('containers.networks.empty')}</p>
+            )}
+            {filteredNetworks.map((n) => (
+              <div
+                key={n.id}
+                className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
+              >
+                <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{n.name}</div>
+                <div className="w-24 shrink-0 truncate text-xs text-gray-500">{n.driver}</div>
+                <div className="w-20 shrink-0 truncate text-xs text-gray-500">{n.scope}</div>
+                <div className="w-24 shrink-0 text-right">
+                  <UsageCell usedBy={n.usedBy} />
+                </div>
+                <div className="flex w-8 shrink-0 justify-end">
+                  <ConfirmIconButton
+                    icon={<Trash2 />}
+                    label={t('containers.networks.delete')}
+                    actionLabel={t('containers.networks.delete')}
+                    title={t('containers.networks.confirmDelete.title')}
+                    description={
+                      <>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{n.name}</span>
+                        {' — '}
+                        {t('containers.networks.confirmDelete.description')}
+                      </>
+                    }
+                    disabled={n.usedBy.length > 0 || deletingId === n.id}
+                    onConfirm={() => void deleteNetwork(n.id)}
+                  />
+                </div>
               </div>
-              <div className="flex w-8 shrink-0 justify-end">
-                <ConfirmIconButton
-                  icon={<Trash2 />}
-                  label={t('containers.networks.delete')}
-                  actionLabel={t('containers.networks.delete')}
-                  title={t('containers.networks.confirmDelete.title')}
-                  description={
-                    <>
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{n.name}</span>
-                      {' — '}
-                      {t('containers.networks.confirmDelete.description')}
-                    </>
-                  }
-                  disabled={n.usedBy.length > 0 || deletingId === n.id}
-                  onConfirm={() => void deleteNetwork(n.id)}
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>

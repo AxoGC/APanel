@@ -1,5 +1,8 @@
 .PHONY: build build-web build-api dev-api dev-web docs-dev docs-build clean
 
+GO_BUILD_FLAGS := -trimpath -buildvcs=false
+GO_LDFLAGS := -s -w -buildid=
+
 build: build-web build-api
 
 build-web:
@@ -8,7 +11,7 @@ build-web:
 	cp -r web/dist api/internal/httpserver/dist
 
 build-api:
-	cd api && go build -o apanel ./cmd/apanel
+	cd api && go build $(GO_BUILD_FLAGS) -ldflags="$(GO_LDFLAGS)" -o apanel ./cmd/apanel
 
 
 # apanel itself has no notion of a .env file (production loads one via
