@@ -4,6 +4,7 @@ import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Gauge } from './Gauge'
+import { buildProcessForest, type ProcessNode } from './processTree'
 import { ProcessGrid } from './ProcessGrid'
 import { useDashboardStream, type ProcessSort } from './useDashboardStream'
 
@@ -11,9 +12,31 @@ export default function DashboardPage() {
   const { t } = useI18n()
   const [sort, setSort] = useState<ProcessSort>('mem')
   const [tree, setTree] = useState(true)
+  // Empty by default: every node with children starts collapsed. Lifted up
+  // from ProcessGrid (rather than owned there) so "expand all" can drive it.
+  const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set())
   const overview = useDashboardStream(sort)
 
   const memPercent = overview ? (overview.memUsed / overview.memTotal) * 100 : 0
+
+  function toggleExpanded(pid: number) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
+      return next
+    })
+  }
+
+  function expandAll() {
+    const pids = new Set<number>()
+    const visit = (node: ProcessNode) => {
+      if (node.children.length > 0) pids.add(node.pid)
+      node.children.forEach(visit)
+    }
+    buildProcessForest(overview?.processes ?? []).forEach(visit)
+    setExpanded(pids)
+  }
 
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
@@ -57,6 +80,15 @@ export default function DashboardPage() {
             >
               {t('dashboard.tree')}
             </button>
+            {tree && (
+              <button
+                type="button"
+                onClick={expandAll}
+                className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                {t('dashboard.expandAll')}
+              </button>
+            )}
             <SegmentedControl
               value={sort}
               onChange={setSort}
@@ -68,7 +100,13 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="min-h-0 grow overflow-y-auto">
-          <ProcessGrid processes={overview?.processes ?? []} sort={sort} tree={tree} />
+          <ProcessGrid
+            processes={overview?.processes ?? []}
+            sort={sort}
+            tree={tree}
+            expanded={expanded}
+            onToggle={toggleExpanded}
+          />
         </div>
       </div>
     </div>

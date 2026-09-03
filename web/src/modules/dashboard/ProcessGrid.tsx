@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
@@ -41,7 +41,13 @@ function ProcessRow({
         ) : (
           <span className="inline-block size-3.5 shrink-0" />
         )}
-        <span className="truncate text-sm text-gray-700 dark:text-gray-300">
+        <span
+          className={cn(
+            'truncate text-sm text-gray-700 dark:text-gray-300',
+            trigger && 'cursor-pointer hover:text-gray-900 dark:hover:text-gray-100',
+          )}
+          onClick={trigger?.onToggle}
+        >
           {name}
           {count !== undefined && <span className="text-gray-400"> ({count})</span>}
         </span>
@@ -129,23 +135,16 @@ export function ProcessGrid({
   processes,
   sort,
   tree,
+  expanded,
+  onToggle,
 }: {
   processes: ProcessInfo[]
   sort: ProcessSort
   tree: boolean
+  expanded: ReadonlySet<number>
+  onToggle: (pid: number) => void
 }) {
   const { t } = useI18n()
-  // Empty by default: every node with children starts collapsed.
-  const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set())
-
-  const toggle = (pid: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(pid)) next.delete(pid)
-      else next.add(pid)
-      return next
-    })
-  }
 
   const forest = useMemo(() => {
     if (!tree) return []
@@ -160,7 +159,7 @@ export function ProcessGrid({
       <HeaderRow t={t} />
       {tree
         ? visibleRoots.map((root) => (
-            <ProcessTreeRow key={root.pid} node={root} depth={0} expanded={expanded} onToggle={toggle} />
+            <ProcessTreeRow key={root.pid} node={root} depth={0} expanded={expanded} onToggle={onToggle} />
           ))
         : processes.map((p) => (
             <ProcessRow key={p.pid} name={p.name} user={p.user} cpuPercent={p.cpuPercent} memRSS={p.memRSS} depth={0} />
