@@ -163,9 +163,8 @@ export default function TerminalPage() {
     <div className="flex h-full flex-col">
       <div className="flex flex-col gap-3 border-b border-gray-200 p-4 sm:p-6 dark:border-gray-800">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-base text-gray-900 dark:text-gray-100">{t('terminal.title')}</h1>
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-500">{t('terminal.shell')}</span>
+            <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.shell')}</span>
             <Select
               value={shell}
               onValueChange={(value) => {
@@ -185,7 +184,7 @@ export default function TerminalPage() {
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-xs text-gray-500">{t('terminal.theme')}</span>
+            <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.theme')}</span>
             <Select value={themeMode} onValueChange={(value) => setThemeMode(value as ThemeMode)}>
               <SelectTrigger>
                 <SelectValue />
@@ -203,29 +202,23 @@ export default function TerminalPage() {
             {connectionState === 'connecting' ? t('terminal.connecting') : t('terminal.disconnected')}
           </span>
         )}
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-xs text-gray-500">{t('terminal.directories')}</span>
-          <span className="min-w-0 shrink truncate text-xs text-gray-500" title={cwd}>
-            {cwd || '…'}
-          </span>
-          <ScrollArea orientation="horizontal" className="min-w-0 flex-1" viewportClassName="pb-2">
-            <div className="flex w-max gap-2">
-              {directories?.map((directory) => (
-                <button
-                  key={directory.path}
-                  type="button"
-                  disabled={connectionState !== 'connected'}
-                  onClick={() => changeDirectory(directory)}
-                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  <Folder className="size-3.5" />
-                  {directory.name}
-                </button>
-              ))}
-              {directories?.length === 0 && <span className="text-xs text-gray-500">{t('terminal.directories.empty')}</span>}
-            </div>
-          </ScrollArea>
-        </div>
+        <ScrollArea orientation="horizontal" className="min-w-0" viewportClassName="pb-2">
+          <div className="flex w-max gap-2">
+            {directories?.map((directory) => (
+              <button
+                key={directory.path}
+                type="button"
+                disabled={connectionState !== 'connected'}
+                onClick={() => changeDirectory(directory)}
+                className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <Folder className="size-3.5" />
+                {directory.name}
+              </button>
+            ))}
+            {directories?.length === 0 && <span className="text-xs text-gray-500">{t('terminal.directories.empty')}</span>}
+          </div>
+        </ScrollArea>
       </div>
       <div className="min-h-0 grow p-4 sm:p-6">
         <div ref={containerRef} className="h-full w-full" />
