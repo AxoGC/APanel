@@ -1,4 +1,4 @@
-import { ArrowUp, FolderPlus, Loader2, Search, Upload } from 'lucide-react'
+import { ArrowUp, FolderPlus, Loader2, Search, Trash2, Upload } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import { Breadcrumb } from './Breadcrumb'
 import { FileGrid, FileGridHeader } from './FileGrid'
 import {
@@ -76,6 +77,8 @@ export default function FilesPage() {
 
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
   function refresh() {
     return listFiles(path).then(setEntries)
@@ -91,6 +94,10 @@ export default function FilesPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
+
+  useEffect(() => {
+    if (mobileSearchOpen) searchInputRef.current?.focus()
+  }, [mobileSearchOpen])
 
   const filtered = useMemo(() => {
     if (!entries) return []
@@ -222,23 +229,39 @@ export default function FilesPage() {
 
   return (
     <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className={cn('flex flex-wrap items-center gap-3', mobileSearchOpen && 'max-md:block')}>
         <Button
           variant="ghost"
           size="icon-sm"
           aria-label={t('files.up')}
           disabled={parent === null}
           onClick={() => parent !== null && setPath(parent)}
+          className={cn(mobileSearchOpen && 'max-md:hidden')}
         >
           <ArrowUp />
         </Button>
-        <Breadcrumb path={path} onNavigate={setPath} />
-        <div className="flex grow items-center justify-end gap-2">
-          <div className="relative w-40 sm:w-56">
+        <div className={cn(mobileSearchOpen && 'max-md:hidden')}>
+          <Breadcrumb path={path} onNavigate={setPath} />
+        </div>
+        <div className={cn('flex grow items-center justify-end gap-2', mobileSearchOpen && 'max-md:w-full')}>
+          <button
+            type="button"
+            aria-label={t('files.search')}
+            onClick={() => setMobileSearchOpen(true)}
+            className={cn(
+              'flex size-8 cursor-pointer items-center justify-center rounded-lg border border-input text-gray-500 hover:bg-accent hover:text-gray-700 dark:bg-input/30 dark:hover:bg-input/50 dark:hover:text-gray-300 md:hidden',
+              mobileSearchOpen && 'hidden',
+            )}
+          >
+            <Search className="size-4" />
+          </button>
+          <div className={cn('relative w-full md:w-56', mobileSearchOpen ? 'block' : 'hidden md:block')}>
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
             <Input
+              ref={searchInputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onBlur={() => setMobileSearchOpen(false)}
               placeholder={t('files.search')}
               className="pl-8"
             />
@@ -247,18 +270,21 @@ export default function FilesPage() {
             <Button
               variant="destructive"
               size="sm"
+              aria-label={t('files.delete')}
               onClick={() => setConfirmDeletePaths(Array.from(selected))}
+              className={cn(mobileSearchOpen && 'max-md:hidden')}
             >
-              {t('files.delete')} ({selected.size})
+              <Trash2 />
+              <span className="hidden md:inline">{t('files.delete')} ({selected.size})</span>
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setMkdirOpen(true)}>
+          <Button variant="outline" size="sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)} className={cn(mobileSearchOpen && 'max-md:hidden')}>
             <FolderPlus />
-            {t('files.newFolder')}
+            <span className="hidden md:inline">{t('files.newFolder')}</span>
           </Button>
-          <Button variant="outline" size="sm" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+          <Button variant="outline" size="sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()} className={cn(mobileSearchOpen && 'max-md:hidden')}>
             {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-            {t('files.upload')}
+            <span className="hidden md:inline">{t('files.upload')}</span>
           </Button>
           <input ref={fileInputRef} type="file" multiple hidden onChange={onFilesSelected} />
         </div>
