@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { ChevronDown, LogOut } from 'lucide-react'
+import { BookOpen, ChevronDown, GitFork, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -114,7 +114,6 @@ export default function SettingsPage() {
       <h1 className="mb-2 text-base text-gray-900 dark:text-gray-100">{t('nav.settings')}</h1>
 
       <div className="border-b border-gray-200 py-2 first:pt-0 dark:border-gray-800">
-        <p className="mb-3 text-xs text-gray-500">{t('settings.systemInfo.title')}</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Field label={t('settings.systemInfo.hostname')} value={systemInfo?.hostname ?? '–'} />
           <Field label={t('settings.systemInfo.distro')} value={systemInfo?.distro || '–'} />
@@ -214,26 +213,25 @@ export default function SettingsPage() {
         </Button>
       </Section>
 
-      <div className="border-t border-gray-200 pt-4 dark:border-gray-800">
-        <p className="mb-3 text-xs text-gray-500">{t('settings.about')}</p>
-        <div className="flex flex-col gap-2 text-sm">
+      <div className="grid grid-cols-2 border-t border-gray-200 pt-2 text-sm dark:border-gray-800">
           <a
             href="https://apanel.axogc.net"
             target="_blank"
             rel="noreferrer"
-            className="w-fit cursor-pointer text-theme-700 hover:underline dark:text-theme-300"
+            className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
           >
-            {t('settings.about.documentation')} · apanel.axogc.net
+            <BookOpen className="size-4" />
+            {t('settings.about.documentation')}
           </a>
           <a
             href="https://github.com/axogc/apanel"
             target="_blank"
             rel="noreferrer"
-            className="w-fit cursor-pointer text-theme-700 hover:underline dark:text-theme-300"
+            className="flex w-fit cursor-pointer items-center gap-1.5 justify-self-end text-theme-700 hover:underline dark:text-theme-300"
           >
-            GitHub · github.com/axogc/apanel
+            <GitFork className="size-4" />
+            GitHub
           </a>
-        </div>
       </div>
     </div>
   )
