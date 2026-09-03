@@ -1,4 +1,4 @@
-import { Images, Search } from 'lucide-react'
+import { Images, Network, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { LogsDialog } from '@/components/LogsDialog'
@@ -18,6 +18,7 @@ import {
 } from './api'
 import { ContainerGrid } from './ContainerGrid'
 import { ImageManagerDialog } from './ImageManagerDialog'
+import { NetworkManagerDialog } from './NetworkManagerDialog'
 import { ContainerTable } from './ContainerTable'
 
 export default function ContainersPage() {
@@ -30,6 +31,7 @@ export default function ContainersPage() {
   const [error, setError] = useState<string | null>(null)
   const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
   const [imagesOpen, setImagesOpen] = useState(false)
+  const [networksOpen, setNetworksOpen] = useState(false)
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -86,10 +88,16 @@ export default function ContainersPage() {
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setImagesOpen(true)}>
-          <Images />
-          {t('containers.images')}
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImagesOpen(true)}>
+            <Images />
+            {t('containers.images')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setNetworksOpen(true)}>
+            <Network />
+            {t('containers.networks')}
+          </Button>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -114,6 +122,7 @@ export default function ContainersPage() {
         streamUrl={containerLogsStreamUrl}
       />
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
+      <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
     </div>
   )
 }

@@ -19,6 +19,7 @@ import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { deleteContainerImages, listContainerImages, type ContainerImage } from './api'
+import { UsageCell } from './UsageCell'
 
 type ImageFilter = 'all' | 'unused' | 'used'
 
@@ -47,15 +48,15 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
 
   const filteredImages = useMemo(() => {
     if (!images) return []
-    if (filter === 'used') return images.filter((image) => image.containers > 0)
-    if (filter === 'unused') return images.filter((image) => image.containers === 0)
+    if (filter === 'used') return images.filter((image) => image.usedBy.length > 0)
+    if (filter === 'unused') return images.filter((image) => image.usedBy.length === 0)
     return images
   }, [filter, images])
-  const selectableImages = filteredImages.filter((image) => image.containers === 0)
+  const selectableImages = filteredImages.filter((image) => image.usedBy.length === 0)
   const allSelectable = selectableImages.length > 0 && selectableImages.every((image) => selected.has(image.id))
 
   const toggleImage = (image: ContainerImage) => {
-    if (image.containers > 0) return
+    if (image.usedBy.length > 0) return
     setSelected((current) => {
       const next = new Set(current)
       next.has(image.id) ? next.delete(image.id) : next.add(image.id)
@@ -142,12 +143,12 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
             </div>
             <div className="min-w-0 flex-1 text-xs text-gray-500">{t('containers.images.name')}</div>
             <div className="w-24 shrink-0 text-right text-xs text-gray-500">{t('containers.images.size')}</div>
-            <div className="w-24 shrink-0 text-right text-xs text-gray-500">{t('containers.images.usage')}</div>
+            <div className="w-24 shrink-0 text-right text-xs text-gray-500">{t('containers.usage')}</div>
           </div>
 
           {images && filteredImages.length === 0 && <p className="px-2 py-4 text-sm text-gray-500">{t('containers.images.empty')}</p>}
           {filteredImages.map((image) => {
-            const inUse = image.containers > 0
+            const inUse = image.usedBy.length > 0
             return (
               <div
                 key={image.id}
@@ -163,8 +164,8 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
                 </div>
                 <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{image.name}</div>
                 <div className="w-24 shrink-0 text-right text-xs text-gray-500">{formatBytes(image.size)}</div>
-                <div className="w-24 shrink-0 text-right text-xs text-gray-500">
-                  {inUse ? t('containers.images.usage.used') : t('containers.images.usage.unused')}
+                <div className="w-24 shrink-0 text-right">
+                  <UsageCell usedBy={image.usedBy} />
                 </div>
               </div>
             )

@@ -8,11 +8,24 @@ export interface ContainerInfo {
   status: string
 }
 
+export interface ContainerRef {
+  id: string
+  name: string
+}
+
 export interface ContainerImage {
   id: string
   name: string
   size: number
-  containers: number
+  usedBy: ContainerRef[]
+}
+
+export interface ContainerNetwork {
+  id: string
+  name: string
+  driver: string
+  scope: string
+  usedBy: ContainerRef[]
 }
 
 export type StatusFilter = 'running' | 'exited' | 'all'
@@ -32,6 +45,14 @@ export function deleteContainerImages(ids: string[]) {
     method: 'POST',
     body: JSON.stringify({ ids }),
   })
+}
+
+export function listContainerNetworks() {
+  return apiFetch<ContainerNetwork[]>('/containers/networks')
+}
+
+export function deleteContainerNetwork(id: string) {
+  return apiFetch<null>(`/containers/networks/${encodeURIComponent(id)}/delete`, { method: 'POST' })
 }
 
 export type ContainerActionName = 'start' | 'stop' | 'restart'

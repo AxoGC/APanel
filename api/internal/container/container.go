@@ -19,14 +19,21 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
 var (
-	ErrNotFound     = errors.New("container not found")
-	ErrInvalidImage = errors.New("invalid image")
+	ErrNotFound        = errors.New("container not found")
+	ErrInvalidImage    = errors.New("invalid image")
+	ErrNetworkNotFound = errors.New("network not found")
 )
+
+// predefinedNetworks are Docker's own built-in networks. They always exist
+// and can never be removed, so the UI can disable delete for them up front
+// instead of round-tripping to the daemon to find out.
+var predefinedNetworks = map[string]bool{"bridge": true, "host": true, "none": true}
 
 type Container struct {
 	ID     string `json:"id"`
@@ -36,11 +43,26 @@ type Container struct {
 	Status string `json:"status"` // human-readable, e.g. "Up 3 hours" / "Exited (0) 5 minutes ago"
 }
 
+// ContainerRef identifies a container that is using an image or network, so
+// the UI can show which ones without a second round trip.
+type ContainerRef struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type Image struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Size       int64  `json:"size"`
-	Containers int64  `json:"containers"`
+	ID     string         `json:"id"`
+	Name   string         `json:"name"`
+	Size   int64          `json:"size"`
+	UsedBy []ContainerRef `json:"usedBy"`
+}
+
+type Network struct {
+	ID     string         `json:"id"`
+	Name   string         `json:"name"`
+	Driver string         `json:"driver"`
+	Scope  string         `json:"scope"`
+	UsedBy []ContainerRef `json:"usedBy"`
 }
 
 type Manager struct {
@@ -105,11 +127,50 @@ func (m *Manager) List(ctx context.Context, states []string) ([]Container, error
 	return containers, nil
 }
 
-// ListImages returns local images together with Docker's count of containers
-// that reference each image. Images in use are intentionally exposed so the
-// UI can keep them out of destructive bulk-selection actions.
+// containerUsage lists every container (running and stopped, since a
+// stopped container still pins its image and stays attached to its
+// networks) and groups them by the image ID and network IDs they use, so
+// ListImages/ListNetworks can report which containers are using each entry
+// without a per-entry inspect call.
+func (m *Manager) containerUsage(ctx context.Context) (byImage, byNetwork map[string][]ContainerRef, err error) {
+	raw, err := m.cli.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	byImage = make(map[string][]ContainerRef)
+	byNetwork = make(map[string][]ContainerRef)
+	for _, c := range raw {
+		name := c.ID
+		if len(c.Names) > 0 {
+			name = strings.TrimPrefix(c.Names[0], "/")
+		}
+		ref := ContainerRef{ID: c.ID, Name: name}
+
+		byImage[c.ImageID] = append(byImage[c.ImageID], ref)
+
+		if c.NetworkSettings != nil {
+			for _, ep := range c.NetworkSettings.Networks {
+				if ep == nil {
+					continue
+				}
+				byNetwork[ep.NetworkID] = append(byNetwork[ep.NetworkID], ref)
+			}
+		}
+	}
+	return byImage, byNetwork, nil
+}
+
+// ListImages returns local images together with the containers that
+// reference each one. Images in use are intentionally exposed so the UI can
+// keep them out of destructive bulk-selection actions.
 func (m *Manager) ListImages(ctx context.Context) ([]Image, error) {
 	raw, err := m.cli.ImageList(ctx, image.ListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	byImage, _, err := m.containerUsage(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -121,15 +182,64 @@ func (m *Manager) ListImages(ctx context.Context) ([]Image, error) {
 			name = "<none>:<none>"
 		}
 		images = append(images, Image{
-			ID:         item.ID,
-			Name:       name,
-			Size:       item.Size,
-			Containers: item.Containers,
+			ID:     item.ID,
+			Name:   name,
+			Size:   item.Size,
+			UsedBy: byImage[item.ID],
 		})
 	}
 
 	sort.Slice(images, func(i, j int) bool { return images[i].Name < images[j].Name })
 	return images, nil
+}
+
+// ListNetworks returns Docker networks together with the containers
+// attached to each one.
+func (m *Manager) ListNetworks(ctx context.Context) ([]Network, error) {
+	raw, err := m.cli.NetworkList(ctx, network.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	_, byNetwork, err := m.containerUsage(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	networks := make([]Network, 0, len(raw))
+	for _, item := range raw {
+		networks = append(networks, Network{
+			ID:     item.ID,
+			Name:   item.Name,
+			Driver: item.Driver,
+			Scope:  item.Scope,
+			UsedBy: byNetwork[item.ID],
+		})
+	}
+
+	sort.Slice(networks, func(i, j int) bool { return networks[i].Name < networks[j].Name })
+	return networks, nil
+}
+
+// IsPredefinedNetwork reports whether name is one of Docker's built-in
+// networks (bridge, host, none), which always exist and can never be
+// removed.
+func IsPredefinedNetwork(name string) bool {
+	return predefinedNetworks[name]
+}
+
+// DeleteNetwork removes a single network. Unlike images, networks are
+// deleted one at a time from the UI — there's no multi-select/batch action
+// to keep in sync with a matching id list.
+func (m *Manager) DeleteNetwork(ctx context.Context, id string) error {
+	err := m.cli.NetworkRemove(ctx, id)
+	if err == nil {
+		return nil
+	}
+	if cerrdefs.IsNotFound(err) {
+		return ErrNetworkNotFound
+	}
+	return err
 }
 
 // DeleteImages removes the supplied unused images without forcing removal.
