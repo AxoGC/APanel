@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -155,6 +156,102 @@ func (m *Manager) List(ctx context.Context, states []string) ([]Unit, error) {
 
 	sort.Slice(units, func(i, j int) bool { return units[i].Name < units[j].Name })
 	return units, nil
+}
+
+// Detail describes everything the service detail dialog shows, gathered
+// from a single GetAllProperties D-Bus call (which merges the generic Unit
+// interface with the Service-type-specific one) rather than List's
+// lighter-weight per-row fields.
+type Detail struct {
+	Name             string     `json:"name"`
+	Description      string     `json:"description"`
+	LoadState        string     `json:"loadState"`
+	ActiveState      string     `json:"activeState"`
+	SubState         string     `json:"subState"`
+	UnitFileState    string     `json:"unitFileState"`
+	FragmentPath     string     `json:"fragmentPath"`
+	MainPID          int        `json:"mainPid"`
+	ExitCode         int        `json:"exitCode"`
+	ActiveSince      *time.Time `json:"activeSince"`
+	RestartPolicy    string     `json:"restartPolicy"`
+	User             string     `json:"user"`
+	WorkingDirectory string     `json:"workingDirectory"`
+	// MemoryCurrentBytes is nil when the cgroup memory accounting isn't
+	// available (systemd reports this via a sentinel max-uint64 value
+	// rather than omitting the property).
+	MemoryCurrentBytes *uint64  `json:"memoryCurrentBytes"`
+	Requires           []string `json:"requires"`
+	After              []string `json:"after"`
+}
+
+func propString(props map[string]any, key string) string {
+	v, _ := props[key].(string)
+	return v
+}
+
+func propUint32(props map[string]any, key string) uint32 {
+	v, _ := props[key].(uint32)
+	return v
+}
+
+func propUint64(props map[string]any, key string) uint64 {
+	v, _ := props[key].(uint64)
+	return v
+}
+
+func propInt32(props map[string]any, key string) int32 {
+	v, _ := props[key].(int32)
+	return v
+}
+
+func propStringSlice(props map[string]any, key string) []string {
+	v, _ := props[key].([]string)
+	return v
+}
+
+// Detail inspects a single unit for the detail dialog. Unlike List, which is
+// tuned for rendering many rows cheaply from cached/bulk D-Bus calls, this
+// makes one full properties fetch and is only ever used for one unit at a
+// time.
+func (m *Manager) Detail(ctx context.Context, name string) (Detail, error) {
+	if err := m.exists(ctx, name); err != nil {
+		return Detail{}, err
+	}
+
+	props, err := m.conn.GetAllPropertiesContext(ctx, name)
+	if err != nil {
+		return Detail{}, err
+	}
+
+	var activeSince *time.Time
+	if usec := propUint64(props, "ActiveEnterTimestamp"); usec > 0 {
+		t := time.UnixMicro(int64(usec))
+		activeSince = &t
+	}
+
+	var memCurrent *uint64
+	if v := propUint64(props, "MemoryCurrent"); v > 0 && v != math.MaxUint64 {
+		memCurrent = &v
+	}
+
+	return Detail{
+		Name:               name,
+		Description:        propString(props, "Description"),
+		LoadState:          propString(props, "LoadState"),
+		ActiveState:        propString(props, "ActiveState"),
+		SubState:           propString(props, "SubState"),
+		UnitFileState:      propString(props, "UnitFileState"),
+		FragmentPath:       propString(props, "FragmentPath"),
+		MainPID:            int(propUint32(props, "MainPID")),
+		ExitCode:           int(propInt32(props, "ExecMainStatus")),
+		ActiveSince:        activeSince,
+		RestartPolicy:      propString(props, "Restart"),
+		User:               propString(props, "User"),
+		WorkingDirectory:   propString(props, "WorkingDirectory"),
+		MemoryCurrentBytes: memCurrent,
+		Requires:           propStringSlice(props, "Requires"),
+		After:              propStringSlice(props, "After"),
+	}, nil
 }
 
 func (m *Manager) exists(ctx context.Context, name string) error {

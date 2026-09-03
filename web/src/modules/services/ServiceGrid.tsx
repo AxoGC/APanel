@@ -1,4 +1,4 @@
-import { Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
+import { Info, Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
@@ -15,11 +15,13 @@ export function ServiceGrid({
   pending,
   onAction,
   onShowLogs,
+  onShowDetail,
 }: {
   units: ServiceUnit[]
   pending: Record<string, ServiceActionName | undefined>
   onAction: (name: string, action: ServiceActionName) => void
   onShowLogs: (unit: ServiceUnit) => void
+  onShowDetail: (unit: ServiceUnit) => void
 }) {
   const { t } = useI18n()
 
@@ -50,6 +52,9 @@ export function ServiceGrid({
             <div className="flex flex-row items-center justify-between gap-2">
               <span className="text-xs text-gray-500">{t('services.enablement')}</span>
               <div className="flex flex-row items-center justify-end gap-0.5">
+                <Button variant="ghost" size="icon-sm" aria-label={t('services.detail')} onClick={() => onShowDetail(u)}>
+                  <Info />
+                </Button>
                 <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => onShowLogs(u)}>
                   <ScrollText />
                 </Button>

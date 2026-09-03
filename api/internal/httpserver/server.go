@@ -70,6 +70,7 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/terminal/directories", s.auth.Middleware(http.HandlerFunc(s.listTerminalDirectories)))
 
 	s.mux.Handle("GET /api/services", s.auth.Middleware(http.HandlerFunc(s.listServices)))
+	s.mux.Handle("GET /api/services/{name}", s.auth.Middleware(http.HandlerFunc(s.serviceDetail)))
 	s.mux.Handle("POST /api/services/{name}/start", s.auth.Middleware(s.serviceAction(s.services.Start)))
 	s.mux.Handle("POST /api/services/{name}/stop", s.auth.Middleware(s.serviceAction(s.services.Stop)))
 	s.mux.Handle("POST /api/services/{name}/restart", s.auth.Middleware(s.serviceAction(s.services.Restart)))

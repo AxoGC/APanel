@@ -59,6 +59,20 @@ func (s *Server) listServices(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, units)
 }
 
+func (s *Server) serviceDetail(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	detail, err := s.services.Detail(r.Context(), name)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			response.WriteCode(w, http.StatusNotFound, SERVICE_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, detail)
+}
+
 func (s *Server) serviceLogs(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	out, err := s.services.Logs(r.Context(), name, logLines(r))

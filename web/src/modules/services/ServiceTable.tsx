@@ -1,4 +1,4 @@
-import { Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
+import { Info, Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
@@ -14,12 +14,14 @@ export function ServiceTable({
   pending,
   onAction,
   onShowLogs,
+  onShowDetail,
   hideHeader = false,
 }: {
   units: ServiceUnit[]
   pending: Record<string, ServiceActionName | undefined>
   onAction: (name: string, action: ServiceActionName) => void
   onShowLogs: (unit: ServiceUnit) => void
+  onShowDetail: (unit: ServiceUnit) => void
   hideHeader?: boolean
 }) {
   const { t } = useI18n()
@@ -66,6 +68,9 @@ export function ServiceTable({
               </div>
 
               <div className="flex w-28 shrink-0 items-center justify-end gap-0.5">
+                <Button variant="ghost" size="icon-sm" aria-label={t('services.detail')} onClick={() => onShowDetail(u)}>
+                  <Info />
+                </Button>
                 <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => onShowLogs(u)}>
                   <ScrollText />
                 </Button>

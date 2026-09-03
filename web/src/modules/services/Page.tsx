@@ -17,6 +17,7 @@ import {
   type StatusFilter,
 } from './api'
 import { displayName } from './format'
+import { ServiceDetailDialog } from './ServiceDetailDialog'
 import { ServiceGrid } from './ServiceGrid'
 import { ServiceTable, ServiceTableHeader } from './ServiceTable'
 
@@ -29,6 +30,7 @@ export default function ServicesPage() {
   const [pending, setPending] = useState<Record<string, ServiceActionName | undefined>>({})
   const [error, setError] = useState<string | null>(null)
   const [logsFor, setLogsFor] = useState<ServiceUnit | null>(null)
+  const [detailFor, setDetailFor] = useState<string | null>(null)
 
   function refresh() {
     return listServices({ status, q: query }).then(setUnits)
@@ -95,13 +97,26 @@ export default function ServicesPage() {
         <div className="flex min-h-0 grow flex-col">
           <ServiceTableHeader />
           <ScrollArea className="min-h-0 grow">
-            <ServiceTable units={units} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} hideHeader />
+            <ServiceTable
+              units={units}
+              pending={pending}
+              onAction={handleAction}
+              onShowLogs={setLogsFor}
+              onShowDetail={(u) => setDetailFor(u.name)}
+              hideHeader
+            />
           </ScrollArea>
         </div>
       )}
       {units && units.length > 0 && dataLayout === 'grid' && (
         <ScrollArea className="min-h-0 grow">
-          <ServiceGrid units={units} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+          <ServiceGrid
+            units={units}
+            pending={pending}
+            onAction={handleAction}
+            onShowLogs={setLogsFor}
+            onShowDetail={(u) => setDetailFor(u.name)}
+          />
         </ScrollArea>
       )}
 
@@ -113,6 +128,7 @@ export default function ServicesPage() {
         fetchLogs={getServiceLogs}
         streamUrl={serviceLogsStreamUrl}
       />
+      <ServiceDetailDialog name={detailFor} onOpenChange={(open) => !open && setDetailFor(null)} />
     </div>
   )
 }

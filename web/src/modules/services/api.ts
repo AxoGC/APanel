@@ -23,6 +23,29 @@ export function runServiceAction(name: string, action: ServiceActionName) {
   return apiFetch<null>(`/services/${encodeURIComponent(name)}/${action}`, { method: 'POST' })
 }
 
+export interface ServiceDetail {
+  name: string
+  description: string
+  loadState: string
+  activeState: string
+  subState: string
+  unitFileState: string
+  fragmentPath: string
+  mainPid: number
+  exitCode: number
+  activeSince: string | null
+  restartPolicy: string
+  user: string
+  workingDirectory: string
+  memoryCurrentBytes: number | null
+  requires: string[] | null
+  after: string[] | null
+}
+
+export function getServiceDetail(name: string) {
+  return apiFetch<ServiceDetail>(`/services/${encodeURIComponent(name)}`)
+}
+
 export function getServiceLogs(name: string, lines: number) {
   return apiFetch<string[]>(`/services/${encodeURIComponent(name)}/logs?lines=${lines}`)
 }
