@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { ServiceActionName, ServiceUnit } from './api'
-import { displayName, statusClasses, SUBSTATE_LABELS, UNIT_FILE_STATE_LABELS } from './format'
+import { displayName, enablementClasses, statusClasses, SUBSTATE_LABELS, UNIT_FILE_STATE_LABELS } from './format'
 
 function ServiceActions({ unit, busy, onAction, onShowLogs, onShowDetail }: {
   unit: ServiceUnit
@@ -67,6 +67,7 @@ export function ServiceTable({ units, pending, onAction, onShowLogs, onShowDetai
         {units.map((unit) => {
           const busy = pending[unit.name]
           const [dot, text] = statusClasses(unit.subState)
+          const [enableDot, enableText] = enablementClasses(unit.unitFileState)
           const togglable = unit.unitFileState === 'enabled' || unit.unitFileState === 'disabled'
           const enablement = UNIT_FILE_STATE_LABELS[unit.unitFileState] ? t(UNIT_FILE_STATE_LABELS[unit.unitFileState]) : unit.unitFileState
           const state = SUBSTATE_LABELS[unit.subState] ? t(SUBSTATE_LABELS[unit.subState]) : unit.subState
@@ -89,12 +90,18 @@ export function ServiceTable({ units, pending, onAction, onShowLogs, onShowDetai
 
               <div className="flex flex-col gap-2 md:hidden">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm text-gray-900 dark:text-gray-100">{displayName(unit.name)}</span>
-                  <div className="flex shrink-0 items-center gap-1.5"><span className={cn('size-1.5 rounded-full', dot)} /><span className={cn('text-xs', text)}>{state}</span></div>
+                  <span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{displayName(unit.name)}</span>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex items-center gap-1.5"><span className={cn('size-1.5 rounded-full', enableDot)} /><span className={cn('text-xs', enableText)}>{enablement}</span></div>
+                    <div className="flex items-center gap-1.5"><span className={cn('size-1.5 rounded-full', dot)} /><span className={cn('text-xs', text)}>{state}</span></div>
+                  </div>
                 </div>
-                {unit.description && unit.description !== unit.name && <div className="truncate text-xs text-gray-500">{unit.description}</div>}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-gray-500">{t('services.enablement')}</span>
+                  {unit.description && unit.description !== unit.name ? (
+                    <span className="min-w-0 flex-1 truncate text-xs text-gray-500">{unit.description}</span>
+                  ) : (
+                    <span className="min-w-0 flex-1" />
+                  )}
                   <div className="flex shrink-0 items-center justify-end gap-0.5"><ServiceActions unit={unit} busy={busy} onAction={onAction} onShowLogs={onShowLogs} onShowDetail={onShowDetail} /></div>
                 </div>
               </div>

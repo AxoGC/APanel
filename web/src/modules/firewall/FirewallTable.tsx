@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { FirewallRule } from './api'
-import { actionClasses, portNameFor, tagsFor } from './format'
+import { actionClasses, actionLabel, portNameFor, tagsFor } from './format'
 
 const TAG_CLASSES: Record<string, string> = {
   TCP: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
@@ -47,6 +47,7 @@ export function FirewallTable({ rules, deleting, onEdit, onDelete, hideHeader = 
   onDelete: (rule: FirewallRule) => void
   hideHeader?: boolean
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex flex-col">
       {!hideHeader && <FirewallTableHeader />}
@@ -61,13 +62,24 @@ export function FirewallTable({ rules, deleting, onEdit, onDelete, hideHeader = 
               <div className="hidden min-w-0 flex-1 items-baseline gap-1.5 md:flex"><span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>{portName && <span className="shrink-0 text-xs text-gray-500">{portName}</span>}</div>
               <div className="hidden w-32 shrink-0 items-center gap-1 md:flex">{tags.map((label) => <Tag key={label} label={label} />)}</div>
               <div className="hidden min-w-0 flex-1 truncate text-xs text-gray-500 md:block">{rule.from}</div>
-              <div className={cn('hidden w-20 shrink-0 text-right text-xs md:block', actionClasses(rule.action))}>{rule.action}</div>
+              <div className={cn('hidden w-20 shrink-0 text-right text-xs md:block', actionClasses(rule.action))}>{actionLabel(rule.action, t)}</div>
               <div className="hidden w-16 shrink-0 items-center justify-end gap-0.5 md:flex"><FirewallActions rule={rule} busy={busy} onEdit={onEdit} onDelete={onDelete} /></div>
 
               <div className="flex flex-col gap-2 md:hidden">
-                <div className="flex items-center justify-between gap-2"><div className="flex min-w-0 items-baseline gap-1.5"><span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>{portName && <span className="shrink-0 text-xs text-gray-500">{portName}</span>}</div><span className={cn('shrink-0 text-xs', actionClasses(rule.action))}>{rule.action}</span></div>
-                <div className="flex items-center justify-between gap-2"><div className="flex shrink-0 items-center gap-1">{tags.map((label) => <Tag key={label} label={label} />)}</div><span className="truncate text-xs text-gray-500">{rule.from}</span></div>
-                <div className="flex items-center justify-end gap-0.5"><FirewallActions rule={rule} busy={busy} onEdit={onEdit} onDelete={onDelete} /></div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                    <span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>
+                    {portName && <span className="shrink-0 text-xs text-gray-500">{portName}</span>}
+                  </div>
+                  <div className="flex min-w-0 shrink items-center gap-1.5">
+                    {rule.from !== 'Anywhere' && <span className="min-w-0 truncate text-xs text-gray-500">{rule.from}</span>}
+                    <span className={cn('shrink-0 text-xs', actionClasses(rule.action))}>{actionLabel(rule.action, t)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex shrink-0 items-center gap-1">{tags.map((label) => <Tag key={label} label={label} />)}</div>
+                  <div className="flex items-center justify-end gap-0.5"><FirewallActions rule={rule} busy={busy} onEdit={onEdit} onDelete={onDelete} /></div>
+                </div>
               </div>
             </div>
           )

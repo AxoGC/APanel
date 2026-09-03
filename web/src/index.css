@@ -205,3 +205,17 @@ body {
   background-color: var(--border);
   background-clip: padding-box;
 }
+
+/* Radix's ScrollArea Viewport wraps its children in an inline-styled
+   `display: table; min-width: 100%` div so it can measure content size for
+   scrollbar visibility. That sizing mode also lets rows grow to their
+   natural, untruncated width instead of the viewport's, which silently
+   breaks any nested flex `truncate`/`min-w-0`. Vertical-only viewports (our
+   list/card scroll areas) never want that horizontal growth, so force their
+   wrapper back to a normal block box constrained to the viewport; leave
+   horizontal/both viewports (terminal tabs, breadcrumb) on the default so
+   they can still overflow and scroll sideways. */
+[data-slot='scroll-area-viewport'][data-orientation='vertical'] > div {
+  display: block !important;
+  min-width: 0 !important;
+}

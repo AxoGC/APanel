@@ -25,6 +25,7 @@ function ScrollArea({
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         data-slot="scroll-area-viewport"
+        data-orientation={orientation}
         className={cn('size-full rounded-[inherit] outline-none', viewportClassName)}
       >
         {children}

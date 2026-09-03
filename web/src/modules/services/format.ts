@@ -6,6 +6,12 @@ export function statusClasses(subState: string): [dot: string, text: string] {
   return ['bg-gray-400', 'text-gray-500']
 }
 
+export function enablementClasses(unitFileState: string): [dot: string, text: string] {
+  if (unitFileState === 'enabled' || unitFileState === 'enabled-runtime') return ['bg-green-500', 'text-green-600 dark:text-green-400']
+  if (unitFileState === 'masked' || unitFileState === 'bad') return ['bg-red-500', 'text-red-600 dark:text-red-400']
+  return ['bg-gray-400', 'text-gray-500']
+}
+
 // The status column reuses the filter's own vocabulary (services.filter.*)
 // so a card's displayed status always matches whichever filter option would
 // select it — see statesForStatus on the backend for the running/exited/dead
