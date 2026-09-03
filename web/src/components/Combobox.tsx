@@ -32,6 +32,7 @@ export function Combobox({
     <Popover open={open && filtered.length > 0} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
         <Input
+          data-combobox-input=""
           value={value}
           onChange={(e) => {
             onChange(e.target.value)
@@ -45,6 +46,15 @@ export function Combobox({
       <PopoverContent
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        // Radix only exempts Popover.Trigger's own element from counting as
+        // an "outside" interaction; Popover.Anchor isn't tracked the same
+        // way, so focusing the anchor input itself was read as a
+        // focus-outside event and closed the popover the instant it opened.
+        onInteractOutside={(e) => {
+          if (e.target instanceof HTMLElement && e.target.hasAttribute('data-combobox-input')) {
+            e.preventDefault()
+          }
+        }}
         className="w-(--radix-popover-trigger-width) p-1"
       >
         <div className="max-h-56 overflow-y-auto">
