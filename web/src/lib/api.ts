@@ -1,12 +1,8 @@
 // Thin client for the backend's { code, error, data } response envelope.
 
-export class ApiError extends Error {
-  code: string
-  constructor(code: string, message?: string) {
-    super(message ?? code)
-    this.code = code
-  }
-}
+import { MOCK, mockApiFetch } from './mock'
+import { ApiError } from './errors'
+export { ApiError } from './errors'
 
 interface Envelope<T> {
   code: string
@@ -15,6 +11,7 @@ interface Envelope<T> {
 }
 
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  if (MOCK) return mockApiFetch<T>(path, init)
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },

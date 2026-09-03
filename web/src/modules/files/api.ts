@@ -1,4 +1,5 @@
 import { apiFetch, ApiError } from '@/lib/api'
+import { MOCK } from '@/lib/mock'
 
 export interface FileEntry {
   name: string
@@ -36,9 +37,8 @@ export function downloadUrl(path: string) {
   return `/api/files/download?${new URLSearchParams({ path })}`
 }
 
-// Uses fetch directly rather than apiFetch: uploads are multipart/form-data,
-// not the JSON body apiFetch always sends.
 export async function uploadFiles(dir: string, fileList: FileList) {
+  if (MOCK) return
   const form = new FormData()
   for (const file of Array.from(fileList)) form.append('files', file)
   const res = await fetch(`/api/files/upload?${new URLSearchParams({ path: dir })}`, {

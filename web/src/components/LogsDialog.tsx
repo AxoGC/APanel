@@ -10,6 +10,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { MOCK, MockLogsEventSource } from '@/lib/mock'
 
 const LINE_OPTIONS = [100, 500, 1000, 2000]
 
@@ -60,7 +61,9 @@ export function LogsDialog({
     if (!open || !follow) return
     setContent([])
     setError(null)
-    const source = new EventSource(streamUrl(id, lines))
+    const source = MOCK
+      ? new MockLogsEventSource(streamUrl(id, lines))
+      : new EventSource(streamUrl(id, lines))
     source.onmessage = (event) => {
       setContent((prev) => [...prev, event.data as string])
     }
