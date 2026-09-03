@@ -2,6 +2,8 @@
 
 Apanel 是一个移动端优先、面向 Linux 运维人员的轻量服务器管理面板。它将常见的状态查看和简单操作集中到一个响应式 Web 界面中，同时尽可能保留 Linux、systemd 和 Docker 原本的概念。
 
+文档：[apanel.axogc.net](https://apanel.axogc.net)
+
 > Apanel 目前仍处于早期开发阶段，接口、配置和功能可能继续调整。请勿在没有备份和访问控制的情况下直接用于重要生产环境。
 
 ## 1. 项目缘起

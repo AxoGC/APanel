@@ -1,4 +1,4 @@
-.PHONY: build build-web build-api dev-api dev-web clean
+.PHONY: build build-web build-api dev-api dev-web docs-dev docs-build clean
 
 build: build-web build-api
 
@@ -20,6 +20,15 @@ dev-api:
 dev-web:
 	cd web && npm run dev
 
+# docs/ is a separate vitepress project, kept out of `build`/`dev-web` —
+# build it explicitly with `make docs-build` (or `make docs-dev` to preview).
+docs-dev:
+	cd docs && npm install && npm run dev
+
+docs-build:
+	cd docs && npm install && npm run build
+
 clean:
 	rm -f api/apanel
 	rm -rf web/dist
+	rm -rf docs/.vitepress/dist
