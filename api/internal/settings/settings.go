@@ -42,3 +42,8 @@ func (m *Manager) Set(key, value string) error {
 		DoUpdates: clause.AssignmentColumns([]string{"value"}),
 	}).Create(&entry).Error
 }
+
+// Delete removes an override so callers can fall back to their default.
+func (m *Manager) Delete(key string) error {
+	return m.db.Delete(&model.ConfigEntry{}, "key = ?", key).Error
+}

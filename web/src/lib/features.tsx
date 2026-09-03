@@ -2,15 +2,28 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { apiFetch } from './api'
 import { useAuth } from './auth'
 
+export type FeatureKey = 'dashboard' | 'terminal' | 'services' | 'files' | 'containers' | 'history' | 'firewall'
+export type OptionalFeatureKey = 'containers' | 'history' | 'firewall'
+
+export const BASE_FEATURES: FeatureKey[] = ['dashboard', 'terminal', 'services', 'files']
+
 export interface Features {
   containers: boolean
   history: boolean
   firewall: boolean
+  disabledFeatures: FeatureKey[]
 }
 
-const EMPTY: Features = { containers: false, history: false, firewall: false }
+interface FeaturesContextValue extends Features {
+  setDisabledFeatures: (disabledFeatures: FeatureKey[]) => Promise<void>
+}
 
-const FeaturesContext = createContext<Features>(EMPTY)
+const EMPTY: Features = { containers: false, history: false, firewall: false, disabledFeatures: [] }
+
+const FeaturesContext = createContext<FeaturesContextValue>({
+  ...EMPTY,
+  setDisabledFeatures: async () => {},
+})
 
 // Which dependency-gated modules (Docker, sysstat, ufw) are actually usable
 // on this host — fetched once after login so Nav can hide their items
@@ -26,7 +39,19 @@ export function FeaturesProvider({ children }: { children: ReactNode }) {
       .catch(() => setFeatures(EMPTY))
   }, [state])
 
-  return <FeaturesContext.Provider value={features}>{children}</FeaturesContext.Provider>
+  const updateDisabledFeatures = async (disabledFeatures: FeatureKey[]) => {
+    const updated = await apiFetch<Features>('/status/features', {
+      method: 'PUT',
+      body: JSON.stringify({ disabledFeatures }),
+    })
+    setFeatures(updated)
+  }
+
+  return (
+    <FeaturesContext.Provider value={{ ...features, setDisabledFeatures: updateDisabledFeatures }}>
+      {children}
+    </FeaturesContext.Provider>
+  )
 }
 
 export function useFeatures() {

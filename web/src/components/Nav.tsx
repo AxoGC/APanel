@@ -2,20 +2,26 @@ import { Box, ChevronLeft, ChevronRight, FolderOpen, Gauge, History, PanelRightC
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useFeatures, type Features } from '@/lib/features'
+import { useFeatures, type FeatureKey, type OptionalFeatureKey } from '@/lib/features'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 const items = [
-  { to: '/', labelKey: 'nav.dashboard', icon: Gauge },
-  { to: '/terminal', labelKey: 'nav.terminal', icon: SquareTerminal },
-  { to: '/services', labelKey: 'nav.services', icon: Server },
-  { to: '/files', labelKey: 'nav.files', icon: FolderOpen },
-  { to: '/containers', labelKey: 'nav.containers', icon: Box, feature: 'containers' },
-  { to: '/history', labelKey: 'nav.history', icon: History, feature: 'history' },
-  { to: '/firewall', labelKey: 'nav.firewall', icon: Shield, feature: 'firewall' },
+  { to: '/', labelKey: 'nav.dashboard', icon: Gauge, feature: 'dashboard' },
+  { to: '/terminal', labelKey: 'nav.terminal', icon: SquareTerminal, feature: 'terminal' },
+  { to: '/services', labelKey: 'nav.services', icon: Server, feature: 'services' },
+  { to: '/files', labelKey: 'nav.files', icon: FolderOpen, feature: 'files' },
+  { to: '/containers', labelKey: 'nav.containers', icon: Box, feature: 'containers', requires: 'containers' },
+  { to: '/history', labelKey: 'nav.history', icon: History, feature: 'history', requires: 'history' },
+  { to: '/firewall', labelKey: 'nav.firewall', icon: Shield, feature: 'firewall', requires: 'firewall' },
   { to: '/settings', labelKey: 'nav.settings', icon: Settings },
-] satisfies { to: string; labelKey: TranslationKey; icon: typeof Gauge; feature?: keyof Features }[]
+] satisfies {
+  to: string
+  labelKey: TranslationKey
+  icon: typeof Gauge
+  feature?: FeatureKey
+  requires?: OptionalFeatureKey
+}[]
 
 function itemClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
@@ -60,7 +66,11 @@ export function Nav() {
   const { ref, canScrollLeft, canScrollRight } = useScrollCues()
   const [collapsed, setCollapsed] = useState(false)
 
-  const visibleItems = items.filter((item) => !item.feature || features[item.feature])
+  const visibleItems = items.filter(
+    (item) =>
+      !item.feature ||
+      (!features.disabledFeatures.includes(item.feature) && (!item.requires || features[item.requires])),
+  )
 
   const scrollBy = (delta: number) => {
     ref.current?.scrollBy({ left: delta, behavior: 'smooth' })

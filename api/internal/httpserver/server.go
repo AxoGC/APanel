@@ -112,6 +112,7 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/files/upload", s.auth.Middleware(http.HandlerFunc(s.uploadFile)))
 
 	s.mux.Handle("GET /api/status", s.auth.Middleware(http.HandlerFunc(s.getStatus)))
+	s.mux.Handle("PUT /api/status/features", s.auth.Middleware(http.HandlerFunc(s.putDisabledFeatures)))
 	s.mux.Handle("GET /api/system/info", s.auth.Middleware(http.HandlerFunc(s.getSystemInfo)))
 
 	dist, err := fs.Sub(embeddedDist, "dist")
