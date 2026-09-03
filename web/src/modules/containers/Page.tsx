@@ -115,7 +115,12 @@ export default function ContainersPage() {
             <Network />
             <span className="hidden md:inline">{t('containers.networks')}</span>
           </Button>
-          <Button size="sm" aria-label={t('containers.create')} onClick={() => setCreateOpen(true)}>
+          <Button
+            size="sm"
+            aria-label={t('containers.create')}
+            onClick={() => setCreateOpen(true)}
+            className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+          >
             <Plus />
             <span className="hidden md:inline">{t('containers.create')}</span>
           </Button>

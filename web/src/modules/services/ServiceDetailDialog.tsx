@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
@@ -46,62 +46,59 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
   }, [name])
 
   return (
-    <Dialog open={name !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] max-w-lg flex-col">
-        <DialogHeader>
-          <DialogTitle>{detail ? displayName(detail.name) : t('services.detail.title')}</DialogTitle>
-        </DialogHeader>
+    <SectionedDialog
+      open={name !== null}
+      onOpenChange={onOpenChange}
+      title={detail ? displayName(detail.name) : t('services.detail.title')}
+      className="h-[85vh] max-w-lg"
+    >
+      {error && <p className="text-xs text-red-600">{error}</p>}
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
-
-        {detail && (
-          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label={t('services.detail.name')} value={displayName(detail.name)} />
-              <Field
-                label={t('services.detail.subState')}
-                value={SUBSTATE_LABELS[detail.subState] ? t(SUBSTATE_LABELS[detail.subState]) : detail.subState}
-              />
-              {detail.description && detail.description !== detail.name && (
-                <div className="col-span-2">
-                  <Field label={t('services.detail.description')} value={detail.description} wrap />
-                </div>
-              )}
-              <div className="col-span-2">
-                <Field label={t('services.detail.fragmentPath')} value={detail.fragmentPath || '—'} wrap />
-              </div>
-              <Field label={t('services.detail.loadState')} value={detail.loadState || '—'} />
-              <Field
-                label={t('services.detail.unitFileState')}
-                value={UNIT_FILE_STATE_LABELS[detail.unitFileState] ? t(UNIT_FILE_STATE_LABELS[detail.unitFileState]) : detail.unitFileState}
-              />
-              {detail.mainPid > 0 && <Field label={t('services.detail.mainPid')} value={detail.mainPid} />}
-              {detail.activeState !== 'active' && <Field label={t('services.detail.exitCode')} value={detail.exitCode} />}
-              {detail.activeSince && (
-                <Field label={t('services.detail.activeSince')} value={new Date(detail.activeSince).toLocaleString()} />
-              )}
-              <Field label={t('services.detail.restartPolicy')} value={detail.restartPolicy || '—'} />
-              <Field label={t('services.detail.user')} value={detail.user || 'root'} />
-              <div className="col-span-2">
-                <Field label={t('services.detail.workingDirectory')} value={detail.workingDirectory || '—'} wrap />
-              </div>
-              {detail.memoryCurrentBytes !== null && (
-                <Field label={t('services.detail.memory')} value={formatBytes(detail.memoryCurrentBytes)} />
-              )}
-              {detail.requires && detail.requires.length > 0 && (
-                <div className="col-span-2">
-                  <Field label={t('services.detail.requires')} value={<ListValue items={detail.requires} />} />
-                </div>
-              )}
-              {detail.after && detail.after.length > 0 && (
-                <div className="col-span-2">
-                  <Field label={t('services.detail.after')} value={<ListValue items={detail.after} />} />
-                </div>
-              )}
+      {detail && (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={t('services.detail.name')} value={displayName(detail.name)} />
+          <Field
+            label={t('services.detail.subState')}
+            value={SUBSTATE_LABELS[detail.subState] ? t(SUBSTATE_LABELS[detail.subState]) : detail.subState}
+          />
+          {detail.description && detail.description !== detail.name && (
+            <div className="col-span-2">
+              <Field label={t('services.detail.description')} value={detail.description} wrap />
             </div>
+          )}
+          <div className="col-span-2">
+            <Field label={t('services.detail.fragmentPath')} value={detail.fragmentPath || '—'} wrap />
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          <Field label={t('services.detail.loadState')} value={detail.loadState || '—'} />
+          <Field
+            label={t('services.detail.unitFileState')}
+            value={UNIT_FILE_STATE_LABELS[detail.unitFileState] ? t(UNIT_FILE_STATE_LABELS[detail.unitFileState]) : detail.unitFileState}
+          />
+          {detail.mainPid > 0 && <Field label={t('services.detail.mainPid')} value={detail.mainPid} />}
+          {detail.activeState !== 'active' && <Field label={t('services.detail.exitCode')} value={detail.exitCode} />}
+          {detail.activeSince && (
+            <Field label={t('services.detail.activeSince')} value={new Date(detail.activeSince).toLocaleString()} />
+          )}
+          <Field label={t('services.detail.restartPolicy')} value={detail.restartPolicy || '—'} />
+          <Field label={t('services.detail.user')} value={detail.user || 'root'} />
+          <div className="col-span-2">
+            <Field label={t('services.detail.workingDirectory')} value={detail.workingDirectory || '—'} wrap />
+          </div>
+          {detail.memoryCurrentBytes !== null && (
+            <Field label={t('services.detail.memory')} value={formatBytes(detail.memoryCurrentBytes)} />
+          )}
+          {detail.requires && detail.requires.length > 0 && (
+            <div className="col-span-2">
+              <Field label={t('services.detail.requires')} value={<ListValue items={detail.requires} />} />
+            </div>
+          )}
+          {detail.after && detail.after.length > 0 && (
+            <div className="col-span-2">
+              <Field label={t('services.detail.after')} value={<ListValue items={detail.after} />} />
+            </div>
+          )}
+        </div>
+      )}
+    </SectionedDialog>
   )
 }

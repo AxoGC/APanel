@@ -1,7 +1,7 @@
 import * as echarts from 'echarts/core'
 import { GaugeChart } from 'echarts/charts'
 import { CanvasRenderer } from 'echarts/renderers'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useThemeColors } from '@/lib/chartColors'
 
 echarts.use([GaugeChart, CanvasRenderer])
@@ -27,6 +27,17 @@ export function Gauge({
     emphasis: 'text-gray-900 dark:text-gray-100',
     muted: 'text-gray-500',
   })
+
+  // Matches Tailwind's sm breakpoint — the same one the details text and
+  // container height already key off — so the main number shrinks in step
+  // with everything else around it on narrow screens.
+  const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 639px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const handler = () => setIsNarrow(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -70,7 +81,7 @@ export function Gauge({
           detail: {
             formatter: () => (unitText ? `{main|${mainText}}{unit|${unitText}}` : mainText),
             rich: {
-              main: { fontSize: 22, color: colors.emphasis },
+              main: { fontSize: isNarrow ? 17 : 22, color: colors.emphasis },
               unit: { fontSize: 12, color: colors.muted, padding: [0, 0, 0, 1] },
             },
             offsetCenter: [0, '0%'],
@@ -85,7 +96,7 @@ export function Gauge({
         },
       ],
     })
-  }, [value, label, mainText, unitText, colors])
+  }, [value, label, mainText, unitText, colors, isNarrow])
 
   return (
     <div className="flex flex-col items-center">

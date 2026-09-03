@@ -126,7 +126,12 @@ export function CreateContainerDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('confirm.cancel')}
           </Button>
-          <Button type="submit" form={FORM_ID} disabled={creating}>
+          <Button
+            type="submit"
+            form={FORM_ID}
+            disabled={creating}
+            className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+          >
             {t('containers.create.submit')}
           </Button>
         </div>
