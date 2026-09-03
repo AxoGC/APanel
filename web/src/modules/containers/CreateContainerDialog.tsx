@@ -69,7 +69,12 @@ export function CreateContainerDialog({ open, onOpenChange }: { open: boolean; o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
+      <DialogContent
+        className="flex max-h-[85vh] max-w-lg flex-col"
+        onOpenAutoFocus={(event) => {
+          if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t('containers.create.title')}</DialogTitle>
         </DialogHeader>

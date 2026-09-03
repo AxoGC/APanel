@@ -192,7 +192,12 @@ export function RuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col">
+      <DialogContent
+        className="flex max-h-[85vh] flex-col"
+        onOpenAutoFocus={(event) => {
+          if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
+        }}
+      >
         <form onSubmit={submit} className="flex min-h-0 flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}</DialogTitle>
