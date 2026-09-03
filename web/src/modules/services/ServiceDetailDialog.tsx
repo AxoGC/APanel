@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
@@ -48,7 +47,7 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
 
   return (
     <Dialog open={name !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
+      <DialogContent className="flex h-[85vh] max-w-lg flex-col">
         <DialogHeader>
           <DialogTitle>{detail ? displayName(detail.name) : t('services.detail.title')}</DialogTitle>
         </DialogHeader>
@@ -56,7 +55,7 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         {detail && (
-          <ScrollArea className="min-h-0 grow">
+          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
             <div className="grid grid-cols-2 gap-4">
               <Field label={t('services.detail.name')} value={displayName(detail.name)} />
               <Field
@@ -100,7 +99,7 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </DialogContent>
     </Dialog>

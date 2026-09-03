@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
@@ -79,7 +78,7 @@ export function LogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0" showCloseButton={false}>
+      <DialogContent className="flex h-[85vh] max-w-2xl flex-col gap-0 p-0" showCloseButton={false}>
         <div className="flex items-center justify-between gap-2 p-4 pb-3">
           <DialogTitle className="truncate">{title}</DialogTitle>
           <DialogClose className="shrink-0 cursor-pointer rounded-sm text-gray-500 outline-none hover:text-gray-700 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:text-gray-300">
@@ -107,7 +106,7 @@ export function LogsDialog({
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
-        <ScrollArea className="min-h-0 grow" viewportRef={bodyRef}>
+        <div ref={bodyRef} className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
           <div className="p-4 font-mono text-xs text-gray-700 dark:text-gray-300">
             {content.length === 0 ? (
               <p className="text-gray-500">{t('logs.empty')}</p>
@@ -119,7 +118,7 @@ export function LogsDialog({
               ))
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )

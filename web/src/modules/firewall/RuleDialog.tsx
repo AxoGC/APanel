@@ -192,8 +192,8 @@ export function RuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={submit} className="flex flex-col gap-4">
+      <DialogContent className="flex max-h-[85vh] flex-col">
+        <form onSubmit={submit} className="flex min-h-0 flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}</DialogTitle>
             <SegmentedControl
@@ -206,71 +206,75 @@ export function RuleDialog({
             />
           </DialogHeader>
 
-          <FormRow label={t('firewall.addRule.action')}>
-            <div className="flex flex-wrap justify-start gap-2">
-              {(mode === 'simple' ? SIMPLE_ACTIONS : ACTIONS).map((a) => (
-                <ToggleChip key={a} active={form.action === a} onClick={() => setForm((c) => ({ ...c, action: a }))}>
-                  {t(`firewall.action.${a}`)}
-                </ToggleChip>
-              ))}
-            </div>
-          </FormRow>
+          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
+            <div className="flex flex-col gap-4 pr-1">
+              <FormRow label={t('firewall.addRule.action')}>
+                <div className="flex flex-wrap justify-start gap-2">
+                  {(mode === 'simple' ? SIMPLE_ACTIONS : ACTIONS).map((a) => (
+                    <ToggleChip key={a} active={form.action === a} onClick={() => setForm((c) => ({ ...c, action: a }))}>
+                      {t(`firewall.action.${a}`)}
+                    </ToggleChip>
+                  ))}
+                </div>
+              </FormRow>
 
-          <FormRow label={t('firewall.addRule.port')}>
-            <Input
-              value={form.port}
-              onChange={(e) => setForm((c) => ({ ...c, port: e.target.value }))}
-              placeholder={t('firewall.addRule.port.placeholder')}
-            />
-          </FormRow>
+              <FormRow label={t('firewall.addRule.port')}>
+                <Input
+                  value={form.port}
+                  onChange={(e) => setForm((c) => ({ ...c, port: e.target.value }))}
+                  placeholder={t('firewall.addRule.port.placeholder')}
+                />
+              </FormRow>
 
-          <FormRow label={t('firewall.addRule.protocol')}>
-            <div className="flex justify-start gap-2">
-              <ToggleChip active={form.protocols.has('tcp')} onClick={() => toggleProtocol('tcp')}>
-                {t('firewall.protocol.tcp')}
-              </ToggleChip>
-              <ToggleChip active={form.protocols.has('udp')} onClick={() => toggleProtocol('udp')}>
-                {t('firewall.protocol.udp')}
-              </ToggleChip>
-            </div>
-          </FormRow>
-
-          {mode === 'advanced' && (
-            <>
-              <FormRow label={t('firewall.addRule.family')}>
+              <FormRow label={t('firewall.addRule.protocol')}>
                 <div className="flex justify-start gap-2">
-                  <ToggleChip active={form.families.has('ipv4')} onClick={() => toggleFamily('ipv4')}>
-                    {t('firewall.family.ipv4')}
+                  <ToggleChip active={form.protocols.has('tcp')} onClick={() => toggleProtocol('tcp')}>
+                    {t('firewall.protocol.tcp')}
                   </ToggleChip>
-                  <ToggleChip active={form.families.has('ipv6')} onClick={() => toggleFamily('ipv6')}>
-                    {t('firewall.family.ipv6')}
+                  <ToggleChip active={form.protocols.has('udp')} onClick={() => toggleProtocol('udp')}>
+                    {t('firewall.protocol.udp')}
                   </ToggleChip>
                 </div>
               </FormRow>
 
-              {form.families.has('ipv4') && (
-                <FormRow label={t('firewall.addRule.from.ipv4')}>
-                  <Input
-                    value={form.fromIPv4}
-                    onChange={(e) => setForm((c) => ({ ...c, fromIPv4: e.target.value }))}
-                    placeholder={t('firewall.addRule.from.placeholder')}
-                  />
-                </FormRow>
+              {mode === 'advanced' && (
+                <>
+                  <FormRow label={t('firewall.addRule.family')}>
+                    <div className="flex justify-start gap-2">
+                      <ToggleChip active={form.families.has('ipv4')} onClick={() => toggleFamily('ipv4')}>
+                        {t('firewall.family.ipv4')}
+                      </ToggleChip>
+                      <ToggleChip active={form.families.has('ipv6')} onClick={() => toggleFamily('ipv6')}>
+                        {t('firewall.family.ipv6')}
+                      </ToggleChip>
+                    </div>
+                  </FormRow>
+
+                  {form.families.has('ipv4') && (
+                    <FormRow label={t('firewall.addRule.from.ipv4')}>
+                      <Input
+                        value={form.fromIPv4}
+                        onChange={(e) => setForm((c) => ({ ...c, fromIPv4: e.target.value }))}
+                        placeholder={t('firewall.addRule.from.placeholder')}
+                      />
+                    </FormRow>
+                  )}
+
+                  {form.families.has('ipv6') && (
+                    <FormRow label={t('firewall.addRule.from.ipv6')}>
+                      <Input
+                        value={form.fromIPv6}
+                        onChange={(e) => setForm((c) => ({ ...c, fromIPv6: e.target.value }))}
+                        placeholder={t('firewall.addRule.from.placeholder')}
+                      />
+                    </FormRow>
+                  )}
+                </>
               )}
 
-              {form.families.has('ipv6') && (
-                <FormRow label={t('firewall.addRule.from.ipv6')}>
-                  <Input
-                    value={form.fromIPv6}
-                    onChange={(e) => setForm((c) => ({ ...c, fromIPv6: e.target.value }))}
-                    placeholder={t('firewall.addRule.from.placeholder')}
-                  />
-                </FormRow>
-              )}
-            </>
-          )}
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

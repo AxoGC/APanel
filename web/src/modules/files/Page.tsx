@@ -340,7 +340,7 @@ export default function FilesPage() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col">
           <DialogHeader>
             <DialogTitle>{previewTarget?.name}</DialogTitle>
           </DialogHeader>
@@ -369,7 +369,7 @@ export default function FilesPage() {
                 value={preview.content}
                 onChange={(e) => setPreview({ status: 'text', content: e.target.value })}
                 spellCheck={false}
-                className="h-96 w-full resize-none rounded-lg border border-input bg-transparent p-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                className="scrollbar-shadcn h-96 min-h-0 w-full resize-none overscroll-contain rounded-lg border border-input bg-transparent p-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
               />
               <DialogFooter>
                 <Button

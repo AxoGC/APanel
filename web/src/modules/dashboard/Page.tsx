@@ -191,32 +191,34 @@ export default function DashboardPage() {
       <ProcessDetailDialog pid={detailPid} onOpenChange={(open) => !open && setDetailPid(null)} />
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent>
-          <form onSubmit={submitSettings} className="flex flex-col gap-4">
+        <DialogContent className="flex max-h-[85vh] flex-col">
+          <form onSubmit={submitSettings} className="flex min-h-0 flex-col gap-4">
             <DialogHeader>
               <DialogTitle>{t('dashboard.networkSettings.title')}</DialogTitle>
             </DialogHeader>
 
-            <div className="flex items-center gap-3">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
-                    {t('dashboard.networkSettings.maxMbps')}
-                    <Info className="size-3" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
-              </Tooltip>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0.1}
-                  step={0.1}
-                  value={settingsMaxMbps}
-                  onChange={(e) => setSettingsMaxMbps(e.target.value)}
-                  className="w-24"
-                />
-                <span className="text-xs text-gray-500">Mbps</span>
+            <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
+              <div className="flex items-center gap-3 pr-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
+                      {t('dashboard.networkSettings.maxMbps')}
+                      <Info className="size-3" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
+                </Tooltip>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={settingsMaxMbps}
+                    onChange={(e) => setSettingsMaxMbps(e.target.value)}
+                    className="w-24"
+                  />
+                  <span className="text-xs text-gray-500">Mbps</span>
+                </div>
               </div>
             </div>
 

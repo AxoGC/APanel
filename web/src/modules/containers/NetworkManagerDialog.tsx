@@ -2,7 +2,6 @@ import { Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
@@ -64,7 +63,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
         <DialogHeader>
           <DialogTitle>{t('containers.networks.title')}</DialogTitle>
         </DialogHeader>
@@ -85,7 +84,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
 
         {error && <p className="text-xs text-red-600">{error}</p>}
 
-        <div className="flex max-h-[60vh] flex-col">
+        <div className="flex min-h-0 grow flex-col">
           <div className="flex items-center gap-3 border-b border-gray-200 px-2 pb-1.5 dark:border-gray-800">
             <div className="min-w-0 flex-1 text-xs text-gray-500">{t('containers.networks.name')}</div>
             <div className="w-24 shrink-0 text-xs text-gray-500">{t('containers.networks.driver')}</div>
@@ -94,7 +93,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
             <div className="w-8 shrink-0" />
           </div>
 
-          <ScrollArea className="min-h-0 grow">
+          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
             {networks && filteredNetworks.length === 0 && (
               <p className="px-2 py-4 text-sm text-gray-500">{t('containers.networks.empty')}</p>
             )}
@@ -128,7 +127,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
                 </div>
               </div>
             ))}
-          </ScrollArea>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

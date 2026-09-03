@@ -137,63 +137,67 @@ export default function HistoryPage() {
       )}
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent>
-          <form onSubmit={submitSettings} className="flex flex-col gap-4">
+        <DialogContent className="flex max-h-[85vh] flex-col">
+          <form onSubmit={submitSettings} className="flex min-h-0 flex-col gap-4">
             <DialogHeader>
               <DialogTitle>{t('history.settings.title')}</DialogTitle>
             </DialogHeader>
 
-            <SegmentedControl
-              options={TARGETS.map((name) => ({ value: name, label: t(`history.settings.target.${name}`) }))}
-              value={settingsTarget}
-              onChange={setSettingsTarget}
-            />
+            <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
+              <div className="flex flex-col gap-4 pr-1">
+                <SegmentedControl
+                  options={TARGETS.map((name) => ({ value: name, label: t(`history.settings.target.${name}`) }))}
+                  value={settingsTarget}
+                  onChange={setSettingsTarget}
+                />
 
-            {target && settings && (
-              <>
-                <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.enabled')}</span>
-                  <Switch
-                    checked={target.enabled}
-                    onCheckedChange={(enabled) =>
-                      setSettings({ ...settings, [settingsTarget]: { ...target, enabled } })
-                    }
-                  />
-                </div>
+                {target && settings && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.enabled')}</span>
+                      <Switch
+                        checked={target.enabled}
+                        onCheckedChange={(enabled) =>
+                          setSettings({ ...settings, [settingsTarget]: { ...target, enabled } })
+                        }
+                      />
+                    </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.interval')}</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={target.intervalMinutes}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        [settingsTarget]: { ...target, intervalMinutes: Number(e.target.value) },
-                      })
-                    }
-                  />
-                </div>
+                    <div className="flex items-center gap-3">
+                      <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.interval')}</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={target.intervalMinutes}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            [settingsTarget]: { ...target, intervalMinutes: Number(e.target.value) },
+                          })
+                        }
+                      />
+                    </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.retention')}</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={target.retentionDays}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        [settingsTarget]: { ...target, retentionDays: Number(e.target.value) },
-                      })
-                    }
-                  />
-                </div>
-              </>
-            )}
+                    <div className="flex items-center gap-3">
+                      <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.retention')}</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={target.retentionDays}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            [settingsTarget]: { ...target, retentionDays: Number(e.target.value) },
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                )}
 
-            {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
+                {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
+              </div>
+            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>

@@ -69,12 +69,13 @@ export function CreateContainerDialog({ open, onOpenChange }: { open: boolean; o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
         <DialogHeader>
           <DialogTitle>{t('containers.create.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
+          <div className="flex flex-col gap-4 pr-1">
           <FormRow label={t('containers.create.name')}>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('containers.create.name.placeholder')} />
           </FormRow>
@@ -142,7 +143,8 @@ export function CreateContainerDialog({ open, onOpenChange }: { open: boolean; o
             />
           </FormRow>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </div>
         </div>
 
         <DialogFooter className="items-center sm:justify-between">

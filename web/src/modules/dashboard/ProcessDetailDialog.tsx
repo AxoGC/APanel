@@ -75,7 +75,7 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
 
   return (
     <Dialog open={pid !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="flex h-[85vh] max-w-lg flex-col">
         <DialogHeader>
           <DialogTitle>{detail ? detail.name : t('dashboard.detail.title')}</DialogTitle>
         </DialogHeader>
@@ -83,41 +83,46 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         {detail && (
-          <div className="grid grid-cols-2 gap-4">
-            <Field label={t('dashboard.detail.pid')} value={detail.pid} />
-            <Field label={t('dashboard.detail.ppid')} value={detail.ppid} />
-            <Field
-              label={t('dashboard.detail.state')}
-              value={STATE_LABELS[detail.state] ? t(STATE_LABELS[detail.state]) : detail.state}
-            />
-            <Field label={t('dashboard.user')} value={detail.user} />
-            <Field label={t('dashboard.cpu')} value={formatPercent(detail.cpuPercent)} />
-            <Field label={t('dashboard.memory')} value={formatBytes(detail.memRSS)} />
-            <Field label={t('dashboard.detail.vmSize')} value={formatBytes(detail.vmSize)} />
-            <Field label={t('dashboard.detail.vmSwap')} value={formatBytes(detail.vmSwap)} />
-            <Field label={t('dashboard.detail.priority')} value={detail.priority} />
-            <Field label={t('dashboard.detail.nice')} value={detail.nice} />
-            <Field label={t('dashboard.detail.threads')} value={detail.threads} />
-            <Field
-              label={t('dashboard.detail.openFiles')}
-              value={detail.openFiles >= 0 ? detail.openFiles : '—'}
-            />
-            <div className="col-span-2">
-              <Field label={t('dashboard.detail.startTime')} value={new Date(detail.startTime).toLocaleString()} />
-            </div>
-            <div className="col-span-2">
-              <Field label={t('dashboard.detail.cmdline')} value={detail.cmdline} wrap />
-            </div>
-            {detail.exe && (
+          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
+            <div className="grid grid-cols-2 gap-4 pr-1">
+              <Field label={t('dashboard.detail.pid')} value={detail.pid} />
+              <Field label={t('dashboard.detail.ppid')} value={detail.ppid} />
+              <Field
+                label={t('dashboard.detail.state')}
+                value={STATE_LABELS[detail.state] ? t(STATE_LABELS[detail.state]) : detail.state}
+              />
+              <Field label={t('dashboard.user')} value={detail.user} />
+              <Field label={t('dashboard.cpu')} value={formatPercent(detail.cpuPercent)} />
+              <Field label={t('dashboard.memory')} value={formatBytes(detail.memRSS)} />
+              <Field label={t('dashboard.detail.vmSize')} value={formatBytes(detail.vmSize)} />
+              <Field label={t('dashboard.detail.vmSwap')} value={formatBytes(detail.vmSwap)} />
+              <Field label={t('dashboard.detail.priority')} value={detail.priority} />
+              <Field label={t('dashboard.detail.nice')} value={detail.nice} />
+              <Field label={t('dashboard.detail.threads')} value={detail.threads} />
+              <Field
+                label={t('dashboard.detail.openFiles')}
+                value={detail.openFiles >= 0 ? detail.openFiles : '—'}
+              />
               <div className="col-span-2">
-                <Field label={t('dashboard.detail.exe')} value={detail.exe} wrap />
+                <Field
+                  label={t('dashboard.detail.startTime')}
+                  value={new Date(detail.startTime).toLocaleString()}
+                />
               </div>
-            )}
-            {detail.cwd && (
               <div className="col-span-2">
-                <Field label={t('dashboard.detail.cwd')} value={detail.cwd} wrap />
+                <Field label={t('dashboard.detail.cmdline')} value={detail.cmdline} wrap />
               </div>
-            )}
+              {detail.exe && (
+                <div className="col-span-2">
+                  <Field label={t('dashboard.detail.exe')} value={detail.exe} wrap />
+                </div>
+              )}
+              {detail.cwd && (
+                <div className="col-span-2">
+                  <Field label={t('dashboard.detail.cwd')} value={detail.cwd} wrap />
+                </div>
+              )}
+            </div>
           </div>
         )}
 
