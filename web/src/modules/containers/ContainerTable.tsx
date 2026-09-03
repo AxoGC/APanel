@@ -1,4 +1,4 @@
-import { Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
+import { Info, Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
@@ -14,11 +14,13 @@ export function ContainerTable({
   pending,
   onAction,
   onShowLogs,
+  onShowDetail,
 }: {
   containers: ContainerInfo[]
   pending: Record<string, ContainerActionName | undefined>
   onAction: (id: string, action: ContainerActionName) => void
   onShowLogs: (container: ContainerInfo) => void
+  onShowDetail: (container: ContainerInfo) => void
 }) {
   const { t } = useI18n()
 
@@ -49,6 +51,9 @@ export function ContainerTable({
               </div>
 
               <div className="flex w-28 shrink-0 items-center justify-end gap-0.5">
+                <Button variant="ghost" size="icon-sm" aria-label={t('containers.detail')} onClick={() => onShowDetail(c)}>
+                  <Info />
+                </Button>
                 <Button variant="ghost" size="icon-sm" aria-label={t('containers.logs')} onClick={() => onShowLogs(c)}>
                   <ScrollText />
                 </Button>

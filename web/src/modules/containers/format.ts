@@ -45,3 +45,10 @@ export const STATE_LABELS: Record<string, TranslationKey> = {
   exited: 'containers.state.exited',
   dead: 'containers.state.dead',
 }
+
+export const RESTART_POLICY_LABELS: Record<string, TranslationKey> = {
+  no: 'containers.create.restartPolicy.no',
+  'on-failure': 'containers.create.restartPolicy.onFailure',
+  always: 'containers.create.restartPolicy.always',
+  'unless-stopped': 'containers.create.restartPolicy.unlessStopped',
+}

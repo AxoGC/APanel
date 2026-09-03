@@ -16,6 +16,7 @@ import {
   type ContainerInfo,
   type StatusFilter,
 } from './api'
+import { ContainerDetailDialog } from './ContainerDetailDialog'
 import { ContainerGrid } from './ContainerGrid'
 import { CreateContainerDialog } from './CreateContainerDialog'
 import { ImageManagerDialog } from './ImageManagerDialog'
@@ -31,6 +32,7 @@ export default function ContainersPage() {
   const [pending, setPending] = useState<Record<string, ContainerActionName | undefined>>({})
   const [error, setError] = useState<string | null>(null)
   const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
+  const [detailFor, setDetailFor] = useState<string | null>(null)
   const [imagesOpen, setImagesOpen] = useState(false)
   const [networksOpen, setNetworksOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -113,9 +115,21 @@ export default function ContainersPage() {
         {containers &&
           containers.length > 0 &&
           (dataLayout === 'table' ? (
-            <ContainerTable containers={containers} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+            <ContainerTable
+              containers={containers}
+              pending={pending}
+              onAction={handleAction}
+              onShowLogs={setLogsFor}
+              onShowDetail={(c) => setDetailFor(c.id)}
+            />
           ) : (
-            <ContainerGrid containers={containers} pending={pending} onAction={handleAction} onShowLogs={setLogsFor} />
+            <ContainerGrid
+              containers={containers}
+              pending={pending}
+              onAction={handleAction}
+              onShowLogs={setLogsFor}
+              onShowDetail={(c) => setDetailFor(c.id)}
+            />
           ))}
       </div>
 
@@ -127,6 +141,7 @@ export default function ContainersPage() {
         fetchLogs={getContainerLogs}
         streamUrl={containerLogsStreamUrl}
       />
+      <ContainerDetailDialog id={detailFor} onOpenChange={(open) => !open && setDetailFor(null)} />
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
       <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} />

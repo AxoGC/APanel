@@ -65,6 +65,27 @@ export function runContainerAction(id: string, action: ContainerActionName) {
   return apiFetch<null>(`/containers/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
 }
 
+export interface ContainerDetail {
+  id: string
+  name: string
+  image: string
+  command: string
+  created: string
+  state: string
+  exitCode: number
+  startedAt: string | null
+  restartPolicy: string
+  platform: string
+  networks: string[] | null
+  ports: string[] | null
+  mounts: string[] | null
+  env: string[] | null
+}
+
+export function getContainerDetail(id: string) {
+  return apiFetch<ContainerDetail>(`/containers/${encodeURIComponent(id)}`)
+}
+
 export function getContainerLogs(id: string, lines: number) {
   return apiFetch<string[]>(`/containers/${encodeURIComponent(id)}/logs?lines=${lines}`)
 }

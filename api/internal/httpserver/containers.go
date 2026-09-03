@@ -113,6 +113,20 @@ func (s *Server) deleteContainerNetwork(w http.ResponseWriter, r *http.Request) 
 	response.WriteOK(w, nil)
 }
 
+func (s *Server) containerDetail(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	detail, err := s.containers.Detail(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, container.ErrNotFound) {
+			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, detail)
+}
+
 func (s *Server) containerLogs(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	out, err := s.containers.Logs(r.Context(), id, logLines(r))

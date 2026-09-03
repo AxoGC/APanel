@@ -87,6 +87,7 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /api/containers/{id}/start", s.auth.Middleware(s.containerAction(s.containers.Start)))
 	s.mux.Handle("POST /api/containers/{id}/stop", s.auth.Middleware(s.containerAction(s.containers.Stop)))
 	s.mux.Handle("POST /api/containers/{id}/restart", s.auth.Middleware(s.containerAction(s.containers.Restart)))
+	s.mux.Handle("GET /api/containers/{id}", s.auth.Middleware(http.HandlerFunc(s.containerDetail)))
 	s.mux.Handle("GET /api/containers/{id}/logs", s.auth.Middleware(http.HandlerFunc(s.containerLogs)))
 	s.mux.Handle("GET /api/containers/{id}/logs/stream", s.auth.Middleware(http.HandlerFunc(s.containerLogsStream)))
 

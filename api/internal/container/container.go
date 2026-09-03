@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
@@ -63,6 +64,30 @@ type Network struct {
 	Driver string         `json:"driver"`
 	Scope  string         `json:"scope"`
 	UsedBy []ContainerRef `json:"usedBy"`
+}
+
+// Detail describes everything the container detail dialog shows, gathered
+// from a single Docker inspect call rather than List's lighter-weight
+// summary.
+type Detail struct {
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	Image         string     `json:"image"`
+	Command       string     `json:"command"`
+	Created       time.Time  `json:"created"`
+	State         string     `json:"state"`
+	ExitCode      int        `json:"exitCode"`
+	StartedAt     *time.Time `json:"startedAt"`
+	RestartPolicy string     `json:"restartPolicy"`
+	Platform      string     `json:"platform"`
+	// Networks holds one entry per attached network, formatted as "name"
+	// or "name (ip)" when the endpoint has an address.
+	Networks []string `json:"networks"`
+	// Ports holds one entry per exposed port, e.g. "80/tcp" for an
+	// unpublished port or "0.0.0.0:8080 -> 80/tcp" for a published one.
+	Ports  []string `json:"ports"`
+	Mounts []string `json:"mounts"`
+	Env    []string `json:"env"`
 }
 
 type Manager struct {
@@ -299,6 +324,104 @@ func (m *Manager) Stop(ctx context.Context, id string) error {
 func (m *Manager) Restart(ctx context.Context, id string) error {
 	err := m.cli.ContainerRestart(ctx, id, container.StopOptions{})
 	return translateNotFound(err)
+}
+
+// Detail inspects a single container for the detail dialog. Unlike List,
+// which is tuned for rendering many rows cheaply, this makes one full
+// inspect call and is only ever used for one container at a time.
+func (m *Manager) Detail(ctx context.Context, id string) (Detail, error) {
+	insp, err := m.cli.ContainerInspect(ctx, id)
+	if err != nil {
+		return Detail{}, translateNotFound(err)
+	}
+
+	command := insp.Path
+	if len(insp.Args) > 0 {
+		command = command + " " + strings.Join(insp.Args, " ")
+	}
+
+	created, _ := time.Parse(time.RFC3339Nano, insp.Created)
+
+	var state string
+	var exitCode int
+	var startedAt *time.Time
+	if insp.State != nil {
+		state = string(insp.State.Status)
+		exitCode = insp.State.ExitCode
+		if t, err := time.Parse(time.RFC3339Nano, insp.State.StartedAt); err == nil && !t.IsZero() {
+			startedAt = &t
+		}
+	}
+
+	restartPolicy := "no"
+	if insp.HostConfig != nil && insp.HostConfig.RestartPolicy.Name != "" {
+		restartPolicy = string(insp.HostConfig.RestartPolicy.Name)
+	}
+
+	var networks []string
+	if insp.NetworkSettings != nil {
+		for name, ep := range insp.NetworkSettings.Networks {
+			if ep != nil && ep.IPAddress != "" {
+				networks = append(networks, fmt.Sprintf("%s (%s)", name, ep.IPAddress))
+			} else {
+				networks = append(networks, name)
+			}
+		}
+		sort.Strings(networks)
+	}
+
+	var ports []string
+	if insp.NetworkSettings != nil {
+		for port, bindings := range insp.NetworkSettings.Ports {
+			if len(bindings) == 0 {
+				ports = append(ports, string(port))
+				continue
+			}
+			for _, b := range bindings {
+				ports = append(ports, fmt.Sprintf("%s:%s -> %s", b.HostIP, b.HostPort, port))
+			}
+		}
+		sort.Strings(ports)
+	}
+
+	var mounts []string
+	for _, mnt := range insp.Mounts {
+		mode := "ro"
+		if mnt.RW {
+			mode = "rw"
+		}
+		source := mnt.Source
+		if mnt.Name != "" {
+			source = mnt.Name
+		}
+		mounts = append(mounts, fmt.Sprintf("%s -> %s (%s)", source, mnt.Destination, mode))
+	}
+
+	var env []string
+	var image string
+	if insp.Config != nil {
+		env = insp.Config.Env
+		image = insp.Config.Image
+	}
+
+	name := strings.TrimPrefix(insp.Name, "/")
+
+	return Detail{
+		ID:            insp.ID,
+		Name:          name,
+		Image:         image,
+		Command:       strings.TrimSpace(command),
+		Created:       created,
+		State:         state,
+		ExitCode:      exitCode,
+		StartedAt:     startedAt,
+		RestartPolicy: restartPolicy,
+		Platform:      insp.Platform,
+		Networks:      networks,
+		Ports:         ports,
+		Mounts:        mounts,
+		Env:           env,
+	}, nil
 }
 
 // Logs returns the container's last n lines of combined stdout/stderr,
