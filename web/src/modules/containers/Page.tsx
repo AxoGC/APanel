@@ -1,11 +1,12 @@
 import { Images, Network, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import {
   listContainers,
   runContainerAction,
@@ -32,6 +33,8 @@ export default function ContainersPage() {
   const [imagesOpen, setImagesOpen] = useState(false)
   const [networksOpen, setNetworksOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -47,6 +50,10 @@ export default function ContainersPage() {
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, query])
+
+  useEffect(() => {
+    if (mobileSearchOpen) searchInputRef.current?.focus()
+  }, [mobileSearchOpen])
 
   async function handleAction(id: string, action: ContainerActionName) {
     setError(null)
@@ -64,18 +71,29 @@ export default function ContainersPage() {
   return (
     <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="relative w-48 sm:w-64">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('containers.search')}
-              className="pl-8"
-            />
-          </div>
+        <button
+          type="button"
+          aria-label={t('containers.search')}
+          onClick={() => setMobileSearchOpen(true)}
+          className={cn(
+            'flex size-8 cursor-pointer items-center justify-center rounded-lg border border-input text-gray-500 hover:bg-accent hover:text-gray-700 dark:bg-input/30 dark:hover:bg-input/50 dark:hover:text-gray-300 md:hidden',
+            mobileSearchOpen && 'hidden',
+          )}
+        >
+          <Search className="size-4" />
+        </button>
+        <div className={cn('relative w-full md:w-64', mobileSearchOpen ? 'block' : 'hidden md:block')}>
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
+          <Input
+            ref={searchInputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onBlur={() => setMobileSearchOpen(false)}
+            placeholder={t('containers.search')}
+            className="pl-8"
+          />
         </div>
-        <div className="flex items-center gap-2">
+        <div className={cn('flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
           <span className="hidden text-xs text-gray-500 md:inline">{t('containers.status')}</span>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
             <SelectTrigger>
@@ -88,18 +106,18 @@ export default function ContainersPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setImagesOpen(true)}>
+        <div className={cn('ml-auto flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
+          <Button variant="outline" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
             <Images />
-            {t('containers.images')}
+            <span className="hidden md:inline">{t('containers.images')}</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setNetworksOpen(true)}>
+          <Button variant="outline" size="sm" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
             <Network />
-            {t('containers.networks')}
+            <span className="hidden md:inline">{t('containers.networks')}</span>
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" aria-label={t('containers.create')} onClick={() => setCreateOpen(true)}>
             <Plus />
-            {t('containers.create')}
+            <span className="hidden md:inline">{t('containers.create')}</span>
           </Button>
         </div>
       </div>

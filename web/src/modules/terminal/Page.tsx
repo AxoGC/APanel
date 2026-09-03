@@ -95,7 +95,9 @@ export default function TerminalPage() {
     socket.onopen = () => {
       setConnectionState('connected')
       resize()
-      terminal.focus()
+      // On phones, focusing xterm on entry opens the virtual keyboard and
+      // obscures the screen before the operator has chosen to type.
+      if (window.matchMedia('(min-width: 768px)').matches) terminal.focus()
     }
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) terminal.write(new Uint8Array(event.data))
