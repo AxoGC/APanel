@@ -9,3 +9,7 @@ export function formatBytes(bytes: number): string {
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
 }
+
+export function formatMbps(bytesPerSec: number): string {
+  return ((Math.max(0, bytesPerSec) * 8) / 1_000_000).toFixed(1)
+}

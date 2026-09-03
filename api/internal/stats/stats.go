@@ -24,12 +24,18 @@ import (
 const clockTicks = 100
 
 type Overview struct {
-	CPUPercent float64   `json:"cpuPercent"`
-	MemTotal   uint64    `json:"memTotal"`
-	MemUsed    uint64    `json:"memUsed"`
-	SwapTotal  uint64    `json:"swapTotal"`
-	SwapUsed   uint64    `json:"swapUsed"`
-	Processes  []Process `json:"processes"`
+	CPUPercent float64 `json:"cpuPercent"`
+	MemTotal   uint64  `json:"memTotal"`
+	MemUsed    uint64  `json:"memUsed"`
+	SwapTotal  uint64  `json:"swapTotal"`
+	SwapUsed   uint64  `json:"swapUsed"`
+	// NetRxBytesPerSec/NetTxBytesPerSec are instantaneous throughput on
+	// whichever interface currently owns the default route (see
+	// defaultRouteInterface) — 0 when there's no default route or this is
+	// the collector's first sample.
+	NetRxBytesPerSec float64   `json:"netRxBytesPerSec"`
+	NetTxBytesPerSec float64   `json:"netTxBytesPerSec"`
+	Processes        []Process `json:"processes"`
 }
 
 type Process struct {
@@ -81,12 +87,23 @@ type procSample struct {
 	at       time.Time
 }
 
+// netSample is the previous /proc/net/dev reading for the interface that
+// owned the default route at the time — kept alongside the interface name
+// so a route change (e.g. a VPN going up or down) is detected as "no prior
+// sample" rather than producing a bogus delta between two different
+// interfaces' counters.
+type netSample struct {
+	iface  string
+	rx, tx uint64
+}
+
 // Collector holds the previous samples needed to turn /proc's cumulative
 // counters into instantaneous percentages between two ticks.
 type Collector struct {
 	mu        sync.Mutex
 	prevCPU   cpuSample
 	prevProcs map[int]procSample
+	prevNet   netSample
 	prevAt    time.Time
 	usernames map[uint32]string
 }
@@ -127,14 +144,18 @@ func (c *Collector) Sample(sortBy ProcessSort) (Overview, error) {
 		return Overview{}, err
 	}
 
+	netRxBps, netTxBps := c.sampleNetwork(now)
+
 	c.prevAt = now
 	return Overview{
-		CPUPercent: cpuPercent,
-		MemTotal:   memTotal,
-		MemUsed:    memUsed,
-		SwapTotal:  swapTotal,
-		SwapUsed:   swapUsed,
-		Processes:  procs,
+		CPUPercent:       cpuPercent,
+		MemTotal:         memTotal,
+		MemUsed:          memUsed,
+		SwapTotal:        swapTotal,
+		SwapUsed:         swapUsed,
+		NetRxBytesPerSec: netRxBps,
+		NetTxBytesPerSec: netTxBps,
+		Processes:        procs,
 	}, nil
 }
 
@@ -250,6 +271,113 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 		sort.Slice(procs, func(i, j int) bool { return procs[i].CPUPercent > procs[j].CPUPercent })
 	}
 	return procs, nil
+}
+
+// sampleNetwork reports instantaneous rx/tx throughput (bytes/sec) on
+// whichever interface currently owns the default route — i.e. the
+// interface actually doing outbound communication, as opposed to loopback
+// or an interface with only a local subnet route. elapsed is measured
+// against c.prevAt the same way sampleProcesses does (both are called
+// before c.prevAt is advanced to `now` at the end of Sample).
+func (c *Collector) sampleNetwork(now time.Time) (rxBps, txBps float64) {
+	iface, err := defaultRouteInterface()
+	if err != nil {
+		c.prevNet = netSample{}
+		return 0, 0
+	}
+
+	rx, tx, ok := readNetDevBytes(iface)
+	if !ok {
+		c.prevNet = netSample{}
+		return 0, 0
+	}
+	defer func() { c.prevNet = netSample{iface: iface, rx: rx, tx: tx} }()
+
+	// No usable prior sample: either this is the first tick, or the
+	// default route's interface changed since the last one (their byte
+	// counters aren't comparable).
+	if c.prevNet.iface != iface {
+		return 0, 0
+	}
+
+	elapsed := now.Sub(c.prevAt).Seconds()
+	if elapsed <= 0 {
+		return 0, 0
+	}
+
+	// Counters only ever increase between comparable samples; a lower
+	// reading than last time means the interface was reset (e.g. brought
+	// down and back up), not that negative bytes were transferred.
+	var rxDelta, txDelta uint64
+	if rx >= c.prevNet.rx {
+		rxDelta = rx - c.prevNet.rx
+	}
+	if tx >= c.prevNet.tx {
+		txDelta = tx - c.prevNet.tx
+	}
+	return float64(rxDelta) / elapsed, float64(txDelta) / elapsed
+}
+
+// defaultRouteInterface returns the network interface that owns the
+// system's default IPv4 route (destination 0.0.0.0) — the interface
+// actually used for outbound connectivity, picked by lowest route metric
+// when more than one default route exists (e.g. a VPN alongside the LAN
+// uplink).
+func defaultRouteInterface() (string, error) {
+	f, err := os.Open("/proc/net/route")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	var best string
+	bestMetric := 0
+	scanner := bufio.NewScanner(f)
+	scanner.Scan() // header line
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		// Iface Destination Gateway Flags RefCnt Use Metric Mask ...
+		if len(fields) < 7 || fields[1] != "00000000" {
+			continue
+		}
+		metric, _ := strconv.Atoi(fields[6])
+		if best == "" || metric < bestMetric {
+			best, bestMetric = fields[0], metric
+		}
+	}
+	if best == "" {
+		return "", fmt.Errorf("no default route found")
+	}
+	return best, nil
+}
+
+// readNetDevBytes reads iface's cumulative rx/tx byte counters from
+// /proc/net/dev.
+func readNetDevBytes(iface string) (rx, tx uint64, ok bool) {
+	f, err := os.Open("/proc/net/dev")
+	if err != nil {
+		return 0, 0, false
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		idx := strings.IndexByte(line, ':')
+		if idx < 0 || strings.TrimSpace(line[:idx]) != iface {
+			continue
+		}
+		// Receive: bytes packets errs drop fifo frame compressed multicast
+		// (8 fields) then Transmit starts with bytes at index 8.
+		fields := strings.Fields(line[idx+1:])
+		if len(fields) < 9 {
+			return 0, 0, false
+		}
+		rxVal, _ := strconv.ParseUint(fields[0], 10, 64)
+		txVal, _ := strconv.ParseUint(fields[8], 10, 64)
+		return rxVal, txVal, true
+	}
+	return 0, 0, false
 }
 
 // procStat is everything sampleProcesses and ProcessDetail both need out of

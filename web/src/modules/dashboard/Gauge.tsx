@@ -9,12 +9,14 @@ echarts.use([GaugeChart, CanvasRenderer])
 export function Gauge({
   label,
   value,
-  percentText,
+  mainText,
+  unitText,
   details,
 }: {
   label: string
   value: number
-  percentText: string
+  mainText: string
+  unitText?: string
   details?: string[]
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -61,12 +63,16 @@ export function Gauge({
           splitLine: { show: false },
           axisLabel: { show: false },
           anchor: { show: false },
-          // The percentage — emphasized via size, not weight (kept at the
-          // series' base font weight rather than a bold override).
+          // The value — emphasized via size, not weight (kept at the
+          // series' base font weight rather than a bold override). The
+          // unit suffix (%, Mbps) is rendered smaller and in the muted
+          // color so the number itself reads first.
           detail: {
-            formatter: () => percentText,
-            fontSize: 22,
-            color: colors.emphasis,
+            formatter: () => (unitText ? `{main|${mainText}}{unit|${unitText}}` : mainText),
+            rich: {
+              main: { fontSize: 22, color: colors.emphasis },
+              unit: { fontSize: 12, color: colors.muted, padding: [0, 0, 0, 1] },
+            },
             offsetCenter: [0, '0%'],
           },
           // The label ("CPU"/"Memory") — de-emphasized, below the percentage.
@@ -79,11 +85,11 @@ export function Gauge({
         },
       ],
     })
-  }, [value, label, percentText, colors])
+  }, [value, label, mainText, unitText, colors])
 
   return (
     <div className="flex flex-col items-center">
-      <div ref={containerRef} className="h-32 w-full" />
+      <div ref={containerRef} className="h-24 w-full sm:h-32" />
       {details && details.length > 0 && (
         <div className="-mt-2 flex flex-col items-center">
           {details.map((line) => (

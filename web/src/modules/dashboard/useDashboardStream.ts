@@ -16,7 +16,24 @@ export interface Overview {
   memUsed: number
   swapTotal: number
   swapUsed: number
+  netRxBytesPerSec: number
+  netTxBytesPerSec: number
   processes: ProcessInfo[]
+}
+
+export interface NetworkGaugeSettings {
+  maxMbps: number
+}
+
+export function getDashboardNetworkSettings() {
+  return apiFetch<NetworkGaugeSettings>('/dashboard/network-settings')
+}
+
+export function putDashboardNetworkSettings(settings: NetworkGaugeSettings) {
+  return apiFetch<NetworkGaugeSettings>('/dashboard/network-settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
 }
 
 export type ProcessSort = 'cpu' | 'mem'

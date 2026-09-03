@@ -1,13 +1,25 @@
-import { useMemo, useState } from 'react'
+import { Settings } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ToggleButton } from '@/components/ToggleButton'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { formatBytes, formatPercent } from '@/lib/format'
+import { ApiError } from '@/lib/api'
+import { formatBytes, formatMbps } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { Gauge } from './Gauge'
 import { buildProcessForest, type ProcessNode } from './processTree'
 import { ProcessDetailDialog } from './ProcessDetailDialog'
 import { ProcessGrid } from './ProcessGrid'
-import { useDashboardStream, type ProcessSort } from './useDashboardStream'
+import {
+  getDashboardNetworkSettings,
+  putDashboardNetworkSettings,
+  useDashboardStream,
+  type ProcessSort,
+} from './useDashboardStream'
+
+const DEFAULT_MAX_MBPS = 10
 
 export default function DashboardPage() {
   const { t } = useI18n()
@@ -19,7 +31,50 @@ export default function DashboardPage() {
   const [detailPid, setDetailPid] = useState<number | null>(null)
   const overview = useDashboardStream(sort)
 
+  // What the upload gauge's 100% mark represents. Loaded once (it's a
+  // rarely-changed setting, not part of the live stream) and defaulted
+  // in-memory until the fetch resolves so the gauge never divides by zero.
+  const [maxMbps, setMaxMbps] = useState(DEFAULT_MAX_MBPS)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsMaxMbps, setSettingsMaxMbps] = useState(String(DEFAULT_MAX_MBPS))
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+  const [savingSettings, setSavingSettings] = useState(false)
+
+  useEffect(() => {
+    getDashboardNetworkSettings()
+      .then((s) => setMaxMbps(s.maxMbps))
+      .catch(() => {})
+  }, [])
+
+  function openSettings() {
+    setSettingsError(null)
+    setSettingsMaxMbps(String(maxMbps))
+    setSettingsOpen(true)
+  }
+
+  async function submitSettings(e: FormEvent) {
+    e.preventDefault()
+    const parsed = Number(settingsMaxMbps)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setSettingsError(t('dashboard.networkSettings.maxMbps'))
+      return
+    }
+    setSavingSettings(true)
+    setSettingsError(null)
+    try {
+      const saved = await putDashboardNetworkSettings({ maxMbps: parsed })
+      setMaxMbps(saved.maxMbps)
+      setSettingsOpen(false)
+    } catch (err) {
+      setSettingsError(err instanceof ApiError ? err.message : String(err))
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
   const memPercent = overview ? (overview.memUsed / overview.memTotal) * 100 : 0
+  const uploadMbps = overview ? (overview.netTxBytesPerSec * 8) / 1_000_000 : 0
+  const netPercent = maxMbps > 0 ? (uploadMbps / maxMbps) * 100 : 0
 
   function toggleExpanded(pid: number) {
     setExpanded((prev) => {
@@ -50,27 +105,47 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <h1 className="text-base text-gray-900 dark:text-gray-100">{t('dashboard.title')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('dashboard.title')}</h1>
+        <Button variant="ghost" size="icon-sm" aria-label={t('dashboard.networkSettings')} onClick={openSettings}>
+          <Settings />
+        </Button>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        <Gauge
-          label={t('dashboard.cpu')}
-          value={overview?.cpuPercent ?? 0}
-          percentText={overview ? formatPercent(overview.cpuPercent) : '–'}
-        />
-        <Gauge
-          label={t('dashboard.memory')}
-          value={memPercent}
-          percentText={overview ? formatPercent(memPercent) : '–'}
-          details={
-            overview
-              ? [
-                  `${formatBytes(overview.memUsed)} / ${formatBytes(overview.memTotal)}`,
-                  `${t('dashboard.swap')} ${formatBytes(overview.swapUsed)} / ${formatBytes(overview.swapTotal)}`,
-                ]
-              : undefined
-          }
-        />
+      <div className="flex flex-nowrap gap-2 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <Gauge
+            label={t('dashboard.cpu')}
+            value={overview?.cpuPercent ?? 0}
+            mainText={overview ? overview.cpuPercent.toFixed(1) : '–'}
+            unitText={overview ? '%' : undefined}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Gauge
+            label={t('dashboard.memory')}
+            value={memPercent}
+            mainText={overview ? memPercent.toFixed(1) : '–'}
+            unitText={overview ? '%' : undefined}
+            details={
+              overview
+                ? [
+                    `${formatBytes(overview.memUsed)} / ${formatBytes(overview.memTotal)}`,
+                    `${t('dashboard.swap')} ${formatBytes(overview.swapUsed)} / ${formatBytes(overview.swapTotal)}`,
+                  ]
+                : undefined
+            }
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Gauge
+            label={t('dashboard.upload')}
+            value={netPercent}
+            mainText={overview ? formatMbps(overview.netTxBytesPerSec) : '–'}
+            unitText={overview ? 'Mbps' : undefined}
+            details={overview ? [`${t('dashboard.download')} ${formatMbps(overview.netRxBytesPerSec)}Mbps`] : undefined}
+          />
+        </div>
       </div>
 
       <div className="flex min-h-0 grow flex-col">
@@ -108,6 +183,46 @@ export default function DashboardPage() {
       </div>
 
       <ProcessDetailDialog pid={detailPid} onOpenChange={(open) => !open && setDetailPid(null)} />
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <form onSubmit={submitSettings} className="flex flex-col gap-4">
+            <DialogHeader>
+              <DialogTitle>{t('dashboard.networkSettings.title')}</DialogTitle>
+            </DialogHeader>
+
+            <div className="flex items-center gap-3">
+              <span className="w-36 shrink-0 text-xs text-gray-500">{t('dashboard.networkSettings.maxMbps')}</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0.1}
+                  step={0.1}
+                  value={settingsMaxMbps}
+                  onChange={(e) => setSettingsMaxMbps(e.target.value)}
+                  className="w-24"
+                />
+                <span className="text-xs text-gray-500">Mbps</span>
+              </div>
+            </div>
+
+            {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
+                {t('confirm.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={savingSettings}
+                className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+              >
+                {t('files.save')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
