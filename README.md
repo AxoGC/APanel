@@ -280,7 +280,14 @@ server {
   ssl_certificate     /path/to/fullchain.pem;
   ssl_certificate_key /path/to/private.key;
 
-  location = /api/terminal {
+  # A single location handles both plain requests and the Web 终端's
+  # WebSocket upgrade — $connection_upgrade (map above) only sends
+  # "Connection: upgrade" when the client actually asked to upgrade, so
+  # normal requests are unaffected. proxy_read_timeout/proxy_send_timeout
+  # apply panel-wide as a result, which is fine: apanel has other
+  # long-lived streams (the dashboard/log SSE feeds) that benefit from the
+  # same slack.
+  location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Upgrade           $http_upgrade;
@@ -291,16 +298,6 @@ server {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_read_timeout 1h;
     proxy_send_timeout 1h;
-    proxy_buffering off;
-  }
-
-  location / {
-    proxy_pass http://127.0.0.1:8080;
-    proxy_http_version 1.1;
-    proxy_set_header Host              $host;
-    proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
     proxy_buffering off;
   }
 }
