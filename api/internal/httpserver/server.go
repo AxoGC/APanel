@@ -95,6 +95,8 @@ func (s *Server) routes() {
 
 	s.mux.Handle("GET /api/firewall/status", s.auth.Middleware(http.HandlerFunc(s.getFirewallStatus)))
 	s.mux.Handle("POST /api/firewall/rules", s.auth.Middleware(http.HandlerFunc(s.addFirewallRule)))
+	s.mux.Handle("PUT /api/firewall/rules", s.auth.Middleware(http.HandlerFunc(s.updateFirewallRule)))
+	s.mux.Handle("DELETE /api/firewall/rules", s.auth.Middleware(http.HandlerFunc(s.deleteFirewallRule)))
 
 	s.mux.Handle("GET /api/files", s.auth.Middleware(http.HandlerFunc(s.listFiles)))
 	s.mux.Handle("GET /api/files/content", s.auth.Middleware(http.HandlerFunc(s.readFileContent)))

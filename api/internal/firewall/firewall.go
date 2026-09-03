@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -74,15 +75,18 @@ var validActions = map[string]bool{"allow": true, "deny": true, "reject": true, 
 var portPattern = regexp.MustCompile(`^\d{1,5}(:\d{1,5})?$`)
 
 // AddRule adds a rule via ufw's "full" command syntax, e.g.
-// "ufw allow from 10.0.0.0/8 to any port 22 proto tcp". An empty from
-// defaults to "any" (ufw's own keyword for "anywhere"); an empty or "any"
-// protocol omits the proto clause entirely, matching both TCP and UDP.
+// "ufw allow from 10.0.0.0/8 to any port 22 proto tcp". ufw has no single
+// syntax for "any address, but only this family", so wantIPv4/wantIPv6
+// each get their own ufw invocation — one per selected family, defaulting
+// to that family's catch-all address (0.0.0.0/0 / ::/0) when its from
+// field is left blank. ufw normalizes both the "any" keyword and an
+// explicit catch-all address to "Anywhere" in its status output, so
+// parseStatus still merges a default-both-families rule back into one
+// display row exactly as it did when this used ufw's own "any" keyword.
 //
-// family restricts the default "any" from to one address family — "any"
-// itself already matches both (ufw expands it into a v4+v6 rule pair), so
-// family only has an effect when from is left blank; an explicit from
-// address already carries its own family and takes precedence.
-func (m *Manager) AddRule(ctx context.Context, action, from, port, protocol, family string) error {
+// An empty or "any" protocol omits the proto clause entirely, matching
+// both TCP and UDP.
+func (m *Manager) AddRule(ctx context.Context, action, fromIPv4, fromIPv6, port, protocol string, wantIPv4, wantIPv6 bool) error {
 	if !m.Available() {
 		return fmt.Errorf("ufw is not available")
 	}
@@ -97,42 +101,90 @@ func (m *Manager) AddRule(ctx context.Context, action, from, port, protocol, fam
 		return fmt.Errorf("%w: port", ErrInvalidRule)
 	}
 
-	family = strings.ToLower(strings.TrimSpace(family))
-	if family != "" && family != "any" && family != "ipv4" && family != "ipv6" {
-		return fmt.Errorf("%w: family", ErrInvalidRule)
-	}
-
-	from = strings.TrimSpace(from)
-	if from == "" {
-		switch family {
-		case "ipv4":
-			from = "0.0.0.0/0"
-		case "ipv6":
-			from = "::/0"
-		default:
-			from = "any"
-		}
-	}
-	if strings.HasPrefix(from, "-") {
-		return fmt.Errorf("%w: from", ErrInvalidRule)
-	}
-
 	protocol = strings.ToLower(strings.TrimSpace(protocol))
 	if protocol != "" && protocol != "any" && protocol != "tcp" && protocol != "udp" {
 		return fmt.Errorf("%w: protocol", ErrInvalidRule)
 	}
 
-	args := []string{action, "from", from, "to", "any", "port", port}
-	if protocol != "" && protocol != "any" {
-		args = append(args, "proto", protocol)
+	if !wantIPv4 && !wantIPv6 {
+		return fmt.Errorf("%w: family", ErrInvalidRule)
 	}
 
-	cmd := exec.CommandContext(ctx, m.ufwPath, args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("running ufw %s: %w: %s", action, err, strings.TrimSpace(string(out)))
+	families := []struct {
+		want    bool
+		from    string
+		anyAddr string
+	}{
+		{wantIPv4, strings.TrimSpace(fromIPv4), "0.0.0.0/0"},
+		{wantIPv6, strings.TrimSpace(fromIPv6), "::/0"},
+	}
+
+	for _, f := range families {
+		if !f.want {
+			continue
+		}
+		from := f.from
+		if from == "" {
+			from = f.anyAddr
+		}
+		if strings.HasPrefix(from, "-") {
+			return fmt.Errorf("%w: from", ErrInvalidRule)
+		}
+
+		args := []string{action, "from", from, "to", "any", "port", port}
+		if protocol != "" && protocol != "any" {
+			args = append(args, "proto", protocol)
+		}
+
+		cmd := exec.CommandContext(ctx, m.ufwPath, args...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("running ufw %s: %w: %s", action, err, strings.TrimSpace(string(out)))
+		}
 	}
 	return nil
+}
+
+// DeleteRule removes one or more numbered rules — a merged Rule can carry
+// both an IPv4 and an IPv6 ufw rule number. Deleting a rule shifts every
+// higher-numbered rule down by one, so numbers are deleted highest-first
+// to keep the rest of the batch valid. --force skips ufw's interactive
+// y/n confirmation, which would otherwise block waiting on stdin.
+func (m *Manager) DeleteRule(ctx context.Context, numbers []int) error {
+	if !m.Available() {
+		return fmt.Errorf("ufw is not available")
+	}
+	if len(numbers) == 0 {
+		return fmt.Errorf("%w: numbers", ErrInvalidRule)
+	}
+
+	sorted := append([]int(nil), numbers...)
+	sort.Sort(sort.Reverse(sort.IntSlice(sorted)))
+
+	for _, n := range sorted {
+		if n <= 0 {
+			return fmt.Errorf("%w: numbers", ErrInvalidRule)
+		}
+		cmd := exec.CommandContext(ctx, m.ufwPath, "--force", "delete", strconv.Itoa(n))
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("running ufw delete: %w: %s", err, strings.TrimSpace(string(out)))
+		}
+	}
+	return nil
+}
+
+// UpdateRule replaces a rule in place. ufw has no "edit" verb, so this
+// adds the replacement rule(s) first and only deletes the old numbered
+// rule(s) afterwards — if the delete step then fails, the old rule is
+// left behind alongside the new one (a harmless duplicate the user can
+// remove by hand) rather than silently disappearing, which is the safer
+// of the two failure modes since there's no atomic way to do both at once.
+func (m *Manager) UpdateRule(ctx context.Context, numbers []int, action, fromIPv4, fromIPv6, port, protocol string, wantIPv4, wantIPv6 bool) error {
+	if err := m.AddRule(ctx, action, fromIPv4, fromIPv6, port, protocol, wantIPv4, wantIPv6); err != nil {
+		return err
+	}
+	return m.DeleteRule(ctx, numbers)
 }
 
 // rawRule is one line of ufw's numbered status, before v4/v6 pairing.

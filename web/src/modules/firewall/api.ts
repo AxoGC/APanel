@@ -21,15 +21,31 @@ export function getFirewallStatus() {
 
 export interface NewFirewallRule {
   action: 'allow' | 'deny' | 'reject' | 'limit'
-  from: string
+  fromIPv4: string
+  fromIPv6: string
   port: string
   protocol: 'any' | 'tcp' | 'udp'
-  family: 'any' | 'ipv4' | 'ipv6'
+  ipv4: boolean
+  ipv6: boolean
 }
 
 export function addFirewallRule(rule: NewFirewallRule) {
   return apiFetch<FirewallStatus>('/firewall/rules', {
     method: 'POST',
     body: JSON.stringify(rule),
+  })
+}
+
+export function updateFirewallRule(numbers: number[], rule: NewFirewallRule) {
+  return apiFetch<FirewallStatus>('/firewall/rules', {
+    method: 'PUT',
+    body: JSON.stringify({ numbers, ...rule }),
+  })
+}
+
+export function deleteFirewallRule(numbers: number[]) {
+  return apiFetch<FirewallStatus>('/firewall/rules', {
+    method: 'DELETE',
+    body: JSON.stringify({ numbers }),
   })
 }

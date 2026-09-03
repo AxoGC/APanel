@@ -1,3 +1,7 @@
+import { Loader2, Pencil, Trash2 } from 'lucide-react'
+import { ConfirmIconButton } from '@/components/ConfirmIconButton'
+import { Button } from '@/components/ui/button'
+import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { FirewallRule } from './api'
 import { actionClasses, portNameFor, tagsFor } from './format'
@@ -23,13 +27,27 @@ export function Tag({ label }: { label: string }) {
 // gray-100 line shows through between cells in both directions without
 // needing per-cell border bookkeeping across the responsive column-count
 // breakpoints.
-export function FirewallGrid({ rules }: { rules: FirewallRule[] }) {
+export function FirewallGrid({
+  rules,
+  deleting,
+  onEdit,
+  onDelete,
+}: {
+  rules: FirewallRule[]
+  deleting: Record<string, boolean>
+  onEdit: (rule: FirewallRule) => void
+  onDelete: (rule: FirewallRule) => void
+}) {
+  const { t } = useI18n()
+
   return (
     <div className="grid grid-cols-1 gap-px bg-gray-100 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 dark:bg-gray-800">
       {rules.map((rule) => {
+        const key = rule.numbers.join('-')
         const portName = portNameFor(rule.to)
+        const busy = deleting[key]
         return (
-          <div key={rule.numbers.join('-')} className="flex flex-col gap-2 bg-background p-4 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <div key={key} className="flex flex-col gap-2 bg-background p-4 hover:bg-gray-100 dark:hover:bg-gray-800">
             <div className="flex flex-row items-center justify-between gap-2">
               <div className="flex min-w-0 items-baseline gap-1.5">
                 <span className="truncate text-sm text-gray-900 dark:text-gray-100">{rule.to}</span>
@@ -44,6 +62,26 @@ export function FirewallGrid({ rules }: { rules: FirewallRule[] }) {
                 ))}
               </div>
               <span className="truncate text-xs text-gray-500">{rule.from}</span>
+            </div>
+            <div className="flex flex-row items-center justify-end gap-0.5">
+              <Button variant="ghost" size="icon-sm" aria-label={t('firewall.editRule')} disabled={busy} onClick={() => onEdit(rule)}>
+                <Pencil />
+              </Button>
+              <ConfirmIconButton
+                icon={busy ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                label={t('firewall.deleteRule')}
+                actionLabel={t('firewall.deleteRule')}
+                title={t('firewall.confirmDelete.title')}
+                description={
+                  <>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{rule.to}</span>
+                    {' — '}
+                    {t('firewall.confirmDelete.description')}
+                  </>
+                }
+                disabled={busy}
+                onConfirm={() => onDelete(rule)}
+              />
             </div>
           </div>
         )
