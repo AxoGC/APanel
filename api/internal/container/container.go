@@ -17,6 +17,7 @@ import (
 	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -27,6 +28,7 @@ import (
 
 var (
 	ErrNotFound        = errors.New("container not found")
+	ErrNotRunning      = errors.New("container is not running")
 	ErrInvalidImage    = errors.New("invalid image")
 	ErrNetworkNotFound = errors.New("network not found")
 )
@@ -92,6 +94,36 @@ type Detail struct {
 
 type Manager struct {
 	cli *client.Client
+}
+
+// AttachSession is a live connection to the standard streams of a
+// container's main process. Unlike ContainerLogs, the hijacked connection
+// is bidirectional and can forward browser input when OpenStdin is enabled.
+type AttachSession struct {
+	response  types.HijackedResponse
+	TTY       bool
+	Stdin     bool
+	StdinOnce bool
+}
+
+func (s *AttachSession) CopyOutput(w io.Writer) error {
+	if s.TTY {
+		_, err := io.Copy(w, s.response.Reader)
+		return err
+	}
+	_, err := stdcopy.StdCopy(w, w, s.response.Reader)
+	return err
+}
+
+func (s *AttachSession) WriteInput(p []byte) (int, error) {
+	if !s.Stdin {
+		return 0, fmt.Errorf("container stdin is not open")
+	}
+	return s.response.Conn.Write(p)
+}
+
+func (s *AttachSession) Close() {
+	s.response.Close()
 }
 
 // New constructs a client without dialing the daemon — connection errors
@@ -323,6 +355,40 @@ func (m *Manager) Stop(ctx context.Context, id string) error {
 
 func (m *Manager) Restart(ctx context.Context, id string) error {
 	err := m.cli.ContainerRestart(ctx, id, container.StopOptions{})
+	return translateNotFound(err)
+}
+
+// Attach opens a live connection to the running container's main process.
+// Historical output is excluded because the frontend keeps the log content
+// it fetched before switching into attach mode.
+func (m *Manager) Attach(ctx context.Context, id string) (*AttachSession, error) {
+	insp, err := m.cli.ContainerInspect(ctx, id)
+	if err != nil {
+		return nil, translateNotFound(err)
+	}
+	if insp.State == nil || !insp.State.Running {
+		return nil, ErrNotRunning
+	}
+
+	tty := insp.Config != nil && insp.Config.Tty
+	stdin := insp.Config != nil && insp.Config.OpenStdin
+	stdinOnce := insp.Config != nil && insp.Config.StdinOnce
+	response, err := m.cli.ContainerAttach(ctx, id, container.AttachOptions{
+		Stream: true,
+		Stdin:  stdin,
+		Stdout: true,
+		Stderr: true,
+		Logs:   false,
+	})
+	if err != nil {
+		return nil, translateNotFound(err)
+	}
+
+	return &AttachSession{response: response, TTY: tty, Stdin: stdin, StdinOnce: stdinOnce}, nil
+}
+
+func (m *Manager) Resize(ctx context.Context, id string, cols, rows uint) error {
+	err := m.cli.ContainerResize(ctx, id, container.ResizeOptions{Width: cols, Height: rows})
 	return translateNotFound(err)
 }
 

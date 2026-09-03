@@ -93,3 +93,8 @@ export function getContainerLogs(id: string, lines: number) {
 export function containerLogsStreamUrl(id: string, lines: number) {
   return `/api/containers/${encodeURIComponent(id)}/logs/stream?lines=${lines}`
 }
+
+export function containerAttachSocketUrl(id: string) {
+  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${scheme}//${window.location.host}/api/containers/${encodeURIComponent(id)}/attach`
+}

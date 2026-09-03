@@ -1,15 +1,12 @@
 import { Images, Network, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
-import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
 import {
-  containerLogsStreamUrl,
-  getContainerLogs,
   listContainers,
   runContainerAction,
   type ContainerActionName,
@@ -18,6 +15,7 @@ import {
 } from './api'
 import { ContainerDetailDialog } from './ContainerDetailDialog'
 import { ContainerGrid } from './ContainerGrid'
+import { ContainerLogsDialog } from './ContainerLogsDialog'
 import { CreateContainerDialog } from './CreateContainerDialog'
 import { ImageManagerDialog } from './ImageManagerDialog'
 import { NetworkManagerDialog } from './NetworkManagerDialog'
@@ -133,13 +131,10 @@ export default function ContainersPage() {
           ))}
       </div>
 
-      <LogsDialog
+      <ContainerLogsDialog
         open={logsFor !== null}
         onOpenChange={(open) => !open && setLogsFor(null)}
-        title={logsFor ? `${logsFor.name} — ${t('containers.logs')}` : ''}
-        id={logsFor?.id ?? ''}
-        fetchLogs={getContainerLogs}
-        streamUrl={containerLogsStreamUrl}
+        container={logsFor}
       />
       <ContainerDetailDialog id={detailFor} onOpenChange={(open) => !open && setDetailFor(null)} />
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />

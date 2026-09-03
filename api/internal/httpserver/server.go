@@ -90,6 +90,7 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/containers/{id}", s.auth.Middleware(http.HandlerFunc(s.containerDetail)))
 	s.mux.Handle("GET /api/containers/{id}/logs", s.auth.Middleware(http.HandlerFunc(s.containerLogs)))
 	s.mux.Handle("GET /api/containers/{id}/logs/stream", s.auth.Middleware(http.HandlerFunc(s.containerLogsStream)))
+	s.mux.Handle("GET /api/containers/{id}/attach", s.auth.Middleware(http.HandlerFunc(s.containerAttach)))
 
 	s.mux.Handle("GET /api/history", s.auth.Middleware(http.HandlerFunc(s.getHistory)))
 	s.mux.Handle("GET /api/history/settings", s.auth.Middleware(http.HandlerFunc(s.getHistorySettings)))
