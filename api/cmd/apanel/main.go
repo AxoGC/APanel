@@ -48,8 +48,14 @@ func main() {
 	settingsMgr := settings.New(gormDB)
 	server := httpserver.New(authSvc, statsCollector, services, containers, historyMgr, firewallMgr, filesMgr, settingsMgr)
 
-	log.Printf("apanel listening on %s", cfg.ListenAddr)
-	if err := http.ListenAndServe(cfg.ListenAddr, server); err != nil {
+	if cfg.TLSCert != "" {
+		log.Printf("apanel listening on %s (https)", cfg.ListenAddr)
+		err = http.ListenAndServeTLS(cfg.ListenAddr, cfg.TLSCert, cfg.TLSKey, server)
+	} else {
+		log.Printf("apanel listening on %s (http)", cfg.ListenAddr)
+		err = http.ListenAndServe(cfg.ListenAddr, server)
+	}
+	if err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }
