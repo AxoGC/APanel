@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
@@ -8,6 +8,15 @@ import { buildProcessForest, type ProcessNode } from './processTree'
 import { ProcessDetailDialog } from './ProcessDetailDialog'
 import { ProcessGrid } from './ProcessGrid'
 import { useDashboardStream, type ProcessSort } from './useDashboardStream'
+
+function toggleButtonClasses(active: boolean) {
+  return cn(
+    'cursor-pointer rounded-md border px-2.5 py-1 text-xs transition-colors',
+    active
+      ? 'border-theme-200 bg-theme-50 text-theme-700 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300'
+      : 'border-gray-200 text-gray-500 hover:text-gray-700 dark:border-gray-800 dark:hover:text-gray-300',
+  )
+}
 
 export default function DashboardPage() {
   const { t } = useI18n()
@@ -30,14 +39,22 @@ export default function DashboardPage() {
     })
   }
 
-  function expandAll() {
+  // All pids that have children, i.e. every pid the "expand all" toggle
+  // and per-row triggers can act on. Recomputed whenever the process list
+  // changes so the toggle's active state stays in sync with reality.
+  const expandablePids = useMemo(() => {
     const pids = new Set<number>()
     const visit = (node: ProcessNode) => {
       if (node.children.length > 0) pids.add(node.pid)
       node.children.forEach(visit)
     }
     buildProcessForest(overview?.processes ?? []).forEach(visit)
-    setExpanded(pids)
+    return pids
+  }, [overview])
+  const allExpanded = expandablePids.size > 0 && [...expandablePids].every((pid) => expanded.has(pid))
+
+  function toggleExpandAll() {
+    setExpanded(allExpanded ? new Set() : expandablePids)
   }
 
   return (
@@ -69,24 +86,15 @@ export default function DashboardPage() {
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              aria-pressed={tree}
-              onClick={() => setTree((v) => !v)}
-              className={cn(
-                'cursor-pointer rounded-md border px-2.5 py-1 text-xs transition-colors',
-                tree
-                  ? 'border-theme-200 bg-theme-50 text-theme-700 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
-              )}
-            >
+            <button type="button" aria-pressed={tree} onClick={() => setTree((v) => !v)} className={toggleButtonClasses(tree)}>
               {t('dashboard.tree')}
             </button>
             {tree && (
               <button
                 type="button"
-                onClick={expandAll}
-                className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                aria-pressed={allExpanded}
+                onClick={toggleExpandAll}
+                className={toggleButtonClasses(allExpanded)}
               >
                 {t('dashboard.expandAll')}
               </button>
