@@ -161,6 +161,16 @@ func (m *Manager) containerUsage(ctx context.Context) (byImage, byNetwork map[st
 	return byImage, byNetwork, nil
 }
 
+// usedByRefs looks up id in m, returning an empty (never nil) slice when
+// absent — a nil []ContainerRef marshals to JSON null, which the frontend's
+// `.usedBy.length` would crash on.
+func usedByRefs(m map[string][]ContainerRef, id string) []ContainerRef {
+	if refs := m[id]; refs != nil {
+		return refs
+	}
+	return []ContainerRef{}
+}
+
 // ListImages returns local images together with the containers that
 // reference each one. Images in use are intentionally exposed so the UI can
 // keep them out of destructive bulk-selection actions.
@@ -185,7 +195,7 @@ func (m *Manager) ListImages(ctx context.Context) ([]Image, error) {
 			ID:     item.ID,
 			Name:   name,
 			Size:   item.Size,
-			UsedBy: byImage[item.ID],
+			UsedBy: usedByRefs(byImage, item.ID),
 		})
 	}
 
@@ -213,7 +223,7 @@ func (m *Manager) ListNetworks(ctx context.Context) ([]Network, error) {
 			Name:   item.Name,
 			Driver: item.Driver,
 			Scope:  item.Scope,
-			UsedBy: byNetwork[item.ID],
+			UsedBy: usedByRefs(byNetwork, item.ID),
 		})
 	}
 
