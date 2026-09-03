@@ -43,7 +43,10 @@ func main() {
 	firewallMgr := firewall.New()
 	filesMgr := files.New()
 
-	authSvc := auth.New(gormDB, cfg.Password)
+	authSvc, err := auth.New(gormDB, cfg.Password)
+	if err != nil {
+		log.Fatalf("auth: %v", err)
+	}
 	statsCollector := stats.NewCollector()
 	settingsMgr := settings.New(gormDB)
 	server := httpserver.New(authSvc, statsCollector, services, containers, historyMgr, firewallMgr, filesMgr, settingsMgr)

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -28,10 +29,26 @@ const (
 type Service struct {
 	db       *gorm.DB
 	password string
+
+	// Every request goes through check(), so sessions are kept in an
+	// in-memory cache instead of round-tripping to the DB on each request.
+	// The DB row stays the source of truth (it's what survives a restart);
+	// this map is a write-through cache over it, keyed by token.
+	mu       sync.RWMutex
+	sessions map[string]model.Session
 }
 
-func New(db *gorm.DB, password string) *Service {
-	return &Service{db: db, password: password}
+func New(db *gorm.DB, password string) (*Service, error) {
+	var sessions []model.Session
+	if err := db.Where("expires_at > ?", time.Now()).Find(&sessions).Error; err != nil {
+		return nil, err
+	}
+
+	byToken := make(map[string]model.Session, len(sessions))
+	for _, session := range sessions {
+		byToken[session.Token] = session
+	}
+	return &Service{db: db, password: password, sessions: byToken}, nil
 }
 
 func newToken() (string, error) {
@@ -82,6 +99,9 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 		response.WriteInternalError(w, err)
 		return
 	}
+	s.mu.Lock()
+	s.sessions[session.Token] = session
+	s.mu.Unlock()
 
 	s.setCookie(w, token, session.ExpiresAt)
 	response.WriteOK(w, nil)
@@ -90,6 +110,9 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(cookieName); err == nil {
 		s.db.Delete(&model.Session{}, "token = ?", cookie.Value)
+		s.mu.Lock()
+		delete(s.sessions, cookie.Value)
+		s.mu.Unlock()
 	}
 	s.setCookie(w, "", time.Unix(0, 0))
 	response.WriteOK(w, nil)
@@ -110,11 +133,17 @@ func (s *Service) check(r *http.Request) (model.Session, bool) {
 	if err != nil {
 		return model.Session{}, false
 	}
-	var session model.Session
-	if err := s.db.First(&session, "token = ?", cookie.Value).Error; err != nil {
+
+	s.mu.RLock()
+	session, ok := s.sessions[cookie.Value]
+	s.mu.RUnlock()
+	if !ok {
 		return model.Session{}, false
 	}
 	if time.Now().After(session.ExpiresAt) {
+		s.mu.Lock()
+		delete(s.sessions, cookie.Value)
+		s.mu.Unlock()
 		return model.Session{}, false
 	}
 	return session, true
