@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
+	"syscall"
 
 	"apanel/internal/response"
 	"apanel/internal/stats"
@@ -87,4 +89,29 @@ func (s *Server) processDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.WriteOK(w, detail)
+}
+
+// terminateProcess sends SIGTERM, giving the process a chance to shut down
+// cleanly rather than dying mid-write.
+func (s *Server) terminateProcess(w http.ResponseWriter, r *http.Request) {
+	pid, err := strconv.Atoi(r.PathValue("pid"))
+	if err != nil {
+		response.WriteCode(w, http.StatusBadRequest, PROCESS_NOT_FOUND)
+		return
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		response.WriteCode(w, http.StatusNotFound, PROCESS_NOT_FOUND)
+		return
+	}
+	if err := process.Signal(syscall.SIGTERM); err != nil {
+		if errors.Is(err, os.ErrProcessDone) || errors.Is(err, syscall.ESRCH) {
+			response.WriteCode(w, http.StatusNotFound, PROCESS_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, nil)
 }

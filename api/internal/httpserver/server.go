@@ -63,6 +63,7 @@ func (s *Server) routes() {
 
 	s.mux.Handle("GET /api/dashboard/stream", s.auth.Middleware(http.HandlerFunc(s.dashboardStream)))
 	s.mux.Handle("GET /api/dashboard/processes/{pid}", s.auth.Middleware(http.HandlerFunc(s.processDetail)))
+	s.mux.Handle("POST /api/dashboard/processes/{pid}/terminate", s.auth.Middleware(http.HandlerFunc(s.terminateProcess)))
 	s.mux.Handle("GET /api/dashboard/network-settings", s.auth.Middleware(http.HandlerFunc(s.getDashboardNetworkSettings)))
 	s.mux.Handle("PUT /api/dashboard/network-settings", s.auth.Middleware(http.HandlerFunc(s.putDashboardNetworkSettings)))
 	s.mux.Handle("GET /api/terminal", s.auth.Middleware(http.HandlerFunc(s.terminal)))

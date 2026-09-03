@@ -66,6 +66,10 @@ export function getProcessDetail(pid: number) {
   return apiFetch<ProcessDetail>(`/dashboard/processes/${pid}`)
 }
 
+export function terminateProcess(pid: number) {
+  return apiFetch<null>(`/dashboard/processes/${pid}/terminate`, { method: 'POST' })
+}
+
 /** Subscribes to the dashboard's live CPU/memory/process SSE stream. The
  * server sends every process (with its default sort order set by `sort`,
  * used by the flat view); the tree view re-sorts client-side by

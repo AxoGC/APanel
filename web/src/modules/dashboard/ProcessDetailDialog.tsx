@@ -1,10 +1,23 @@
+import { Loader2, Square } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ApiError } from '@/lib/api'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { getProcessDetail, type ProcessDetail } from './useDashboardStream'
+import { getProcessDetail, terminateProcess, type ProcessDetail } from './useDashboardStream'
 
 const STATE_LABELS: Record<string, TranslationKey> = {
   R: 'dashboard.state.R',
@@ -33,15 +46,32 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
   const { t } = useI18n()
   const [detail, setDetail] = useState<ProcessDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [terminating, setTerminating] = useState(false)
+  const [terminateError, setTerminateError] = useState<string | null>(null)
 
   useEffect(() => {
     if (pid === null) return
     setDetail(null)
     setError(null)
+    setTerminateError(null)
     getProcessDetail(pid)
       .then(setDetail)
       .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
   }, [pid])
+
+  async function handleTerminate() {
+    if (pid === null) return
+    setTerminating(true)
+    setTerminateError(null)
+    try {
+      await terminateProcess(pid)
+      onOpenChange(false)
+    } catch (err) {
+      setTerminateError(err instanceof ApiError ? err.message : String(err))
+    } finally {
+      setTerminating(false)
+    }
+  }
 
   return (
     <Dialog open={pid !== null} onOpenChange={onOpenChange}>
@@ -90,6 +120,36 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
             )}
           </div>
         )}
+
+        <DialogFooter>
+          {terminateError && <p className="mr-auto self-center text-xs text-red-600">{terminateError}</p>}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={!detail || terminating}>
+                {terminating ? <Loader2 className="animate-spin" /> : <Square />}
+                {t('dashboard.detail.terminate')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('dashboard.confirmTerminate.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {detail && (
+                    <>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{detail.name}</span>
+                      {' — '}
+                    </>
+                  )}
+                  {t('dashboard.confirmTerminate.description')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleTerminate}>{t('dashboard.detail.terminate')}</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
