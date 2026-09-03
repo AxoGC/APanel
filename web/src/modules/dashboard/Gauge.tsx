@@ -93,7 +93,7 @@ export function Gauge({
       {details && details.length > 0 && (
         <div className="-mt-2 flex flex-col items-center">
           {details.map((line) => (
-            <span key={line} className="text-xs text-gray-500">
+            <span key={line} className="text-[10px] text-gray-500 sm:text-xs">
               {line}
             </span>
           ))}

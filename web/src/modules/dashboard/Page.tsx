@@ -116,7 +116,7 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <div className="flex flex-nowrap gap-2 sm:gap-4">
+      <div className="flex flex-nowrap gap-1 sm:gap-4">
         <div className="min-w-0 flex-1">
           <Gauge
             label={t('dashboard.cpu')}
