@@ -16,6 +16,7 @@ export interface Overview {
   memUsed: number
   swapTotal: number
   swapUsed: number
+  netInterface: string
   netRxBytesPerSec: number
   netTxBytesPerSec: number
   processes: ProcessInfo[]

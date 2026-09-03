@@ -37,7 +37,9 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'dashboard.download': 'Download',
     'dashboard.networkSettings': 'Network gauge settings',
     'dashboard.networkSettings.title': 'Network Gauge Settings',
-    'dashboard.networkSettings.maxMbps': 'Upload 100% equals',
+    'dashboard.networkSettings.maxMbps': 'Uplink bandwidth',
+    'dashboard.networkSettings.maxMbps.tooltip':
+      "Used to convert the upload gauge's progress ring into a percentage — this value is what its 100% mark represents. We suggest setting it to the uplink bandwidth your server or host declares.",
     'dashboard.detail.title': 'Process Details',
     'dashboard.detail.pid': 'PID',
     'dashboard.detail.ppid': 'PPID',
@@ -300,7 +302,9 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'dashboard.download': '下载',
     'dashboard.networkSettings': '网络吞吐设置',
     'dashboard.networkSettings.title': '网络吞吐设置',
-    'dashboard.networkSettings.maxMbps': '上传 100% 对应',
+    'dashboard.networkSettings.maxMbps': '上行带宽',
+    'dashboard.networkSettings.maxMbps.tooltip':
+      '用于将上传 Gauge 的进度环换算成百分比：这里填写的数值对应 Gauge 100% 刻度。建议填写服务器/主机商声明提供的上行带宽。',
     'dashboard.detail.title': '进程详情',
     'dashboard.detail.pid': 'PID',
     'dashboard.detail.ppid': 'PPID',

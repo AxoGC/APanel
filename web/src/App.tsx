@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { Nav } from '@/components/Nav'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { FeaturesProvider } from '@/lib/features'
@@ -17,6 +17,17 @@ const TerminalPage = lazy(() => import('@/modules/terminal/Page'))
 
 function Shell() {
   const { state } = useAuth()
+  const location = useLocation()
+  // The terminal's WebSocket + xterm instance must survive navigating away
+  // from /terminal (so the session and its scrollback keep running in the
+  // background), so TerminalPage can't be mounted/unmounted by <Route> the
+  // way every other page is. Instead it's mounted once — lazily, the first
+  // time /terminal is visited — and then kept alive for the rest of the
+  // session as a sibling of <Routes>, toggling only its CSS visibility.
+  const [terminalStarted, setTerminalStarted] = useState(false)
+  useEffect(() => {
+    if (location.pathname === '/terminal') setTerminalStarted(true)
+  }, [location.pathname])
 
   if (state === 'loading') return null
   if (state === 'unauthenticated') return <LoginPage />
@@ -26,14 +37,6 @@ function Shell() {
       <div className="min-h-0 grow overflow-y-auto">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route
-            path="/terminal"
-            element={
-              <Suspense fallback={null}>
-                <TerminalPage />
-              </Suspense>
-            }
-          />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/files" element={<FilesPage />} />
           <Route path="/containers" element={<ContainersPage />} />
@@ -41,6 +44,13 @@ function Shell() {
           <Route path="/firewall" element={<FirewallPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
+        {terminalStarted && (
+          <div hidden={location.pathname !== '/terminal'} className="h-full">
+            <Suspense fallback={null}>
+              <TerminalPage />
+            </Suspense>
+          </div>
+        )}
       </div>
       <Nav />
     </div>

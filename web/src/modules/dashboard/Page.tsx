@@ -1,10 +1,11 @@
-import { Settings } from 'lucide-react'
+import { Info, Settings } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ToggleButton } from '@/components/ToggleButton'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ApiError } from '@/lib/api'
 import { formatBytes, formatMbps } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
@@ -139,7 +140,7 @@ export default function DashboardPage() {
         </div>
         <div className="min-w-0 flex-1">
           <Gauge
-            label={t('dashboard.upload')}
+            label={overview?.netInterface ? `${overview.netInterface} ${t('dashboard.upload')}` : t('dashboard.upload')}
             value={netPercent}
             mainText={overview ? formatMbps(overview.netTxBytesPerSec) : '–'}
             unitText={overview ? 'Mbps' : undefined}
@@ -192,7 +193,15 @@ export default function DashboardPage() {
             </DialogHeader>
 
             <div className="flex items-center gap-3">
-              <span className="w-36 shrink-0 text-xs text-gray-500">{t('dashboard.networkSettings.maxMbps')}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
+                    {t('dashboard.networkSettings.maxMbps')}
+                    <Info className="size-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
+              </Tooltip>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"

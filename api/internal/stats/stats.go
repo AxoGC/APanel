@@ -29,10 +29,12 @@ type Overview struct {
 	MemUsed    uint64  `json:"memUsed"`
 	SwapTotal  uint64  `json:"swapTotal"`
 	SwapUsed   uint64  `json:"swapUsed"`
-	// NetRxBytesPerSec/NetTxBytesPerSec are instantaneous throughput on
-	// whichever interface currently owns the default route (see
-	// defaultRouteInterface) — 0 when there's no default route or this is
-	// the collector's first sample.
+	// NetInterface is whichever interface currently owns the default route
+	// (see defaultRouteInterface) — empty when there's no default route.
+	// NetRxBytesPerSec/NetTxBytesPerSec are that interface's instantaneous
+	// throughput — 0 when NetInterface is empty or this is the collector's
+	// first sample.
+	NetInterface     string    `json:"netInterface"`
 	NetRxBytesPerSec float64   `json:"netRxBytesPerSec"`
 	NetTxBytesPerSec float64   `json:"netTxBytesPerSec"`
 	Processes        []Process `json:"processes"`
@@ -144,7 +146,7 @@ func (c *Collector) Sample(sortBy ProcessSort) (Overview, error) {
 		return Overview{}, err
 	}
 
-	netRxBps, netTxBps := c.sampleNetwork(now)
+	netIface, netRxBps, netTxBps := c.sampleNetwork(now)
 
 	c.prevAt = now
 	return Overview{
@@ -153,6 +155,7 @@ func (c *Collector) Sample(sortBy ProcessSort) (Overview, error) {
 		MemUsed:          memUsed,
 		SwapTotal:        swapTotal,
 		SwapUsed:         swapUsed,
+		NetInterface:     netIface,
 		NetRxBytesPerSec: netRxBps,
 		NetTxBytesPerSec: netTxBps,
 		Processes:        procs,
@@ -279,30 +282,31 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 // or an interface with only a local subnet route. elapsed is measured
 // against c.prevAt the same way sampleProcesses does (both are called
 // before c.prevAt is advanced to `now` at the end of Sample).
-func (c *Collector) sampleNetwork(now time.Time) (rxBps, txBps float64) {
+func (c *Collector) sampleNetwork(now time.Time) (iface string, rxBps, txBps float64) {
 	iface, err := defaultRouteInterface()
 	if err != nil {
 		c.prevNet = netSample{}
-		return 0, 0
+		return "", 0, 0
 	}
 
 	rx, tx, ok := readNetDevBytes(iface)
 	if !ok {
 		c.prevNet = netSample{}
-		return 0, 0
+		return "", 0, 0
 	}
 	defer func() { c.prevNet = netSample{iface: iface, rx: rx, tx: tx} }()
 
 	// No usable prior sample: either this is the first tick, or the
 	// default route's interface changed since the last one (their byte
-	// counters aren't comparable).
+	// counters aren't comparable). The interface name is still known
+	// either way, so it's returned regardless.
 	if c.prevNet.iface != iface {
-		return 0, 0
+		return iface, 0, 0
 	}
 
 	elapsed := now.Sub(c.prevAt).Seconds()
 	if elapsed <= 0 {
-		return 0, 0
+		return iface, 0, 0
 	}
 
 	// Counters only ever increase between comparable samples; a lower
@@ -315,7 +319,7 @@ func (c *Collector) sampleNetwork(now time.Time) (rxBps, txBps float64) {
 	if tx >= c.prevNet.tx {
 		txDelta = tx - c.prevNet.tx
 	}
-	return float64(rxDelta) / elapsed, float64(txDelta) / elapsed
+	return iface, float64(rxDelta) / elapsed, float64(txDelta) / elapsed
 }
 
 // defaultRouteInterface returns the network interface that owns the

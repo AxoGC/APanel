@@ -180,7 +180,7 @@ export function ProcessGrid({
   const visibleRoots = forest.length === 1 ? forest[0].children : forest
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <HeaderRow t={t} />
       {tree
         ? visibleRoots.map((root) => (
