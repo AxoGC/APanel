@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"os/exec"
 	"time"
+
+	"apanel/internal/settings"
 )
 
 type Point struct {
@@ -31,19 +33,22 @@ func emptyDay(date string) Day {
 
 type Manager struct {
 	sadfPath string
+	settings *settings.Manager
 }
 
 // New looks for sadf on PATH. A missing binary is not a fatal error — it
 // just means Available() reports false and the history feature stays off.
-func New() *Manager {
+// settingsMgr backs the collection-settings endpoints (RegisterRoutes) —
+// history itself still only ever reads live sysstat data through sadf.
+func New(settingsMgr *settings.Manager) *Manager {
 	path, err := exec.LookPath("sadf")
 	if err != nil {
-		return &Manager{}
+		return &Manager{settings: settingsMgr}
 	}
-	return &Manager{sadfPath: path}
+	return &Manager{sadfPath: path, settings: settingsMgr}
 }
 
-func (m *Manager) Available() bool {
+func (m *Manager) Available(ctx context.Context) bool {
 	return m.sadfPath != ""
 }
 
@@ -52,7 +57,7 @@ func (m *Manager) Available() bool {
 // syntax ("-N"), which leaves finding sysstat's log directory entirely to
 // sadf itself rather than guessing a path that varies by distro.
 func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
-	if !m.Available() {
+	if !m.Available(ctx) {
 		return Day{}, fmt.Errorf("sysstat is not available")
 	}
 

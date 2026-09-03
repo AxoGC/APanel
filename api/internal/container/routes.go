@@ -1,4 +1,4 @@
-package httpserver
+package container
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"apanel/internal/container"
 	"apanel/internal/response"
 )
 
@@ -20,6 +19,30 @@ const INVALID_IMAGE_DELETE response.Code = "INVALID_IMAGE_DELETE"
 const NETWORK_NOT_FOUND response.Code = "NETWORK_NOT_FOUND"
 const CONTAINER_CREATE_INVALID response.Code = "CONTAINER_CREATE_INVALID"
 const CONTAINER_NAME_CONFLICT response.Code = "CONTAINER_NAME_CONFLICT"
+
+// FeatureName identifies this package's entry in GET /api/status's
+// per-feature availability map.
+func (m *Manager) FeatureName() string { return "containers" }
+
+// RegisterRoutes wires the /api/containers/* routes onto mux — see
+// httpserver.RouteRegistrar. httpserver never imports this package; it just
+// calls this method on whatever it was given at construction time.
+func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler) {
+	mux.Handle("GET /api/containers", requireAuth(http.HandlerFunc(m.listContainers)))
+	mux.Handle("POST /api/containers", requireAuth(http.HandlerFunc(m.createContainer)))
+	mux.Handle("GET /api/containers/images", requireAuth(http.HandlerFunc(m.listContainerImages)))
+	mux.Handle("POST /api/containers/images/delete", requireAuth(http.HandlerFunc(m.deleteContainerImages)))
+	mux.Handle("GET /api/containers/images/tags", requireAuth(http.HandlerFunc(m.listContainerImageTags)))
+	mux.Handle("GET /api/containers/networks", requireAuth(http.HandlerFunc(m.listContainerNetworks)))
+	mux.Handle("POST /api/containers/networks/{id}/delete", requireAuth(http.HandlerFunc(m.deleteContainerNetwork)))
+	mux.Handle("POST /api/containers/{id}/start", requireAuth(m.containerAction(m.Start)))
+	mux.Handle("POST /api/containers/{id}/stop", requireAuth(m.containerAction(m.Stop)))
+	mux.Handle("POST /api/containers/{id}/restart", requireAuth(m.containerAction(m.Restart)))
+	mux.Handle("GET /api/containers/{id}", requireAuth(http.HandlerFunc(m.containerDetail)))
+	mux.Handle("GET /api/containers/{id}/logs", requireAuth(http.HandlerFunc(m.containerLogs)))
+	mux.Handle("GET /api/containers/{id}/logs/stream", requireAuth(http.HandlerFunc(m.containerLogsStream)))
+	mux.Handle("GET /api/containers/{id}/attach", requireAuth(http.HandlerFunc(m.containerAttach)))
+}
 
 // containerStatesForStatus maps the frontend's status filter straight onto
 // Docker's own container state vocabulary — unlike systemd units, a
@@ -37,9 +60,9 @@ func containerStatesForStatus(status string) []string {
 	}
 }
 
-func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) listContainers(w http.ResponseWriter, r *http.Request) {
 	states := containerStatesForStatus(r.URL.Query().Get("status"))
-	containers, err := s.containers.List(r.Context(), states)
+	containers, err := m.List(r.Context(), states)
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
@@ -58,7 +81,7 @@ func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, containers)
 }
 
-func (s *Server) createContainer(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Name          string   `json:"name"`
 		Image         string   `json:"image"`
@@ -74,7 +97,7 @@ func (s *Server) createContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := s.containers.Create(r.Context(), container.CreateOptions{
+	id, err := m.Create(r.Context(), CreateOptions{
 		Name:          body.Name,
 		Image:         body.Image,
 		TTY:           body.TTY,
@@ -85,11 +108,11 @@ func (s *Server) createContainer(w http.ResponseWriter, r *http.Request) {
 		Binds:         body.Volumes,
 	})
 	if err != nil {
-		if errors.Is(err, container.ErrInvalidCreate) {
+		if errors.Is(err, ErrInvalidCreate) {
 			response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
 			return
 		}
-		if errors.Is(err, container.ErrNameConflict) {
+		if errors.Is(err, ErrNameConflict) {
 			response.WriteCode(w, http.StatusConflict, CONTAINER_NAME_CONFLICT)
 			return
 		}
@@ -99,8 +122,8 @@ func (s *Server) createContainer(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, map[string]string{"id": id})
 }
 
-func (s *Server) listContainerImages(w http.ResponseWriter, r *http.Request) {
-	images, err := s.containers.ListImages(r.Context())
+func (m *Manager) listContainerImages(w http.ResponseWriter, r *http.Request) {
+	images, err := m.ListImages(r.Context())
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
@@ -108,7 +131,7 @@ func (s *Server) listContainerImages(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, images)
 }
 
-func (s *Server) deleteContainerImages(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) deleteContainerImages(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		IDs []string `json:"ids"`
 	}
@@ -117,8 +140,8 @@ func (s *Server) deleteContainerImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.containers.DeleteImages(r.Context(), body.IDs); err != nil {
-		if errors.Is(err, container.ErrInvalidImage) {
+	if err := m.DeleteImages(r.Context(), body.IDs); err != nil {
+		if errors.Is(err, ErrInvalidImage) {
 			response.WriteCode(w, http.StatusBadRequest, INVALID_IMAGE_DELETE)
 			return
 		}
@@ -128,8 +151,8 @@ func (s *Server) deleteContainerImages(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) listContainerImageTags(w http.ResponseWriter, r *http.Request) {
-	tags, err := s.containers.ListImageTags(r.Context())
+func (m *Manager) listContainerImageTags(w http.ResponseWriter, r *http.Request) {
+	tags, err := m.ListImageTags(r.Context())
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
@@ -137,8 +160,8 @@ func (s *Server) listContainerImageTags(w http.ResponseWriter, r *http.Request) 
 	response.WriteOK(w, tags)
 }
 
-func (s *Server) listContainerNetworks(w http.ResponseWriter, r *http.Request) {
-	networks, err := s.containers.ListNetworks(r.Context())
+func (m *Manager) listContainerNetworks(w http.ResponseWriter, r *http.Request) {
+	networks, err := m.ListNetworks(r.Context())
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
@@ -146,10 +169,10 @@ func (s *Server) listContainerNetworks(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, networks)
 }
 
-func (s *Server) deleteContainerNetwork(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) deleteContainerNetwork(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if err := s.containers.DeleteNetwork(r.Context(), id); err != nil {
-		if errors.Is(err, container.ErrNetworkNotFound) {
+	if err := m.DeleteNetwork(r.Context(), id); err != nil {
+		if errors.Is(err, ErrNetworkNotFound) {
 			response.WriteCode(w, http.StatusNotFound, NETWORK_NOT_FOUND)
 			return
 		}
@@ -159,11 +182,11 @@ func (s *Server) deleteContainerNetwork(w http.ResponseWriter, r *http.Request) 
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) containerDetail(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) containerDetail(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	detail, err := s.containers.Detail(r.Context(), id)
+	detail, err := m.Detail(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, container.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
 			return
 		}
@@ -173,29 +196,29 @@ func (s *Server) containerDetail(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, detail)
 }
 
-func (s *Server) containerLogs(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) containerLogs(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	out, err := s.containers.Logs(r.Context(), id, logLines(r))
+	out, err := m.Logs(r.Context(), id, response.LogLines(r))
 	if err != nil {
-		if errors.Is(err, container.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
 			return
 		}
 		response.WriteInternalError(w, err)
 		return
 	}
-	response.WriteOK(w, splitLogLines(out))
+	response.WriteOK(w, response.SplitLogLines(out))
 }
 
-func (s *Server) containerLogsStream(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := requireFlusher(w)
+func (m *Manager) containerLogsStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := response.RequireFlusher(w)
 	if !ok {
 		return
 	}
 	id := r.PathValue("id")
-	rc, err := s.containers.StreamLogs(r.Context(), id, logLines(r))
+	rc, err := m.StreamLogs(r.Context(), id, response.LogLines(r))
 	if err != nil {
-		if errors.Is(err, container.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
 			return
 		}
@@ -204,8 +227,8 @@ func (s *Server) containerLogsStream(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rc.Close()
 
-	writeLogStreamHeaders(w, flusher)
-	streamLogLines(w, flusher, rc)
+	response.WriteLogStreamHeaders(w, flusher)
+	response.StreamLogLines(w, flusher, rc)
 }
 
 type containerAttachReady struct {
@@ -238,14 +261,14 @@ var containerAttachUpgrader = websocket.Upgrader{}
 // containerAttach bridges an authenticated browser WebSocket to Docker's
 // bidirectional attach stream. Closing the dialog only detaches this client;
 // this handler never invokes a container stop operation.
-func (s *Server) containerAttach(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) containerAttach(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	session, err := s.containers.Attach(r.Context(), id)
+	session, err := m.Attach(r.Context(), id)
 	if err != nil {
 		switch {
-		case errors.Is(err, container.ErrNotFound):
+		case errors.Is(err, ErrNotFound):
 			response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
-		case errors.Is(err, container.ErrNotRunning):
+		case errors.Is(err, ErrNotRunning):
 			response.WriteCode(w, http.StatusConflict, CONTAINER_NOT_RUNNING)
 		default:
 			response.WriteInternalError(w, err)
@@ -296,7 +319,7 @@ readLoop:
 			}
 		case "resize":
 			if session.TTY && message.Cols > 0 && message.Rows > 0 {
-				if err := s.containers.Resize(r.Context(), id, uint(message.Cols), uint(message.Rows)); err != nil {
+				if err := m.Resize(r.Context(), id, uint(message.Cols), uint(message.Rows)); err != nil {
 					break readLoop
 				}
 			}
@@ -308,11 +331,11 @@ readLoop:
 	<-outputDone
 }
 
-func (s *Server) containerAction(action func(context.Context, string) error) http.HandlerFunc {
+func (m *Manager) containerAction(action func(context.Context, string) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if err := action(r.Context(), id); err != nil {
-			if errors.Is(err, container.ErrNotFound) {
+			if errors.Is(err, ErrNotFound) {
 				response.WriteCode(w, http.StatusNotFound, CONTAINER_NOT_FOUND)
 				return
 			}

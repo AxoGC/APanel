@@ -1,4 +1,4 @@
-package httpserver
+package history
 
 import (
 	"encoding/json"
@@ -20,9 +20,22 @@ const INVALID_SETTINGS response.Code = "INVALID_SETTINGS"
 
 const historySettingsKey = "history.collectionSettings"
 
+// FeatureName identifies this package's entry in GET /api/status's
+// per-feature availability map.
+func (m *Manager) FeatureName() string { return "history" }
+
+// RegisterRoutes wires the /api/history/* routes onto mux — see
+// httpserver.RouteRegistrar. httpserver never imports this package; it just
+// calls this method on whatever it was given at construction time.
+func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler) {
+	mux.Handle("GET /api/history", requireAuth(http.HandlerFunc(m.getHistory)))
+	mux.Handle("GET /api/history/settings", requireAuth(http.HandlerFunc(m.getHistorySettings)))
+	mux.Handle("PUT /api/history/settings", requireAuth(http.HandlerFunc(m.putHistorySettings)))
+}
+
 // CollectionTarget holds the per-metric settings shown on the history
 // page's settings dialog. This is a shell: sampling is still entirely
-// sysstat/sadf-driven (see history.Manager), so changing these values is
+// sysstat/sadf-driven (see Manager.Sample), so changing these values is
 // persisted but doesn't yet affect what's actually collected — that needs
 // a real self-collection path, which this stage doesn't have.
 type CollectionTarget struct {
@@ -42,8 +55,8 @@ func defaultHistoryCollectionSettings() HistoryCollectionSettings {
 	return HistoryCollectionSettings{CPU: target, Memory: target, Swap: target}
 }
 
-func (s *Server) getHistorySettings(w http.ResponseWriter, r *http.Request) {
-	raw, ok, err := s.settings.Get(historySettingsKey)
+func (m *Manager) getHistorySettings(w http.ResponseWriter, r *http.Request) {
+	raw, ok, err := m.settings.Get(historySettingsKey)
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
@@ -61,7 +74,7 @@ func (s *Server) getHistorySettings(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, parsed)
 }
 
-func (s *Server) putHistorySettings(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) putHistorySettings(w http.ResponseWriter, r *http.Request) {
 	var body HistoryCollectionSettings
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		response.WriteCode(w, http.StatusBadRequest, INVALID_SETTINGS)
@@ -79,15 +92,15 @@ func (s *Server) putHistorySettings(w http.ResponseWriter, r *http.Request) {
 		response.WriteInternalError(w, err)
 		return
 	}
-	if err := s.settings.Set(historySettingsKey, string(encoded)); err != nil {
+	if err := m.settings.Set(historySettingsKey, string(encoded)); err != nil {
 		response.WriteInternalError(w, err)
 		return
 	}
 	response.WriteOK(w, body)
 }
 
-func (s *Server) getHistory(w http.ResponseWriter, r *http.Request) {
-	if !s.history.Available() {
+func (m *Manager) getHistory(w http.ResponseWriter, r *http.Request) {
+	if !m.Available(r.Context()) {
 		response.WriteCode(w, http.StatusOK, SYSSTAT_UNAVAILABLE)
 		return
 	}
@@ -102,7 +115,7 @@ func (s *Server) getHistory(w http.ResponseWriter, r *http.Request) {
 		daysAgo = n
 	}
 
-	day, err := s.history.Sample(r.Context(), daysAgo)
+	day, err := m.Sample(r.Context(), daysAgo)
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return

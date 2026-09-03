@@ -48,7 +48,7 @@ func New() *Manager {
 	return &Manager{ufwPath: path}
 }
 
-func (m *Manager) Available() bool {
+func (m *Manager) Available(ctx context.Context) bool {
 	return m.ufwPath != ""
 }
 
@@ -57,7 +57,7 @@ var fieldGap = regexp.MustCompile(`\s{2,}`)
 var protoSuffix = regexp.MustCompile(`(?i)/(tcp|udp)$`)
 
 func (m *Manager) Status(ctx context.Context) (Status, error) {
-	if !m.Available() {
+	if !m.Available(ctx) {
 		return Status{}, fmt.Errorf("ufw is not available")
 	}
 
@@ -87,7 +87,7 @@ var portPattern = regexp.MustCompile(`^\d{1,5}(:\d{1,5})?$`)
 // An empty or "any" protocol omits the proto clause entirely, matching
 // both TCP and UDP.
 func (m *Manager) AddRule(ctx context.Context, action, fromIPv4, fromIPv6, port, protocol string, wantIPv4, wantIPv6 bool) error {
-	if !m.Available() {
+	if !m.Available(ctx) {
 		return fmt.Errorf("ufw is not available")
 	}
 
@@ -151,7 +151,7 @@ func (m *Manager) AddRule(ctx context.Context, action, fromIPv4, fromIPv6, port,
 // to keep the rest of the batch valid. --force skips ufw's interactive
 // y/n confirmation, which would otherwise block waiting on stdin.
 func (m *Manager) DeleteRule(ctx context.Context, numbers []int) error {
-	if !m.Available() {
+	if !m.Available(ctx) {
 		return fmt.Errorf("ufw is not available")
 	}
 	if len(numbers) == 0 {

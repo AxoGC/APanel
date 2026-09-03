@@ -39,7 +39,8 @@ func main() {
 		log.Fatalf("docker: %v", err)
 	}
 
-	historyMgr := history.New()
+	settingsMgr := settings.New(gormDB)
+	historyMgr := history.New(settingsMgr)
 	firewallMgr := firewall.New()
 	filesMgr := files.New()
 
@@ -48,8 +49,7 @@ func main() {
 		log.Fatalf("auth: %v", err)
 	}
 	statsCollector := stats.NewCollector()
-	settingsMgr := settings.New(gormDB)
-	server := httpserver.New(authSvc, statsCollector, services, containers, historyMgr, firewallMgr, filesMgr, settingsMgr)
+	server := httpserver.New(authSvc, statsCollector, settingsMgr, services, containers, historyMgr, firewallMgr, filesMgr)
 
 	if cfg.TLSCert != "" {
 		log.Printf("apanel listening on %s (https)", cfg.ListenAddr)

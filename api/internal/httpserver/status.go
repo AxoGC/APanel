@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -31,6 +32,17 @@ type featureStatus struct {
 	DisabledFeatures []string `json:"disabledFeatures"`
 }
 
+// availableFeatures aggregates every registrar's Available() by name,
+// without needing to know which concrete packages provide them — see
+// httpserver.Feature.
+func (s *Server) availableFeatures(ctx context.Context) map[string]bool {
+	available := make(map[string]bool, len(s.features))
+	for _, f := range s.features {
+		available[f.FeatureName()] = f.Available(ctx)
+	}
+	return available
+}
+
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	disabled, err := s.disabledFeatures()
 	if err != nil {
@@ -38,10 +50,11 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	available := s.availableFeatures(r.Context())
 	response.WriteOK(w, featureStatus{
-		Containers:       s.containers.Available(r.Context()),
-		History:          s.history.Available(),
-		Firewall:         s.firewall.Available(),
+		Containers:       available["containers"],
+		History:          available["history"],
+		Firewall:         available["firewall"],
 		DisabledFeatures: disabled,
 	})
 }
@@ -76,10 +89,11 @@ func (s *Server) putDisabledFeatures(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	available := s.availableFeatures(r.Context())
 	response.WriteOK(w, featureStatus{
-		Containers:       s.containers.Available(r.Context()),
-		History:          s.history.Available(),
-		Firewall:         s.firewall.Available(),
+		Containers:       available["containers"],
+		History:          available["history"],
+		Firewall:         available["firewall"],
 		DisabledFeatures: disabled,
 	})
 }

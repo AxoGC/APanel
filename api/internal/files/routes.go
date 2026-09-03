@@ -1,4 +1,4 @@
-package httpserver
+package files
 
 import (
 	"encoding/json"
@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"apanel/internal/files"
 	"apanel/internal/response"
 )
 
@@ -21,26 +20,40 @@ const (
 	INVALID_PATH   response.Code = "INVALID_PATH"
 )
 
+// RegisterRoutes wires the /api/files/* routes onto mux — see
+// httpserver.RouteRegistrar. httpserver never imports this package; it just
+// calls this method on whatever it was given at construction time.
+func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler) {
+	mux.Handle("GET /api/files", requireAuth(http.HandlerFunc(m.listFiles)))
+	mux.Handle("GET /api/files/content", requireAuth(http.HandlerFunc(m.readFileContent)))
+	mux.Handle("PUT /api/files/content", requireAuth(http.HandlerFunc(m.writeFileContent)))
+	mux.Handle("POST /api/files/mkdir", requireAuth(http.HandlerFunc(m.mkdir)))
+	mux.Handle("POST /api/files/rename", requireAuth(http.HandlerFunc(m.renameFile)))
+	mux.Handle("POST /api/files/delete", requireAuth(http.HandlerFunc(m.deleteFiles)))
+	mux.Handle("GET /api/files/download", requireAuth(http.HandlerFunc(m.downloadFile)))
+	mux.Handle("POST /api/files/upload", requireAuth(http.HandlerFunc(m.uploadFile)))
+}
+
 // writeFileError maps the files package's sentinel errors onto the
 // endpoint-specific codes above; anything else falls back to the generic
 // INTERNAL_SERVER_ERROR path.
 func writeFileError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, files.ErrNotFound):
+	case errors.Is(err, ErrNotFound):
 		response.WriteCode(w, http.StatusNotFound, FILE_NOT_FOUND)
-	case errors.Is(err, files.ErrTooLarge):
+	case errors.Is(err, ErrTooLarge):
 		response.WriteCode(w, http.StatusRequestEntityTooLarge, FILE_TOO_LARGE)
-	case errors.Is(err, files.ErrNotText):
+	case errors.Is(err, ErrNotText):
 		response.WriteCode(w, http.StatusUnprocessableEntity, FILE_NOT_TEXT)
-	case errors.Is(err, files.ErrInvalidPath):
+	case errors.Is(err, ErrInvalidPath):
 		response.WriteCode(w, http.StatusBadRequest, INVALID_PATH)
 	default:
 		response.WriteInternalError(w, err)
 	}
 }
 
-func (s *Server) listFiles(w http.ResponseWriter, r *http.Request) {
-	entries, err := s.files.List(r.URL.Query().Get("path"))
+func (m *Manager) listFiles(w http.ResponseWriter, r *http.Request) {
+	entries, err := m.List(r.URL.Query().Get("path"))
 	if err != nil {
 		writeFileError(w, err)
 		return
@@ -48,7 +61,7 @@ func (s *Server) listFiles(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, entries)
 }
 
-func (s *Server) mkdir(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) mkdir(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Path string `json:"path"`
 	}
@@ -56,14 +69,14 @@ func (s *Server) mkdir(w http.ResponseWriter, r *http.Request) {
 		response.WriteCode(w, http.StatusBadRequest, INVALID_PATH)
 		return
 	}
-	if err := s.files.Mkdir(body.Path); err != nil {
+	if err := m.Mkdir(body.Path); err != nil {
 		writeFileError(w, err)
 		return
 	}
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) renameFile(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) renameFile(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Path    string `json:"path"`
 		NewName string `json:"newName"`
@@ -72,14 +85,14 @@ func (s *Server) renameFile(w http.ResponseWriter, r *http.Request) {
 		response.WriteCode(w, http.StatusBadRequest, INVALID_PATH)
 		return
 	}
-	if err := s.files.Rename(body.Path, body.NewName); err != nil {
+	if err := m.Rename(body.Path, body.NewName); err != nil {
 		writeFileError(w, err)
 		return
 	}
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) deleteFiles(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) deleteFiles(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Paths []string `json:"paths"`
 	}
@@ -88,7 +101,7 @@ func (s *Server) deleteFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, p := range body.Paths {
-		if err := s.files.Delete(p); err != nil {
+		if err := m.Delete(p); err != nil {
 			writeFileError(w, err)
 			return
 		}
@@ -96,8 +109,8 @@ func (s *Server) deleteFiles(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) readFileContent(w http.ResponseWriter, r *http.Request) {
-	content, err := s.files.ReadFile(r.URL.Query().Get("path"))
+func (m *Manager) readFileContent(w http.ResponseWriter, r *http.Request) {
+	content, err := m.ReadFile(r.URL.Query().Get("path"))
 	if err != nil {
 		writeFileError(w, err)
 		return
@@ -105,7 +118,7 @@ func (s *Server) readFileContent(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, map[string]string{"content": content})
 }
 
-func (s *Server) writeFileContent(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) writeFileContent(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Path    string `json:"path"`
 		Content string `json:"content"`
@@ -114,15 +127,15 @@ func (s *Server) writeFileContent(w http.ResponseWriter, r *http.Request) {
 		response.WriteCode(w, http.StatusBadRequest, INVALID_PATH)
 		return
 	}
-	if err := s.files.WriteFile(body.Path, body.Content); err != nil {
+	if err := m.WriteFile(body.Path, body.Content); err != nil {
 		writeFileError(w, err)
 		return
 	}
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) downloadFile(w http.ResponseWriter, r *http.Request) {
-	full, err := s.files.Resolve(r.URL.Query().Get("path"))
+func (m *Manager) downloadFile(w http.ResponseWriter, r *http.Request) {
+	full, err := m.Resolve(r.URL.Query().Get("path"))
 	if err != nil {
 		writeFileError(w, err)
 		return
@@ -157,7 +170,7 @@ func (s *Server) downloadFile(w http.ResponseWriter, r *http.Request) {
 // param, using only the client-supplied basename (never the full relative
 // path a browser may send) so an upload can't be used to write outside the
 // target directory.
-func (s *Server) uploadFile(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) uploadFile(w http.ResponseWriter, r *http.Request) {
 	dir := r.URL.Query().Get("path")
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		response.WriteInternalError(w, err)
@@ -170,7 +183,7 @@ func (s *Server) uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, fh := range headers {
-		if err := s.saveUpload(dir, fh); err != nil {
+		if err := m.saveUpload(dir, fh); err != nil {
 			writeFileError(w, err)
 			return
 		}
@@ -178,9 +191,9 @@ func (s *Server) uploadFile(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, nil)
 }
 
-func (s *Server) saveUpload(dir string, fh *multipart.FileHeader) error {
+func (m *Manager) saveUpload(dir string, fh *multipart.FileHeader) error {
 	name := filepath.Base(fh.Filename)
-	destFull, err := s.files.Resolve(dir + "/" + name)
+	destFull, err := m.Resolve(dir + "/" + name)
 	if err != nil {
 		return err
 	}
