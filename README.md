@@ -16,7 +16,6 @@ Apanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。
 
 - 1Panel 在 Docker 容器之上提供了更高层次的“应用”抽象，而我更希望直接管理 Docker 容器，并将 systemd 服务作为独立的一等功能。
 - 应用商店、自动升级和商业版本构成了完整的产品生态，但同时也带来了更强的中心化和产品化。Apanel 希望保持为一个可以独立部署和维护的工具。
-- 自动化安装降低了使用门槛，但我更希望清楚知道二进制文件、配置文件、数据文件和 systemd 服务分别位于什么位置。
 - 我的许多服务直接由 systemd 管理，Docker 只用于依赖复杂或需要额外隔离的应用，因此 systemd 管理对我来说是一项核心能力。
 - 1Panel 的桌面端体验和功能都很完整，但移动端并不是它的主要使用场景。
 
@@ -128,7 +127,20 @@ Apanel 面向使用 systemd 的 Linux 发行版，目前需要：
 - UFW：启用防火墙管理；
 - zsh、fish：作为 Web 终端的可选 shell。
 
-### 3.2 下载二进制文件
+### 3.2 一键安装脚本
+
+如果接受默认路径（二进制装到 `/usr/local/bin/apanel`，配置在 `/etc/apanel`，SQLite 数据库在 `/var/lib/apanel`，监听 `:8080`），可以直接运行仓库里的 [`deploy/install.sh`](deploy/install.sh)：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/deploy/install.sh -o install.sh
+sudo bash install.sh
+```
+
+脚本会依次完成：检查依赖命令和安装路径是否已被占用（已安装则直接退出，不会覆盖任何现有文件）；下载并解压最新版本二进制；生成一个 12 位随机密码写入 `config.env`；写入最小化的 systemd 单元并启动服务；最后把密码打印到控制台，并检查 ufw、docker、sysstat 是否已安装，逐项提示对应功能是否可用。
+
+脚本装好后仍是明文 HTTP，请继续阅读 3.6 节启用 HTTPS。如果需要自定义安装路径、使用 PostgreSQL/MySQL，或者只是想清楚了解每一步具体做了什么，可以跳过脚本，按下面的手动步骤操作。
+
+### 3.3 下载二进制文件
 
 以 Linux AMD64 为例：
 
@@ -149,7 +161,7 @@ ls -l /usr/local/bin/apanel
 
 正式发布时建议同时提供 AMD64、ARM64 构建和 SHA-256 校验文件。
 
-### 3.3 创建配置和数据目录
+### 3.4 创建配置和数据目录
 
 ```bash
 sudo mkdir -p /etc/apanel /var/lib/apanel
@@ -183,7 +195,7 @@ sudo chmod 600 /etc/apanel/config.env
 
 `APANEL_PASSWORD` 是必填项。监听地址默认是 `:8080`，数据库默认是当前工作目录下的 `apanel.db`，但生产环境建议显式配置二者。`APANEL_TLS_CERT` 与 `APANEL_TLS_KEY` 必须同时设置或同时留空。
 
-### 3.4 创建 systemd 服务
+### 3.5 创建 systemd 服务
 
 创建 `/etc/systemd/system/apanel.service`：
 
@@ -220,7 +232,7 @@ sudo systemctl status apanel
 sudo journalctl -u apanel -f
 ```
 
-### 3.5 启用 HTTPS：二选一
+### 3.6 启用 HTTPS：二选一
 
 Apanel 必须通过 HTTPS 使用。请选择以下一种方式；不需要同时配置两者。
 
@@ -428,7 +440,7 @@ Apanel 当前采用单管理员密码和 Cookie Session，不提供多用户、�
 - 移动端优先，但不牺牲桌面端效率。
 - systemd 和 Docker 分开管理。
 - 不为了统一概念而过度抽象。
-- 单一二进制、明确配置、透明安装。
+- 单一二进制、明确配置。
 - 默认值保持实用，关键配置必须显式提供。
 - 界面保持极简和扁平，主题色只用于克制的强调。
 - 不提供应用商店、商业授权和自动更新。
