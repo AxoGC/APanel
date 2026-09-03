@@ -6,6 +6,9 @@ package stats
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"os/user"
 	"sort"
@@ -36,6 +39,37 @@ type Process struct {
 	User       string  `json:"user"`
 	CPUPercent float64 `json:"cpuPercent"`
 	MemRSS     uint64  `json:"memRSS"`
+}
+
+// ErrProcessNotFound means the pid no longer exists — it may have exited
+// between the list being fetched and the detail request landing.
+var ErrProcessNotFound = errors.New("process not found")
+
+// ProcessDetail is the single-process deep dive shown from the dashboard's
+// process list. State is /proc's raw one-letter code (R, S, D, Z, T, t, X,
+// I — see proc(5)); the frontend owns translating it, matching how the
+// services/containers modules translate their own backend enums client-side.
+type ProcessDetail struct {
+	PID        int       `json:"pid"`
+	PPID       int       `json:"ppid"`
+	Name       string    `json:"name"`
+	State      string    `json:"state"`
+	User       string    `json:"user"`
+	CPUPercent float64   `json:"cpuPercent"`
+	MemRSS     uint64    `json:"memRSS"`
+	Cmdline    string    `json:"cmdline"`
+	Exe        string    `json:"exe"`
+	Cwd        string    `json:"cwd"`
+	StartTime  time.Time `json:"startTime"`
+	Priority   int       `json:"priority"`
+	Nice       int       `json:"nice"`
+	Threads    int       `json:"threads"`
+	VmSize     uint64    `json:"vmSize"`
+	VmSwap     uint64    `json:"vmSwap"`
+	// OpenFiles is -1 when /proc/[pid]/fd couldn't be listed (no
+	// permission, or the process exited underneath us) — the frontend
+	// renders that as "—" rather than 0, a claim we can't actually back.
+	OpenFiles int `json:"openFiles"`
 }
 
 type cpuSample struct {
@@ -181,27 +215,27 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 			continue
 		}
 
-		name, ppid, ticks, ok := readProcStat(pid)
+		stat, ok := readProcStat(pid)
 		if !ok {
 			continue
 		}
-		rss, uid, ok := readProcStatus(pid)
+		rss, _, _, uid, ok := readProcStatus(pid)
 		if !ok {
 			continue
 		}
 
-		nextProcs[pid] = procSample{cpuTicks: ticks, at: now}
+		nextProcs[pid] = procSample{cpuTicks: stat.cpuTicks, at: now}
 
 		var cpuPercent float64
 		if prev, ok := c.prevProcs[pid]; ok && elapsed > 0 {
-			dTicks := float64(ticks-prev.cpuTicks) / clockTicks
+			dTicks := float64(stat.cpuTicks-prev.cpuTicks) / clockTicks
 			cpuPercent = dTicks / elapsed * 100
 		}
 
 		procs = append(procs, Process{
 			PID:        pid,
-			PPID:       ppid,
-			Name:       name,
+			PPID:       stat.ppid,
+			Name:       stat.name,
 			User:       c.lookupUsername(uid),
 			CPUPercent: cpuPercent,
 			MemRSS:     rss,
@@ -218,39 +252,67 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 	return procs, nil
 }
 
-// readProcStat parses /proc/[pid]/stat for the process name, parent pid, and
-// total (user+system) cpu ticks. The comm field is parenthesized and may
-// itself contain spaces/parens, so it's located by the last ')' rather than
-// split.
-func readProcStat(pid int) (name string, ppid int, ticks uint64, ok bool) {
+// procStat is everything sampleProcesses and ProcessDetail both need out of
+// /proc/[pid]/stat, parsed once so the two never risk disagreeing on field
+// indices.
+type procStat struct {
+	name       string
+	ppid       int
+	state      byte
+	priority   int
+	nice       int
+	threads    int
+	startTicks uint64
+	cpuTicks   uint64 // user+system
+}
+
+// readProcStat parses /proc/[pid]/stat. The comm field is parenthesized and
+// may itself contain spaces/parens, so it's located by the last ')' rather
+// than split.
+func readProcStat(pid int) (procStat, bool) {
 	data, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
 	if err != nil {
-		return "", 0, 0, false
+		return procStat{}, false
 	}
 	line := string(data)
 	open := strings.IndexByte(line, '(')
 	closeIdx := strings.LastIndexByte(line, ')')
 	if open < 0 || closeIdx < 0 || closeIdx < open {
-		return "", 0, 0, false
+		return procStat{}, false
 	}
-	name = line[open+1 : closeIdx]
+	name := line[open+1 : closeIdx]
 
 	fields := strings.Fields(line[closeIdx+1:])
-	// fields[0] is state, fields[1] is ppid; utime/stime are fields[11] and
-	// [12] (0-indexed from state) per proc(5).
-	if len(fields) < 15 {
-		return "", 0, 0, false
+	// 0-indexed from state (field 3 in proc(5)'s own 1-indexed listing):
+	// state=0, ppid=1, ..., utime=11, stime=12, ..., priority=15, nice=16,
+	// num_threads=17, itrealvalue=18, starttime=19, ...
+	if len(fields) < 20 {
+		return procStat{}, false
 	}
-	ppidVal, _ := strconv.Atoi(fields[1])
+	ppid, _ := strconv.Atoi(fields[1])
 	utime, _ := strconv.ParseUint(fields[11], 10, 64)
 	stime, _ := strconv.ParseUint(fields[12], 10, 64)
-	return name, ppidVal, utime + stime, true
+	priority, _ := strconv.Atoi(fields[15])
+	nice, _ := strconv.Atoi(fields[16])
+	threads, _ := strconv.Atoi(fields[17])
+	startTicks, _ := strconv.ParseUint(fields[19], 10, 64)
+
+	return procStat{
+		name:       name,
+		ppid:       ppid,
+		state:      fields[0][0],
+		priority:   priority,
+		nice:       nice,
+		threads:    threads,
+		startTicks: startTicks,
+		cpuTicks:   utime + stime,
+	}, true
 }
 
-func readProcStatus(pid int) (rss uint64, uid uint32, ok bool) {
+func readProcStatus(pid int) (rss, vmSize, vmSwap uint64, uid uint32, ok bool) {
 	f, err := os.Open("/proc/" + strconv.Itoa(pid) + "/status")
 	if err != nil {
-		return 0, 0, false
+		return 0, 0, 0, 0, false
 	}
 	defer f.Close()
 
@@ -266,12 +328,125 @@ func readProcStatus(pid int) (rss uint64, uid uint32, ok bool) {
 			v, _ := strconv.ParseUint(fields[1], 10, 64)
 			rss = v * 1024
 			found = true
+		case "VmSize:":
+			v, _ := strconv.ParseUint(fields[1], 10, 64)
+			vmSize = v * 1024
+		case "VmSwap:":
+			v, _ := strconv.ParseUint(fields[1], 10, 64)
+			vmSwap = v * 1024
 		case "Uid:":
 			v, _ := strconv.ParseUint(fields[1], 10, 32)
 			uid = uint32(v)
 		}
 	}
-	return rss, uid, found
+	return rss, vmSize, vmSwap, uid, found
+}
+
+// readBootTime reads /proc/stat's btime (system boot time, seconds since
+// the epoch) — needed to turn a process's starttime (in clock ticks since
+// boot) into an absolute time.
+func readBootTime() (time.Time, error) {
+	f, err := os.Open("/proc/stat")
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) == 2 && fields[0] == "btime" {
+			sec, _ := strconv.ParseInt(fields[1], 10, 64)
+			return time.Unix(sec, 0), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("btime not found in /proc/stat")
+}
+
+// readCmdline joins /proc/[pid]/cmdline's NUL-separated argv with spaces.
+// Kernel threads have no argv, so it falls back to the bracketed comm name,
+// matching ps's own convention for them.
+func readCmdline(pid int, name string) string {
+	data, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/cmdline")
+	if err != nil || len(data) == 0 {
+		return "[" + name + "]"
+	}
+	data = bytes.TrimRight(data, "\x00")
+	return string(bytes.ReplaceAll(data, []byte{0}, []byte(" ")))
+}
+
+// readProcLink best-effort resolves /proc/[pid]/<name> (exe, cwd) — left
+// empty rather than erroring when unreadable, e.g. a zombie has no exe, and
+// a process owned by another user is unreadable unless apanel runs as root.
+func readProcLink(pid int, name string) string {
+	target, err := os.Readlink(fmt.Sprintf("/proc/%d/%s", pid, name))
+	if err != nil {
+		return ""
+	}
+	return target
+}
+
+// countOpenFiles best-effort counts open file descriptors; -1 if
+// /proc/[pid]/fd can't be listed (no permission, or the process already
+// exited).
+func countOpenFiles(pid int) int {
+	entries, err := os.ReadDir(fmt.Sprintf("/proc/%d/fd", pid))
+	if err != nil {
+		return -1
+	}
+	return len(entries)
+}
+
+// ProcessDetail reads a single process's full detail straight from /proc.
+// CPU% reuses the previous sample recorded by the most recent Sample call
+// (when the pid was present in it) instead of taking a fresh two-point
+// measurement, which would mean blocking on a sleep here — the dashboard
+// already polls every 2s, so prevProcs is never far out of date.
+func (c *Collector) ProcessDetail(pid int) (ProcessDetail, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	stat, ok := readProcStat(pid)
+	if !ok {
+		return ProcessDetail{}, ErrProcessNotFound
+	}
+	rss, vmSize, vmSwap, uid, ok := readProcStatus(pid)
+	if !ok {
+		return ProcessDetail{}, ErrProcessNotFound
+	}
+
+	var cpuPercent float64
+	if prev, ok := c.prevProcs[pid]; ok {
+		if elapsed := time.Since(prev.at).Seconds(); elapsed > 0 {
+			dTicks := float64(stat.cpuTicks-prev.cpuTicks) / clockTicks
+			cpuPercent = dTicks / elapsed * 100
+		}
+	}
+
+	startTime := time.Time{}
+	if boot, err := readBootTime(); err == nil {
+		startTime = boot.Add(time.Duration(float64(stat.startTicks)/clockTicks) * time.Second)
+	}
+
+	return ProcessDetail{
+		PID:        pid,
+		PPID:       stat.ppid,
+		Name:       stat.name,
+		State:      string(stat.state),
+		User:       c.lookupUsername(uid),
+		CPUPercent: cpuPercent,
+		MemRSS:     rss,
+		Cmdline:    readCmdline(pid, stat.name),
+		Exe:        readProcLink(pid, "exe"),
+		Cwd:        readProcLink(pid, "cwd"),
+		StartTime:  startTime,
+		Priority:   stat.priority,
+		Nice:       stat.nice,
+		Threads:    stat.threads,
+		VmSize:     vmSize,
+		VmSwap:     vmSwap,
+		OpenFiles:  countOpenFiles(pid),
+	}, nil
 }
 
 func (c *Collector) lookupUsername(uid uint32) string {

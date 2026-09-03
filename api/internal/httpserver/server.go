@@ -62,6 +62,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/session", s.auth.Session)
 
 	s.mux.Handle("GET /api/dashboard/stream", s.auth.Middleware(http.HandlerFunc(s.dashboardStream)))
+	s.mux.Handle("GET /api/dashboard/processes/{pid}", s.auth.Middleware(http.HandlerFunc(s.processDetail)))
 	s.mux.Handle("GET /api/terminal", s.auth.Middleware(http.HandlerFunc(s.terminal)))
 	s.mux.Handle("GET /api/terminal/directories", s.auth.Middleware(http.HandlerFunc(s.listTerminalDirectories)))
 

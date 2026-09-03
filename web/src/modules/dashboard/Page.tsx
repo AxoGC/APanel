@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Gauge } from './Gauge'
 import { buildProcessForest, type ProcessNode } from './processTree'
+import { ProcessDetailDialog } from './ProcessDetailDialog'
 import { ProcessGrid } from './ProcessGrid'
 import { useDashboardStream, type ProcessSort } from './useDashboardStream'
 
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   // Empty by default: every node with children starts collapsed. Lifted up
   // from ProcessGrid (rather than owned there) so "expand all" can drive it.
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set())
+  const [detailPid, setDetailPid] = useState<number | null>(null)
   const overview = useDashboardStream(sort)
 
   const memPercent = overview ? (overview.memUsed / overview.memTotal) * 100 : 0
@@ -106,9 +108,12 @@ export default function DashboardPage() {
             tree={tree}
             expanded={expanded}
             onToggle={toggleExpanded}
+            onShowDetail={setDetailPid}
           />
         </div>
       </div>
+
+      <ProcessDetailDialog pid={detailPid} onOpenChange={(open) => !open && setDetailPid(null)} />
     </div>
   )
 }

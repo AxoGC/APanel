@@ -1,5 +1,6 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useMemo } from 'react'
+import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
@@ -8,6 +9,7 @@ import { buildProcessForest, sortProcessForest, type ProcessNode } from './proce
 import type { ProcessInfo, ProcessSort } from './useDashboardStream'
 
 function ProcessRow({
+  pid,
   name,
   user,
   cpuPercent,
@@ -15,7 +17,9 @@ function ProcessRow({
   count,
   depth,
   trigger,
+  onShowDetail,
 }: {
+  pid: number
   name: string
   user: string
   cpuPercent: number
@@ -23,7 +27,9 @@ function ProcessRow({
   count?: number
   depth: number
   trigger?: { expanded: boolean; onToggle: () => void }
+  onShowDetail: (pid: number) => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex items-center gap-2 py-0.5">
       <div className="flex min-w-0 flex-1 items-center gap-1" style={{ paddingLeft: depth * 16 }}>
@@ -57,6 +63,11 @@ function ProcessRow({
         {formatPercent(cpuPercent)}
       </div>
       <div className="w-20 shrink-0 text-right text-sm text-gray-700 dark:text-gray-300">{formatBytes(memRSS)}</div>
+      <div className="flex w-8 shrink-0 justify-end">
+        <Button variant="ghost" size="icon-xs" aria-label={t('dashboard.more')} onClick={() => onShowDetail(pid)}>
+          <MoreHorizontal />
+        </Button>
+      </div>
     </div>
   )
 }
@@ -66,11 +77,13 @@ function ProcessTreeRow({
   depth,
   expanded,
   onToggle,
+  onShowDetail,
 }: {
   node: ProcessNode
   depth: number
   expanded: ReadonlySet<number>
   onToggle: (pid: number) => void
+  onShowDetail: (pid: number) => void
 }) {
   const hasChildren = node.children.length > 0
   const collapsible = hasChildren
@@ -79,6 +92,7 @@ function ProcessTreeRow({
 
   const row = (
     <ProcessRow
+      pid={node.pid}
       name={node.name}
       user={node.user}
       cpuPercent={collapsed ? node.totalCpuPercent : node.cpuPercent}
@@ -86,13 +100,21 @@ function ProcessTreeRow({
       count={collapsed ? node.totalCount : undefined}
       depth={depth}
       trigger={collapsible ? { expanded: isExpanded, onToggle: () => onToggle(node.pid) } : undefined}
+      onShowDetail={onShowDetail}
     />
   )
 
   if (!hasChildren) return row
 
   const children = node.children.map((child) => (
-    <ProcessTreeRow key={child.pid} node={child} depth={depth + 1} expanded={expanded} onToggle={onToggle} />
+    <ProcessTreeRow
+      key={child.pid}
+      node={child}
+      depth={depth + 1}
+      expanded={expanded}
+      onToggle={onToggle}
+      onShowDetail={onShowDetail}
+    />
   ))
 
   if (!collapsible) {
@@ -121,6 +143,7 @@ function HeaderRow({ t }: { t: (key: TranslationKey) => string }) {
     <div className="hidden w-20 shrink-0 text-xs text-gray-500 sm:block">{t('dashboard.user')}</div>
     <div className="w-14 shrink-0 text-right text-xs text-gray-500">{t('dashboard.cpu')}</div>
     <div className="w-20 shrink-0 text-right text-xs text-gray-500">{t('dashboard.memory')}</div>
+    <div className="w-8 shrink-0 text-right text-xs text-gray-500">{t('dashboard.more')}</div>
   </div>
   )
 }
@@ -137,12 +160,14 @@ export function ProcessGrid({
   tree,
   expanded,
   onToggle,
+  onShowDetail,
 }: {
   processes: ProcessInfo[]
   sort: ProcessSort
   tree: boolean
   expanded: ReadonlySet<number>
   onToggle: (pid: number) => void
+  onShowDetail: (pid: number) => void
 }) {
   const { t } = useI18n()
 
@@ -159,10 +184,26 @@ export function ProcessGrid({
       <HeaderRow t={t} />
       {tree
         ? visibleRoots.map((root) => (
-            <ProcessTreeRow key={root.pid} node={root} depth={0} expanded={expanded} onToggle={onToggle} />
+            <ProcessTreeRow
+              key={root.pid}
+              node={root}
+              depth={0}
+              expanded={expanded}
+              onToggle={onToggle}
+              onShowDetail={onShowDetail}
+            />
           ))
         : processes.map((p) => (
-            <ProcessRow key={p.pid} name={p.name} user={p.user} cpuPercent={p.cpuPercent} memRSS={p.memRSS} depth={0} />
+            <ProcessRow
+              key={p.pid}
+              pid={p.pid}
+              name={p.name}
+              user={p.user}
+              cpuPercent={p.cpuPercent}
+              memRSS={p.memRSS}
+              depth={0}
+              onShowDetail={onShowDetail}
+            />
           ))}
     </div>
   )
