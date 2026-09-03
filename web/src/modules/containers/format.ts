@@ -30,20 +30,6 @@ export function formatContainerStatus(status: string, t: (key: TranslationKey) =
     .replace(/\bago\b/g, t('containers.status.ago'))
 }
 
-// Same duration/ago vocabulary as formatContainerStatus, but strips the
-// leading state word (and any exit-code parenthetical) so callers can pair
-// it with their own colored status dot instead of repeating "Up"/"Exited".
-export function formatContainerUptime(status: string, t: (key: TranslationKey) => string): string {
-  const remainder = status.replace(/^(Up|Exited|Created|Restarting|Paused|Removing|Dead)\b\s*(\([^)]*\))?\s*/, '').trim()
-  if (!remainder) {
-    const word = status.match(/^(Up|Exited|Created|Restarting|Paused|Removing|Dead)\b/)?.[0]
-    return word && STATUS_KEYS[word] ? t(STATUS_KEYS[word]) : status
-  }
-  return remainder
-    .replace(/\b(second|seconds|minute|minutes|hour|hours|day|days)\b/g, (word) => t(DURATION_KEYS[word]))
-    .replace(/\bago\b/g, t('containers.status.ago'))
-}
-
 export function statusClasses(state: string): [dot: string, text: string] {
   if (state === 'running') return ['bg-green-500', 'text-green-600 dark:text-green-400']
   if (state === 'dead') return ['bg-red-500', 'text-red-600 dark:text-red-400']

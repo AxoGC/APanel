@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { ContainerActionName, ContainerInfo } from './api'
-import { formatContainerStatus, formatContainerUptime, STATE_LABELS, statusClasses } from './format'
+import { formatContainerStatus, STATE_LABELS, statusClasses } from './format'
 
 function ContainerActions({ container, busy, onAction, onShowLogs, onShowDetail }: {
   container: ContainerInfo
@@ -50,7 +50,7 @@ export function ContainerTable({ containers, pending, onAction, onShowLogs, onSh
               <div className="hidden w-28 shrink-0 items-center justify-end gap-0.5 md:flex"><ContainerActions container={container} busy={busy} onAction={onAction} onShowLogs={onShowLogs} onShowDetail={onShowDetail} /></div>
 
               <div className="flex flex-col gap-2 md:hidden">
-                <div className="flex items-center justify-between gap-2"><span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{container.name}</span><div className="flex shrink-0 items-center gap-1.5"><span className={cn('size-1.5 rounded-full', dot)} /><span className={cn('text-xs', text)}>{formatContainerUptime(container.status, t)}</span></div></div>
+                <div className="flex items-center justify-between gap-2"><span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{container.name}</span><div className="flex shrink-0 items-center gap-1.5"><span className={cn('size-1.5 rounded-full', dot)} /><span className={cn('text-xs', text)}>{formatContainerStatus(container.status, t)}</span></div></div>
                 <div className="flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><span className="shrink-0 text-xs text-gray-500">{t('containers.image')}</span><span className="truncate text-xs text-gray-500">{container.image}</span></div><div className="flex shrink-0 items-center justify-end gap-0.5"><ContainerActions container={container} busy={busy} onAction={onAction} onShowLogs={onShowLogs} onShowDetail={onShowDetail} /></div></div>
               </div>
             </div>
