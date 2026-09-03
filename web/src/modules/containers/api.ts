@@ -86,6 +86,24 @@ export function getContainerDetail(id: string) {
   return apiFetch<ContainerDetail>(`/containers/${encodeURIComponent(id)}`)
 }
 
+export interface NewContainer {
+  name: string
+  image: string
+  tty: boolean
+  openStdin: boolean
+  networkMode: string
+  restartPolicy: string
+  env: string[]
+  volumes: string[]
+}
+
+export function createContainer(payload: NewContainer) {
+  return apiFetch<{ id: string }>('/containers', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function getContainerLogs(id: string, lines: number) {
   return apiFetch<string[]>(`/containers/${encodeURIComponent(id)}/logs?lines=${lines}`)
 }

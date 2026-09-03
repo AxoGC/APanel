@@ -18,6 +18,8 @@ const CONTAINER_NOT_FOUND response.Code = "CONTAINER_NOT_FOUND"
 const CONTAINER_NOT_RUNNING response.Code = "CONTAINER_NOT_RUNNING"
 const INVALID_IMAGE_DELETE response.Code = "INVALID_IMAGE_DELETE"
 const NETWORK_NOT_FOUND response.Code = "NETWORK_NOT_FOUND"
+const CONTAINER_CREATE_INVALID response.Code = "CONTAINER_CREATE_INVALID"
+const CONTAINER_NAME_CONFLICT response.Code = "CONTAINER_NAME_CONFLICT"
 
 // containerStatesForStatus maps the frontend's status filter straight onto
 // Docker's own container state vocabulary — unlike systemd units, a
@@ -54,6 +56,47 @@ func (s *Server) listContainers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteOK(w, containers)
+}
+
+func (s *Server) createContainer(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name          string   `json:"name"`
+		Image         string   `json:"image"`
+		TTY           bool     `json:"tty"`
+		OpenStdin     bool     `json:"openStdin"`
+		NetworkMode   string   `json:"networkMode"`
+		RestartPolicy string   `json:"restartPolicy"`
+		Env           []string `json:"env"`
+		Volumes       []string `json:"volumes"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
+		return
+	}
+
+	id, err := s.containers.Create(r.Context(), container.CreateOptions{
+		Name:          body.Name,
+		Image:         body.Image,
+		TTY:           body.TTY,
+		OpenStdin:     body.OpenStdin,
+		NetworkMode:   body.NetworkMode,
+		RestartPolicy: body.RestartPolicy,
+		Env:           body.Env,
+		Binds:         body.Volumes,
+	})
+	if err != nil {
+		if errors.Is(err, container.ErrInvalidCreate) {
+			response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
+			return
+		}
+		if errors.Is(err, container.ErrNameConflict) {
+			response.WriteCode(w, http.StatusConflict, CONTAINER_NAME_CONFLICT)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, map[string]string{"id": id})
 }
 
 func (s *Server) listContainerImages(w http.ResponseWriter, r *http.Request) {

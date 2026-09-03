@@ -149,7 +149,7 @@ export default function ContainersPage() {
       <ContainerDetailDialog id={detailFor} onOpenChange={(open) => !open && setDetailFor(null)} />
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
-      <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
     </div>
   )
 }

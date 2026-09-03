@@ -31,7 +31,11 @@ var (
 	ErrNotRunning      = errors.New("container is not running")
 	ErrInvalidImage    = errors.New("invalid image")
 	ErrNetworkNotFound = errors.New("network not found")
+	ErrInvalidCreate   = errors.New("invalid container configuration")
+	ErrNameConflict    = errors.New("container name already in use")
 )
+
+var createRestartPolicies = map[string]bool{"no": true, "on-failure": true, "always": true, "unless-stopped": true}
 
 // predefinedNetworks are Docker's own built-in networks. They always exist
 // and can never be removed, so the UI can disable delete for them up front
@@ -341,6 +345,72 @@ func (m *Manager) DeleteImages(ctx context.Context, ids []string) error {
 		}
 	}
 	return nil
+}
+
+// CreateOptions describes a new container's configuration, one field per
+// field of the create-container form.
+type CreateOptions struct {
+	Name          string
+	Image         string
+	TTY           bool
+	OpenStdin     bool
+	NetworkMode   string
+	RestartPolicy string
+	Env           []string
+	// Binds is Docker's own "host_path:container_path[:ro]" bind-mount
+	// syntax, one entry per line of the form's volumes textarea — passed
+	// straight through since the daemon already validates the format.
+	Binds []string
+}
+
+// Create makes a new container from opts and starts it immediately: the
+// dialog's "Create" action is meant to behave like `docker run`, not the
+// create-without-starting `docker create`.
+func (m *Manager) Create(ctx context.Context, opts CreateOptions) (string, error) {
+	image := strings.TrimSpace(opts.Image)
+	if image == "" {
+		return "", fmt.Errorf("%w: image is required", ErrInvalidCreate)
+	}
+
+	restartPolicy := opts.RestartPolicy
+	if restartPolicy == "" {
+		restartPolicy = "no"
+	}
+	if !createRestartPolicies[restartPolicy] {
+		return "", fmt.Errorf("%w: restart policy", ErrInvalidCreate)
+	}
+
+	config := &container.Config{
+		Image:     image,
+		Env:       opts.Env,
+		Tty:       opts.TTY,
+		OpenStdin: opts.OpenStdin,
+		StdinOnce: opts.OpenStdin,
+	}
+	hostConfig := &container.HostConfig{
+		Binds:         opts.Binds,
+		NetworkMode:   container.NetworkMode(opts.NetworkMode),
+		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyMode(restartPolicy)},
+	}
+
+	created, err := m.cli.ContainerCreate(ctx, config, hostConfig, nil, nil, strings.TrimSpace(opts.Name))
+	if err != nil {
+		if cerrdefs.IsConflict(err) {
+			return "", ErrNameConflict
+		}
+		if cerrdefs.IsNotFound(err) {
+			return "", fmt.Errorf("%w: image %q not found locally", ErrInvalidCreate, image)
+		}
+		if cerrdefs.IsInvalidArgument(err) {
+			return "", fmt.Errorf("%w: %s", ErrInvalidCreate, err)
+		}
+		return "", err
+	}
+
+	if err := m.cli.ContainerStart(ctx, created.ID, container.StartOptions{}); err != nil {
+		return created.ID, err
+	}
+	return created.ID, nil
 }
 
 func (m *Manager) Start(ctx context.Context, id string) error {
