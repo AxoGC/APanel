@@ -27,6 +27,10 @@
 # systemd service); not part of the repo
 /deploy.sh
 
+# local dev convenience script (build docs + sync into nginx's docroot);
+# not part of the repo
+/docs/deploy.sh
+
 # misc
 *.log
 .DS_Store
