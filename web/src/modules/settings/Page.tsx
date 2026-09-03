@@ -6,7 +6,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useAuth } from '@/lib/auth'
-import { getStoredDataLayout, setStoredDataLayout, type DataLayout } from '@/lib/dataLayout'
 import { BASE_FEATURES, useFeatures, type FeatureKey } from '@/lib/features'
 import { useI18n, type Locale, type TranslationKey } from '@/lib/i18n'
 import {
@@ -23,7 +22,6 @@ import { getSystemInfo, type SystemInfo } from './api'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
 const LOCALES: Locale[] = ['en', 'zh']
-const DATA_LAYOUTS: DataLayout[] = ['table', 'grid']
 
 const FEATURE_LABEL_KEYS: Record<FeatureKey, TranslationKey> = {
   dashboard: 'nav.dashboard',
@@ -37,7 +35,7 @@ const FEATURE_LABEL_KEYS: Record<FeatureKey, TranslationKey> = {
 
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 py-4 first:pt-0">
+    <div className="flex items-center gap-4 py-2 first:pt-0">
       <p className="w-18 shrink-0 text-xs text-gray-500">{label}</p>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
@@ -79,7 +77,6 @@ export default function SettingsPage() {
   const { containers, history, firewall, disabledFeatures, setDisabledFeatures } = useFeatures()
   const [scheme, setScheme] = useState<ColorScheme>(getStoredScheme)
   const [hue, setHue] = useState<ThemeHue>(getStoredThemeHue)
-  const [dataLayout, setDataLayout] = useState<DataLayout>(getStoredDataLayout)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [pendingDisabledFeatures, setPendingDisabledFeatures] = useState<FeatureKey[] | null>(null)
 
@@ -116,7 +113,7 @@ export default function SettingsPage() {
     <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6">
       <h1 className="mb-2 text-base text-gray-900 dark:text-gray-100">{t('nav.settings')}</h1>
 
-      <div className="border-b border-gray-200 py-4 first:pt-0 dark:border-gray-800">
+      <div className="border-b border-gray-200 py-2 first:pt-0 dark:border-gray-800">
         <p className="mb-3 text-xs text-gray-500">{t('settings.systemInfo.title')}</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Field label={t('settings.systemInfo.hostname')} value={systemInfo?.hostname ?? '–'} />
@@ -173,24 +170,6 @@ export default function SettingsPage() {
           ))}
         </div>
       </Section>
-
-      {/* Only meaningful on wide screens — narrow screens always use grid,
-          so the control is hidden there rather than shown but inert. */}
-      <div className="hidden md:block">
-        <Section label={t('settings.dataLayout')}>
-          <SegmentedControl
-            value={dataLayout}
-            onChange={(value) => {
-              setStoredDataLayout(value)
-              setDataLayout(value)
-            }}
-            options={DATA_LAYOUTS.map((l) => ({
-              value: l,
-              label: t(l === 'table' ? 'settings.dataLayout.table' : 'settings.dataLayout.grid'),
-            }))}
-          />
-        </Section>
-      </div>
 
       <Section label={t('settings.enabledFeatures')}>
         <Popover>
