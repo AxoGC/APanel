@@ -25,6 +25,10 @@ type Day struct {
 	Points []Point `json:"points"`
 }
 
+func emptyDay(date string) Day {
+	return Day{Date: date, Points: []Point{}}
+}
+
 type Manager struct {
 	sadfPath string
 }
@@ -59,7 +63,7 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 	if err != nil {
 		// No sa file exists for that offset (e.g. the host hasn't been up
 		// that long) — an empty day, not a server error.
-		return Day{Date: wantDate}, nil
+		return emptyDay(wantDate), nil
 	}
 
 	var parsed sadfOutput
@@ -67,7 +71,7 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 		return Day{}, fmt.Errorf("parsing sadf output: %w", err)
 	}
 	if len(parsed.Sysstat.Hosts) == 0 {
-		return Day{Date: wantDate}, nil
+		return emptyDay(wantDate), nil
 	}
 	host := parsed.Sysstat.Hosts[0]
 
@@ -76,7 +80,7 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 	// picked up for the wrong month by checking the date sadf actually
 	// read matches the date we asked for.
 	if host.FileDate != wantDate {
-		return Day{Date: wantDate}, nil
+		return emptyDay(wantDate), nil
 	}
 
 	points := make([]Point, 0, len(host.Statistics))

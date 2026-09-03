@@ -16,8 +16,14 @@ export interface HistoryDay {
   points: HistoryPoint[]
 }
 
-export function getHistory(daysAgo: number) {
-  return apiFetch<HistoryDay>(`/history?daysAgo=${daysAgo}`)
+interface HistoryDayResponse {
+  date: string
+  points: HistoryPoint[] | null
+}
+
+export async function getHistory(daysAgo: number): Promise<HistoryDay> {
+  const day = await apiFetch<HistoryDayResponse>(`/history?daysAgo=${daysAgo}`)
+  return { ...day, points: day.points ?? [] }
 }
 
 export type CollectionTargetName = 'cpu' | 'memory' | 'swap'
