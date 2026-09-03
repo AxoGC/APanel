@@ -10,7 +10,10 @@ import { UsageCell } from './UsageCell'
 
 type NetworkFilter = 'all' | 'unused' | 'used'
 
-// Docker's own built-in networks — always present, never removable.
+// Docker's own built-in networks — always present, never removable, and
+// never useful to show here since there's nothing a user can do with them
+// in a delete-oriented list. In-use custom networks are still listed (just
+// with delete disabled) since they're real candidates once freed up.
 const PREDEFINED_NETWORKS = new Set(['bridge', 'host', 'none'])
 
 export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -34,12 +37,16 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
     void loadNetworks()
   }, [open])
 
+  const removableNetworks = useMemo(
+    () => (networks ?? []).filter((n) => !PREDEFINED_NETWORKS.has(n.name)),
+    [networks],
+  )
+
   const filteredNetworks = useMemo(() => {
-    if (!networks) return []
-    if (filter === 'used') return networks.filter((n) => n.usedBy.length > 0)
-    if (filter === 'unused') return networks.filter((n) => n.usedBy.length === 0)
-    return networks
-  }, [filter, networks])
+    if (filter === 'used') return removableNetworks.filter((n) => n.usedBy.length > 0)
+    if (filter === 'unused') return removableNetworks.filter((n) => n.usedBy.length === 0)
+    return removableNetworks
+  }, [filter, removableNetworks])
 
   const deleteNetwork = async (id: string) => {
     setDeletingId(id)
@@ -89,39 +96,36 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
           {networks && filteredNetworks.length === 0 && (
             <p className="px-2 py-4 text-sm text-gray-500">{t('containers.networks.empty')}</p>
           )}
-          {filteredNetworks.map((n) => {
-            const predefined = PREDEFINED_NETWORKS.has(n.name)
-            return (
-              <div
-                key={n.id}
-                className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
-              >
-                <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{n.name}</div>
-                <div className="w-24 shrink-0 truncate text-xs text-gray-500">{n.driver}</div>
-                <div className="w-20 shrink-0 truncate text-xs text-gray-500">{n.scope}</div>
-                <div className="w-24 shrink-0 text-right">
-                  <UsageCell usedBy={n.usedBy} />
-                </div>
-                <div className="flex w-8 shrink-0 justify-end">
-                  <ConfirmIconButton
-                    icon={<Trash2 />}
-                    label={t('containers.networks.delete')}
-                    actionLabel={t('containers.networks.delete')}
-                    title={t('containers.networks.confirmDelete.title')}
-                    description={
-                      <>
-                        <span className="font-medium text-gray-700 dark:text-gray-300">{n.name}</span>
-                        {' — '}
-                        {t('containers.networks.confirmDelete.description')}
-                      </>
-                    }
-                    disabled={predefined || n.usedBy.length > 0 || deletingId === n.id}
-                    onConfirm={() => void deleteNetwork(n.id)}
-                  />
-                </div>
+          {filteredNetworks.map((n) => (
+            <div
+              key={n.id}
+              className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
+            >
+              <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{n.name}</div>
+              <div className="w-24 shrink-0 truncate text-xs text-gray-500">{n.driver}</div>
+              <div className="w-20 shrink-0 truncate text-xs text-gray-500">{n.scope}</div>
+              <div className="w-24 shrink-0 text-right">
+                <UsageCell usedBy={n.usedBy} />
               </div>
-            )
-          })}
+              <div className="flex w-8 shrink-0 justify-end">
+                <ConfirmIconButton
+                  icon={<Trash2 />}
+                  label={t('containers.networks.delete')}
+                  actionLabel={t('containers.networks.delete')}
+                  title={t('containers.networks.confirmDelete.title')}
+                  description={
+                    <>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{n.name}</span>
+                      {' — '}
+                      {t('containers.networks.confirmDelete.description')}
+                    </>
+                  }
+                  disabled={n.usedBy.length > 0 || deletingId === n.id}
+                  onConfirm={() => void deleteNetwork(n.id)}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>

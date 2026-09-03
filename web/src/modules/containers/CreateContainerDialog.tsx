@@ -96,7 +96,7 @@ export function CreateContainerDialog({ open, onOpenChange }: { open: boolean; o
 
           <FormRow label={t('containers.create.networkMode')}>
             <Select value={networkMode} onValueChange={setNetworkMode}>
-              <SelectTrigger>
+              <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -111,7 +111,7 @@ export function CreateContainerDialog({ open, onOpenChange }: { open: boolean; o
 
           <FormRow label={t('containers.create.restartPolicy')}>
             <Select value={restartPolicy} onValueChange={(v) => setRestartPolicy(v as RestartPolicy)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
