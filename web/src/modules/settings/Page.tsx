@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { BookOpen, ChevronDown, GitFork, LogOut } from 'lucide-react'
+import { BookOpen, ChevronDown, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -18,6 +18,7 @@ import {
   type ThemeHue,
 } from '@/lib/theme'
 import { cn } from '@/lib/utils'
+import githubIcon from '@/assets/github.svg'
 import { getSystemInfo, type SystemInfo } from './api'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
@@ -213,7 +214,7 @@ export default function SettingsPage() {
         </Button>
       </Section>
 
-      <div className="grid grid-cols-2 border-t border-gray-200 pt-2 text-sm dark:border-gray-800">
+      <div className="grid grid-cols-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
           <a
             href="https://apanel.axogc.net"
             target="_blank"
@@ -227,9 +228,9 @@ export default function SettingsPage() {
             href="https://github.com/axogc/apanel"
             target="_blank"
             rel="noreferrer"
-            className="flex w-fit cursor-pointer items-center gap-1.5 justify-self-end text-theme-700 hover:underline dark:text-theme-300"
+            className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
           >
-            <GitFork className="size-4" />
+            <img src={githubIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
             GitHub
           </a>
       </div>
