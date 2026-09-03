@@ -3,17 +3,14 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
-import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { deleteFirewallRule, getFirewallStatus, type FirewallRule, type FirewallStatus } from './api'
-import { FirewallGrid } from './FirewallGrid'
 import { FirewallTable, FirewallTableHeader } from './FirewallTable'
 import { RuleDialog } from './RuleDialog'
 
 export default function FirewallPage() {
   const { t } = useI18n()
-  const dataLayout = useDataLayout()
   const [status, setStatus] = useState<FirewallStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,18 +74,13 @@ export default function FirewallPage() {
 
       {status && status.rules.length === 0 && <p className="text-sm text-gray-500">{t('firewall.empty')}</p>}
 
-      {status && status.rules.length > 0 && dataLayout === 'table' && (
+      {status && status.rules.length > 0 && (
         <div className="flex min-h-0 grow flex-col">
           <FirewallTableHeader />
           <ScrollArea className="min-h-0 grow">
             <FirewallTable rules={status.rules} deleting={deleting} onEdit={openEdit} onDelete={handleDelete} hideHeader />
           </ScrollArea>
         </div>
-      )}
-      {status && status.rules.length > 0 && dataLayout === 'grid' && (
-        <ScrollArea className="min-h-0 grow">
-          <FirewallGrid rules={status.rules} deleting={deleting} onEdit={openEdit} onDelete={handleDelete} />
-        </ScrollArea>
       )}
 
       <RuleDialog open={dialogOpen} onOpenChange={setDialogOpen} rule={editingRule} onSuccess={setStatus} />

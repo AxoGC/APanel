@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
-import { useDataLayout } from '@/lib/dataLayout'
 import { useI18n } from '@/lib/i18n'
 import {
   getServiceLogs,
@@ -18,12 +17,10 @@ import {
 } from './api'
 import { displayName } from './format'
 import { ServiceDetailDialog } from './ServiceDetailDialog'
-import { ServiceGrid } from './ServiceGrid'
 import { ServiceTable, ServiceTableHeader } from './ServiceTable'
 
 export default function ServicesPage() {
   const { t } = useI18n()
-  const dataLayout = useDataLayout()
   const [units, setUnits] = useState<ServiceUnit[] | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
@@ -93,7 +90,7 @@ export default function ServicesPage() {
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       {units && units.length === 0 && <p className="text-sm text-gray-500">{t('services.empty')}</p>}
-      {units && units.length > 0 && dataLayout === 'table' && (
+      {units && units.length > 0 && (
         <div className="flex min-h-0 grow flex-col">
           <ServiceTableHeader />
           <ScrollArea className="min-h-0 grow">
@@ -107,17 +104,6 @@ export default function ServicesPage() {
             />
           </ScrollArea>
         </div>
-      )}
-      {units && units.length > 0 && dataLayout === 'grid' && (
-        <ScrollArea className="min-h-0 grow">
-          <ServiceGrid
-            units={units}
-            pending={pending}
-            onAction={handleAction}
-            onShowLogs={setLogsFor}
-            onShowDetail={(u) => setDetailFor(u.name)}
-          />
-        </ScrollArea>
       )}
 
       <LogsDialog
