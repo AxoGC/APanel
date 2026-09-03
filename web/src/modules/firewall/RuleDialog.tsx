@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -15,9 +16,11 @@ import {
 
 type Protocol = Exclude<NewFirewallRule['protocol'], 'any'>
 type Family = 'ipv4' | 'ipv6'
+type FormMode = 'simple' | 'advanced'
 
 const PROTOCOLS: Protocol[] = ['tcp', 'udp']
 const ACTIONS: NewFirewallRule['action'][] = ['allow', 'deny', 'reject', 'limit']
+const SIMPLE_ACTIONS: NewFirewallRule['action'][] = ['allow', 'deny']
 
 function ToggleChip({
   active,
@@ -94,6 +97,13 @@ function formFromRule(rule: FirewallRule): FormState {
   }
 }
 
+function modeFromRule(rule: FirewallRule | null): FormMode {
+  if (!rule) return 'simple'
+  const action = rule.action.split(' ')[0].toLowerCase()
+  const hasSource = rule.from !== '' && rule.from !== 'Anywhere'
+  return action === 'reject' || action === 'limit' || !rule.ipv4 || !rule.ipv6 || hasSource ? 'advanced' : 'simple'
+}
+
 // Shared by both "add rule" and "edit rule" — passing `rule` switches the
 // dialog into edit mode (prefilled from it, PUT on submit); omitting it
 // (or passing null) is add mode (blank form, POST on submit).
@@ -110,20 +120,36 @@ export function RuleDialog({
 }) {
   const { t } = useI18n()
   const [form, setForm] = useState<FormState>(blankForm)
+  const [mode, setMode] = useState<FormMode>('simple')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setForm(rule ? formFromRule(rule) : blankForm())
+    setMode(modeFromRule(rule))
     setError(null)
   }, [open, rule])
+
+  function changeMode(nextMode: FormMode) {
+    setMode(nextMode)
+    if (nextMode === 'simple') {
+      setForm((current) => ({
+        ...current,
+        action: SIMPLE_ACTIONS.includes(current.action) ? current.action : 'allow',
+        families: new Set<Family>(['ipv4', 'ipv6']),
+        fromIPv4: '',
+        fromIPv6: '',
+      }))
+    }
+  }
 
   function toggleFamily(f: Family) {
     setForm((current) => {
       if (current.families.size === 1 && current.families.has(f)) return current
       const next = new Set(current.families)
-      next.has(f) ? next.delete(f) : next.add(f)
+      if (next.has(f)) next.delete(f)
+      else next.add(f)
       return { ...current, families: next }
     })
   }
@@ -132,7 +158,8 @@ export function RuleDialog({
     setForm((current) => {
       if (current.protocols.size === 1 && current.protocols.has(p)) return current
       const next = new Set(current.protocols)
-      next.has(p) ? next.delete(p) : next.add(p)
+      if (next.has(p)) next.delete(p)
+      else next.add(p)
       return { ...current, protocols: next }
     })
   }
@@ -146,12 +173,12 @@ export function RuleDialog({
         form.protocols.size === PROTOCOLS.length ? 'any' : form.protocols.has('tcp') ? 'tcp' : 'udp'
       const payload: NewFirewallRule = {
         action: form.action,
-        fromIPv4: form.families.has('ipv4') ? form.fromIPv4 : '',
-        fromIPv6: form.families.has('ipv6') ? form.fromIPv6 : '',
+        fromIPv4: mode === 'simple' ? '' : form.families.has('ipv4') ? form.fromIPv4 : '',
+        fromIPv6: mode === 'simple' ? '' : form.families.has('ipv6') ? form.fromIPv6 : '',
         port: form.port,
         protocol,
-        ipv4: form.families.has('ipv4'),
-        ipv6: form.families.has('ipv6'),
+        ipv4: mode === 'simple' || form.families.has('ipv4'),
+        ipv6: mode === 'simple' || form.families.has('ipv6'),
       }
       const status = rule ? await updateFirewallRule(rule.numbers, payload) : await addFirewallRule(payload)
       onSuccess(status)
@@ -169,11 +196,19 @@ export function RuleDialog({
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}</DialogTitle>
+            <SegmentedControl
+              value={mode}
+              onChange={changeMode}
+              options={[
+                { value: 'simple', label: t('firewall.mode.simple') },
+                { value: 'advanced', label: t('firewall.mode.advanced') },
+              ]}
+            />
           </DialogHeader>
 
           <FormRow label={t('firewall.addRule.action')}>
             <div className="flex flex-wrap justify-start gap-2">
-              {ACTIONS.map((a) => (
+              {(mode === 'simple' ? SIMPLE_ACTIONS : ACTIONS).map((a) => (
                 <ToggleChip key={a} active={form.action === a} onClick={() => setForm((c) => ({ ...c, action: a }))}>
                   {t(`firewall.action.${a}`)}
                 </ToggleChip>
@@ -183,7 +218,6 @@ export function RuleDialog({
 
           <FormRow label={t('firewall.addRule.port')}>
             <Input
-              autoFocus
               value={form.port}
               onChange={(e) => setForm((c) => ({ ...c, port: e.target.value }))}
               placeholder={t('firewall.addRule.port.placeholder')}
@@ -201,35 +235,39 @@ export function RuleDialog({
             </div>
           </FormRow>
 
-          <FormRow label={t('firewall.addRule.family')}>
-            <div className="flex justify-start gap-2">
-              <ToggleChip active={form.families.has('ipv4')} onClick={() => toggleFamily('ipv4')}>
-                {t('firewall.family.ipv4')}
-              </ToggleChip>
-              <ToggleChip active={form.families.has('ipv6')} onClick={() => toggleFamily('ipv6')}>
-                {t('firewall.family.ipv6')}
-              </ToggleChip>
-            </div>
-          </FormRow>
+          {mode === 'advanced' && (
+            <>
+              <FormRow label={t('firewall.addRule.family')}>
+                <div className="flex justify-start gap-2">
+                  <ToggleChip active={form.families.has('ipv4')} onClick={() => toggleFamily('ipv4')}>
+                    {t('firewall.family.ipv4')}
+                  </ToggleChip>
+                  <ToggleChip active={form.families.has('ipv6')} onClick={() => toggleFamily('ipv6')}>
+                    {t('firewall.family.ipv6')}
+                  </ToggleChip>
+                </div>
+              </FormRow>
 
-          {form.families.has('ipv4') && (
-            <FormRow label={t('firewall.addRule.from.ipv4')}>
-              <Input
-                value={form.fromIPv4}
-                onChange={(e) => setForm((c) => ({ ...c, fromIPv4: e.target.value }))}
-                placeholder={t('firewall.addRule.from.placeholder')}
-              />
-            </FormRow>
-          )}
+              {form.families.has('ipv4') && (
+                <FormRow label={t('firewall.addRule.from.ipv4')}>
+                  <Input
+                    value={form.fromIPv4}
+                    onChange={(e) => setForm((c) => ({ ...c, fromIPv4: e.target.value }))}
+                    placeholder={t('firewall.addRule.from.placeholder')}
+                  />
+                </FormRow>
+              )}
 
-          {form.families.has('ipv6') && (
-            <FormRow label={t('firewall.addRule.from.ipv6')}>
-              <Input
-                value={form.fromIPv6}
-                onChange={(e) => setForm((c) => ({ ...c, fromIPv6: e.target.value }))}
-                placeholder={t('firewall.addRule.from.placeholder')}
-              />
-            </FormRow>
+              {form.families.has('ipv6') && (
+                <FormRow label={t('firewall.addRule.from.ipv6')}>
+                  <Input
+                    value={form.fromIPv6}
+                    onChange={(e) => setForm((c) => ({ ...c, fromIPv6: e.target.value }))}
+                    placeholder={t('firewall.addRule.from.placeholder')}
+                  />
+                </FormRow>
+              )}
+            </>
           )}
 
           {error && <p className="text-xs text-red-600">{error}</p>}

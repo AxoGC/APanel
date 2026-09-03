@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { ServiceActionName, ServiceUnit } from './api'
-import { displayName, statusClasses, SUBSTATE_LABELS, UNIT_FILE_STATE_LABELS } from './format'
+import { displayName, statusClasses, SUBSTATE_LABELS } from './format'
 
 // Each unit is one grid cell (a card). The container uses the classic
 // gap-px + background trick so a 1px gray-100 line shows through between
@@ -28,7 +28,6 @@ export function ServiceGrid({
       {units.map((u) => {
         const busy = pending[u.name]
         const [dot, text] = statusClasses(u.subState)
-        const togglable = u.unitFileState === 'enabled' || u.unitFileState === 'disabled'
         return (
           <div
             key={u.name}
@@ -50,69 +49,54 @@ export function ServiceGrid({
 
             <div className="flex flex-row items-center justify-between gap-2">
               <span className="text-xs text-gray-500">{t('services.enablement')}</span>
-              {togglable ? (
-                <button
-                  type="button"
-                  disabled={!!busy}
-                  onClick={() => onAction(u.name, u.unitFileState === 'enabled' ? 'disable' : 'enable')}
-                  className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-gray-300"
-                >
-                  {UNIT_FILE_STATE_LABELS[u.unitFileState] ? t(UNIT_FILE_STATE_LABELS[u.unitFileState]) : u.unitFileState}
-                </button>
-              ) : (
-                <span className="text-xs text-gray-500">
-                  {UNIT_FILE_STATE_LABELS[u.unitFileState] ? t(UNIT_FILE_STATE_LABELS[u.unitFileState]) : u.unitFileState}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-row items-center justify-end gap-0.5">
-              <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => onShowLogs(u)}>
-                <ScrollText />
-              </Button>
-              {u.activeState !== 'active' && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t('services.start')}
-                  disabled={!!busy}
-                  onClick={() => onAction(u.name, 'start')}
-                >
-                  {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
+              <div className="flex flex-row items-center justify-end gap-0.5">
+                <Button variant="ghost" size="icon-sm" aria-label={t('services.logs')} onClick={() => onShowLogs(u)}>
+                  <ScrollText />
                 </Button>
-              )}
-              {u.activeState === 'active' && (
+                {u.activeState !== 'active' && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t('services.start')}
+                    disabled={!!busy}
+                    onClick={() => onAction(u.name, 'start')}
+                  >
+                    {busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}
+                  </Button>
+                )}
+                {u.activeState === 'active' && (
+                  <ConfirmIconButton
+                    icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
+                    label={t('services.stop')}
+                    actionLabel={t('services.stop')}
+                    title={t('services.confirmStop.title')}
+                    description={
+                      <>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{displayName(u.name)}</span>
+                        {' — '}
+                        {t('services.confirmStop.description')}
+                      </>
+                    }
+                    disabled={!!busy}
+                    onConfirm={() => onAction(u.name, 'stop')}
+                  />
+                )}
                 <ConfirmIconButton
-                  icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />}
-                  label={t('services.stop')}
-                  actionLabel={t('services.stop')}
-                  title={t('services.confirmStop.title')}
+                  icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />}
+                  label={t('services.restart')}
+                  actionLabel={t('services.restart')}
+                  title={t('services.confirmRestart.title')}
                   description={
                     <>
                       <span className="font-medium text-gray-700 dark:text-gray-300">{displayName(u.name)}</span>
                       {' — '}
-                      {t('services.confirmStop.description')}
+                      {t('services.confirmRestart.description')}
                     </>
                   }
                   disabled={!!busy}
-                  onConfirm={() => onAction(u.name, 'stop')}
+                  onConfirm={() => onAction(u.name, 'restart')}
                 />
-              )}
-              <ConfirmIconButton
-                icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />}
-                label={t('services.restart')}
-                actionLabel={t('services.restart')}
-                title={t('services.confirmRestart.title')}
-                description={
-                  <>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{displayName(u.name)}</span>
-                    {' — '}
-                    {t('services.confirmRestart.description')}
-                  </>
-                }
-                disabled={!!busy}
-                onConfirm={() => onAction(u.name, 'restart')}
-              />
+              </div>
             </div>
           </div>
         )
