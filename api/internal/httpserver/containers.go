@@ -82,6 +82,15 @@ func (s *Server) deleteContainerImages(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, nil)
 }
 
+func (s *Server) listContainerImageTags(w http.ResponseWriter, r *http.Request) {
+	tags, err := s.containers.ListImageTags(r.Context())
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, tags)
+}
+
 func (s *Server) listContainerNetworks(w http.ResponseWriter, r *http.Request) {
 	networks, err := s.containers.ListNetworks(r.Context())
 	if err != nil {

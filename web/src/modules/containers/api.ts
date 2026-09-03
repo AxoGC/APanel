@@ -40,6 +40,10 @@ export function listContainerImages() {
   return apiFetch<ContainerImage[]>('/containers/images')
 }
 
+export function listContainerImageTags() {
+  return apiFetch<string[]>('/containers/images/tags')
+}
+
 export function deleteContainerImages(ids: string[]) {
   return apiFetch<null>('/containers/images/delete', {
     method: 'POST',

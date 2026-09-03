@@ -1,4 +1,4 @@
-import { Images, Network, Search } from 'lucide-react'
+import { Images, Network, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { LogsDialog } from '@/components/LogsDialog'
@@ -17,6 +17,7 @@ import {
   type StatusFilter,
 } from './api'
 import { ContainerGrid } from './ContainerGrid'
+import { CreateContainerDialog } from './CreateContainerDialog'
 import { ImageManagerDialog } from './ImageManagerDialog'
 import { NetworkManagerDialog } from './NetworkManagerDialog'
 import { ContainerTable } from './ContainerTable'
@@ -32,6 +33,7 @@ export default function ContainersPage() {
   const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
   const [imagesOpen, setImagesOpen] = useState(false)
   const [networksOpen, setNetworksOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -97,6 +99,10 @@ export default function ContainersPage() {
             <Network />
             {t('containers.networks')}
           </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus />
+            {t('containers.create')}
+          </Button>
         </div>
       </div>
 
@@ -123,6 +129,7 @@ export default function ContainersPage() {
       />
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
+      <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   )
 }

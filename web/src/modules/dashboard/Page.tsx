@@ -1,22 +1,13 @@
 import { useMemo, useState } from 'react'
+import { ToggleButton } from '@/components/ToggleButton'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
-import { cn } from '@/lib/utils'
 import { Gauge } from './Gauge'
 import { buildProcessForest, type ProcessNode } from './processTree'
 import { ProcessDetailDialog } from './ProcessDetailDialog'
 import { ProcessGrid } from './ProcessGrid'
 import { useDashboardStream, type ProcessSort } from './useDashboardStream'
-
-function toggleButtonClasses(active: boolean) {
-  return cn(
-    'cursor-pointer rounded-md border px-2.5 py-1 text-xs transition-colors',
-    active
-      ? 'border-theme-200 bg-theme-50 text-theme-700 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300'
-      : 'border-gray-200 text-gray-500 hover:text-gray-700 dark:border-gray-800 dark:hover:text-gray-300',
-  )
-}
 
 export default function DashboardPage() {
   const { t } = useI18n()
@@ -86,18 +77,13 @@ export default function DashboardPage() {
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
           <div className="flex items-center gap-4">
-            <button type="button" aria-pressed={tree} onClick={() => setTree((v) => !v)} className={toggleButtonClasses(tree)}>
+            <ToggleButton active={tree} onClick={() => setTree((v) => !v)}>
               {t('dashboard.tree')}
-            </button>
+            </ToggleButton>
             {tree && (
-              <button
-                type="button"
-                aria-pressed={allExpanded}
-                onClick={toggleExpandAll}
-                className={toggleButtonClasses(allExpanded)}
-              >
+              <ToggleButton active={allExpanded} onClick={toggleExpandAll}>
                 {t('dashboard.expandAll')}
-              </button>
+              </ToggleButton>
             )}
             <SegmentedControl
               value={sort}

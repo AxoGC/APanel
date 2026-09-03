@@ -203,6 +203,25 @@ func (m *Manager) ListImages(ctx context.Context) ([]Image, error) {
 	return images, nil
 }
 
+// ListImageTags returns every "repo:tag" reference across local images —
+// unlike ListImages's Name (which joins all of an image's tags into one
+// display string), this is flattened so each is usable on its own as a
+// container-create image reference. Untagged (<none>) images are excluded.
+func (m *Manager) ListImageTags(ctx context.Context) ([]string, error) {
+	raw, err := m.cli.ImageList(ctx, image.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]string, 0, len(raw))
+	for _, item := range raw {
+		tags = append(tags, item.RepoTags...)
+	}
+
+	sort.Strings(tags)
+	return tags, nil
+}
+
 // ListNetworks returns Docker networks together with the containers
 // attached to each one.
 func (m *Manager) ListNetworks(ctx context.Context) ([]Network, error) {
