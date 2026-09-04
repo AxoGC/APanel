@@ -19,11 +19,11 @@ function DelayLabel({ delay }: { delay: number }) {
 export function ProxyTableHeader() {
   const { t } = useI18n()
   return (
-    <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
+    <div className="flex items-center gap-1 border-b border-gray-200 pb-1.5 sm:gap-3 dark:border-gray-800">
       <div className="w-5 shrink-0" />
       <div className="min-w-0 flex-1 text-xs text-gray-500">{t('proxy.column.name')}</div>
-      <div className="w-20 shrink-0 truncate text-xs text-gray-500 sm:w-28">{t('proxy.column.type')}</div>
-      <div className="w-12 shrink-0 truncate text-right text-xs text-gray-500 sm:w-16">{t('proxy.column.delay')}</div>
+      <div className="w-20 shrink-0 text-xs text-gray-500 sm:w-28">{t('proxy.column.type')}</div>
+      <div className="w-12 shrink-0 text-right text-xs text-gray-500 sm:w-16">{t('proxy.column.delay')}</div>
     </div>
   )
 }
@@ -53,7 +53,7 @@ export function ProxyTable({
             disabled={busy}
             onClick={() => onSelect(opt.name)}
             className={cn(
-              'flex w-full cursor-pointer items-center gap-3 px-2 py-2 text-left hover:bg-gray-100 disabled:cursor-default dark:hover:bg-gray-800',
+              'flex w-full cursor-pointer items-center gap-1 px-2 py-2 text-left hover:bg-gray-100 disabled:cursor-default sm:gap-3 dark:hover:bg-gray-800',
               selected && 'bg-theme-50 dark:bg-theme-950',
             )}
           >
@@ -68,8 +68,8 @@ export function ProxyTable({
             >
               {opt.name}
             </div>
-            <div className="w-20 shrink-0 truncate text-xs text-gray-500 sm:w-28">{opt.type}</div>
-            <div className="w-12 shrink-0 truncate text-right text-xs sm:w-16">
+            <div className="w-20 shrink-0 text-xs text-gray-500 sm:w-28">{opt.type}</div>
+            <div className="w-12 shrink-0 text-right text-xs sm:w-16">
               <DelayLabel delay={opt.delay} />
             </div>
           </button>
