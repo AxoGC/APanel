@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { useLayout } from '@/lib/layout'
 import { cn } from '@/lib/utils'
 import {
   addFirewallRule,
@@ -120,6 +121,7 @@ export function RuleDialog({
   onSuccess: (status: FirewallStatus) => void
 }) {
   const { t } = useI18n()
+  const { touch } = useLayout()
   const [form, setForm] = useState<FormState>(blankForm)
   const [mode, setMode] = useState<FormMode>('simple')
   const [error, setError] = useState<string | null>(null)
@@ -198,7 +200,7 @@ export function RuleDialog({
       title={rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}
       className="h-[85vh]"
       onOpenAutoFocus={(event) => {
-        if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
+        if (touch) event.preventDefault()
       }}
       footer={
         <div className="flex justify-end gap-2">

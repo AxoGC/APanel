@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { apiFetch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { useLayout } from '@/lib/layout'
 
 type Shell = 'bash' | 'sh' | 'zsh' | 'fish'
 type ThemeMode = 'light' | 'dark' | 'app'
@@ -55,6 +56,7 @@ function shellQuote(value: string) {
 
 export default function TerminalPage() {
   const { t } = useI18n()
+  const { touch } = useLayout()
   const containerRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const [terminalInstance, setTerminalInstance] = useState<Terminal | null>(null)
@@ -95,9 +97,9 @@ export default function TerminalPage() {
     socket.onopen = () => {
       setConnectionState('connected')
       resize()
-      // On phones, focusing xterm on entry opens the virtual keyboard and
-      // obscures the screen before the operator has chosen to type.
-      if (window.matchMedia('(min-width: 768px)').matches) terminal.focus()
+      // On touch devices, focusing xterm on entry opens the virtual keyboard
+      // and obscures the screen before the operator has chosen to type.
+      if (!touch) terminal.focus()
     }
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) terminal.write(new Uint8Array(event.data))

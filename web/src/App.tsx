@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
+import { LayoutProvider } from '@/lib/layout'
 import ContainersPage from '@/modules/containers/Page'
 import DashboardPage from '@/modules/dashboard/Page'
 import DatabasePage from '@/modules/database/Page'
@@ -65,13 +66,15 @@ function Shell() {
 export default function App() {
   return (
     <I18nProvider>
-      <AuthProvider>
-        <FeaturesProvider>
-          <BrowserRouter>
-            <Shell />
-          </BrowserRouter>
-        </FeaturesProvider>
-      </AuthProvider>
+      <LayoutProvider>
+        <AuthProvider>
+          <FeaturesProvider>
+            <BrowserRouter>
+              <Shell />
+            </BrowserRouter>
+          </FeaturesProvider>
+        </AuthProvider>
+      </LayoutProvider>
     </I18nProvider>
   )
 }

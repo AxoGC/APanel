@@ -1,8 +1,9 @@
 import * as echarts from 'echarts/core'
 import { GaugeChart } from 'echarts/charts'
 import { CanvasRenderer } from 'echarts/renderers'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useThemeColors } from '@/lib/chartColors'
+import { useLayout } from '@/lib/layout'
 
 echarts.use([GaugeChart, CanvasRenderer])
 
@@ -31,13 +32,7 @@ export function Gauge({
   // Matches Tailwind's sm breakpoint — the same one the details text and
   // container height already key off — so the main number shrinks in step
   // with everything else around it on narrow screens.
-  const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 639px)').matches)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px)')
-    const handler = () => setIsNarrow(mq.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
+  const { isNarrow } = useLayout()
 
   useEffect(() => {
     if (!containerRef.current) return

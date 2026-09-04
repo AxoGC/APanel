@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError } from '@/lib/api'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
+import { useLayout } from '@/lib/layout'
 import { createContainer, listContainerImageTags, listContainerNetworks, type ContainerNetwork } from './api'
 
 // Lets the footer's submit button (rendered as a sibling of the form, not a
@@ -54,6 +55,7 @@ export function CreateContainerDialog({
   onCreated: () => void
 }) {
   const { t } = useI18n()
+  const { touch } = useLayout()
 
   const [name, setName] = useState('')
   const [image, setImage] = useState('')
@@ -119,7 +121,7 @@ export function CreateContainerDialog({
       title={t('containers.create.title')}
       className="h-[85vh] max-w-lg"
       onOpenAutoFocus={(event) => {
-        if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
+        if (touch) event.preventDefault()
       }}
       footer={
         <div className="flex justify-end gap-2">
