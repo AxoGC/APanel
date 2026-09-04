@@ -433,7 +433,7 @@ export default function FilesPage() {
             value={preview.content}
             onChange={(e) => setPreview({ status: 'text', content: e.target.value })}
             spellCheck={false}
-            className="scrollbar-shadcn h-full min-h-0 w-full resize-none overscroll-contain rounded-lg border border-input bg-transparent p-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            className="h-full min-h-0 w-full resize-none bg-transparent font-mono text-xs outline-none"
           />
         )}
       </SectionedDialog>
