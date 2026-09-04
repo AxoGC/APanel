@@ -1,18 +1,18 @@
-# Apanel
+# APanel
 
 APanel 是一个移动端优先、Linux原生、轻量级的Web运维面板，受到1Panel启发。
 
 [文档：apanel.axogc.net](https://apanel.axogc.net)
 
-> Apanel 目前仍处于早期开发阶段，接口、配置和功能可能继续调整。
+> APanel 目前仍处于早期开发阶段，接口、配置和功能可能继续调整。
 
 ### 名称由来
 
-`Apanel` 的命名灵感借鉴 1Panel：`1` 是第一个阿拉伯数字，`A` 是第一个英文字母。
+`APanel` 的命名灵感借鉴 1Panel：`1` 是第一个阿拉伯数字，`A` 是第一个英文字母。
 
 `A` 也代表作者创立的 [Axolotland Gaming Club（AxoGC）](https://www.axogc.net)，一个致力于开源软件、独立游戏、Minecraft服务器的非盈利圈子。
 
-### Apanel 特点
+### APanel 特点
 
 - **移动端优先**：优先为手机端做界面适配，方便不在电脑前时，快速查看服务状态，进行服务启停。
 - **Linux原生**：暴露Linux基础概念，包括进程、systemd服务、Docker容器等，不做“应用”等高层抽象，适合有一定Linux经验的用户。
@@ -21,10 +21,10 @@ APanel 是一个移动端优先、Linux原生、轻量级的Web运维面板，�
 
 ### 为什么移动端优先？
 
-如果电脑就在身边，完全可以用SSH和键盘进行更高效、更灵活的运维，没有理由去用Web面板。
-APanel的存在，就是为了解决：运维人不在电脑前，希望通过手机查看服务器占用、服务状态、执行启动/停止/重启等简单操作的场景。
-Termux/Termius等工具当然也能用，但在手机上输命令不是很方便。
-因此，Apanel 优先适配移动端：让常见状态可以快速浏览，让高频操作可以通过少量点击完成，同时保留 Web 终端处理特殊情况。
+- 如果电脑就在身边，完全可以用SSH和键盘进行更高效、更灵活的运维，没有理由去用Web面板。
+- APanel的存在，就是为了解决：运维人不在电脑前，希望通过手机查看服务器占用、服务状态、执行启动/停止/重启等简单操作的场景。
+- Termux/Termius等工具当然也能用，但在手机上输命令不是很方便。
+- 因此，APanel 优先适配移动端：让常见状态可以快速浏览，让高频操作可以通过少量点击完成，同时保留 Web 终端处理特殊情况。
 
 ## 1. 和1Panel的关系
 
@@ -130,11 +130,11 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 
 ### 3.1 系统要求
 
-Apanel 面向使用 systemd 的 Linux 发行版，目前需要：
+APanel 面向使用 systemd 的 Linux 发行版，目前需要：
 
 - systemd 和可用的系统 D-Bus；
 - 一个受支持的数据库，默认使用 SQLite；
-- HTTPS，可选择由 Apanel 直接终止 TLS，或由反向代理终止 TLS；
+- HTTPS，可选择由 APanel 直接终止 TLS，或由反向代理终止 TLS；
 - Bash，用作 Web 终端的默认 shell。
 
 下列组件是可选的：
@@ -191,7 +191,7 @@ APANEL_PASSWORD=请替换为一个足够长的随机密码
 APANEL_LISTEN_ADDR=127.0.0.1:8080
 APANEL_DSN=sqlite:///var/lib/apanel/apanel.db
 
-# 仅在“Apanel 直接终止 TLS”方案中设置；两项必须同时设置。
+# 仅在“APanel 直接终止 TLS”方案中设置；两项必须同时设置。
 #APANEL_TLS_CERT=/etc/letsencrypt/live/panel.example.com/fullchain.pem
 #APANEL_TLS_KEY=/etc/letsencrypt/live/panel.example.com/privkey.pem
 ```
@@ -218,7 +218,7 @@ sudo chmod 600 /etc/apanel/config.env
 
 ```ini
 [Unit]
-Description=Apanel server management panel
+Description=APanel server management panel
 After=network.target
 
 [Service]
@@ -233,7 +233,7 @@ RestartSec=3
 WantedBy=multi-user.target
 ```
 
-当前阶段的 Apanel 需要管理 systemd、文件、防火墙、Docker 和本机终端，因此该服务默认以 root 身份运行。请阅读后面的安全说明。
+当前阶段的 APanel 需要管理 systemd、文件、防火墙、Docker 和本机终端，因此该服务默认以 root 身份运行。请阅读后面的安全说明。
 
 重新加载 systemd 并启动服务：
 
@@ -251,13 +251,13 @@ sudo journalctl -u apanel -f
 
 ### 3.6 启用 HTTPS：二选一
 
-Apanel 必须通过 HTTPS 使用。请选择以下一种方式；不需要同时配置两者。
+APanel 必须通过 HTTPS 使用。请选择以下一种方式；不需要同时配置两者。
 
-#### 方式 A：由 Apanel 直接终止 TLS
+#### 方式 A：由 APanel 直接终止 TLS
 
-适合不需要反向代理、愿意让 Apanel 直接监听 HTTPS 端口的部署。
+适合不需要反向代理、愿意让 APanel 直接监听 HTTPS 端口的部署。
 
-此方式下，普通 HTTP API 与 Web 终端 WebSocket 都由 Apanel 的同一个 HTTPS 监听器直接提供，无需额外的 WebSocket 配置。
+此方式下，普通 HTTP API 与 Web 终端 WebSocket 都由 APanel 的同一个 HTTPS 监听器直接提供，无需额外的 WebSocket 配置。
 
 在 `/etc/apanel/config.env` 中设置证书、私钥和 HTTPS 监听地址：
 
@@ -274,7 +274,7 @@ sudo systemctl restart apanel
 sudo systemctl status apanel
 ```
 
-证书续期后，重启 Apanel 以重新加载证书：
+证书续期后，重启 APanel 以重新加载证书：
 
 ```bash
 sudo systemctl restart apanel
@@ -284,7 +284,7 @@ sudo systemctl restart apanel
 
 适合已经使用 Nginx、希望在同一个反向代理中统一管理证书和站点的部署。
 
-保持 `APANEL_TLS_CERT` 与 `APANEL_TLS_KEY` 留空，并让 Apanel 只监听本机回环地址：
+保持 `APANEL_TLS_CERT` 与 `APANEL_TLS_KEY` 留空，并让 APanel 只监听本机回环地址：
 
 ```ini
 APANEL_LISTEN_ADDR=127.0.0.1:8080
@@ -343,7 +343,7 @@ sudo systemctl reload nginx
 
 ## 4. 手动升级
 
-Apanel 不会自动下载或安装更新。升级由管理员自行控制：
+APanel 不会自动下载或安装更新。升级由管理员自行控制：
 
 1. 从 GitHub Releases 下载新版本并验证校验值；
 2. 备份 `/etc/apanel/config.env` 和数据库；
@@ -439,18 +439,18 @@ apanel/
 
 ## 8. 安全说明
 
-Apanel 是高权限管理工具，不是普通网站。
+APanel 是高权限管理工具，不是普通网站。
 
 - 当前阶段服务默认以 root 身份运行。
 - 登录用户可以操作 systemd 服务、Docker、文件、防火墙和本机终端。
-- Web 终端实际执行的是服务器命令，权限与 Apanel 进程相同。
+- Web 终端实际执行的是服务器命令，权限与 APanel 进程相同。
 - 必须通过 HTTPS 部署，避免密码和会话被窃取。
 - 请使用足够长的随机密码，并妥善保护 `/etc/apanel/config.env`。
 - 建议通过 VPN、访问控制列表或可信反向代理限制访问来源。
 - 不建议将未采取额外安全措施的实例直接暴露到公网。
 - 执行升级、删除文件、删除镜像或修改防火墙前，请先做好备份并确认影响范围。
 
-Apanel 当前采用单管理员密码和 Cookie Session，不提供多用户、角色或细粒度权限系统。
+APanel 当前采用单管理员密码和 Cookie Session，不提供多用户、角色或细粒度权限系统。
 
 ## 9. 设计原则
 
