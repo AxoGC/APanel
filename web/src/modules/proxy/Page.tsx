@@ -1,7 +1,18 @@
 import { Gauge, Loader2, Plug } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { DependencyDialog } from '@/components/DependencyDialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ApiError } from '@/lib/api'
@@ -21,6 +32,19 @@ import {
 } from './api'
 import { ProxyTable, ProxyTableHeader } from './ProxyTable'
 
+// Persisted client-side only — "don't ask again" opts out of the confirm
+// dialog for this browser, not the account/server.
+const SKIP_SWITCH_CONFIRM_KEY = 'apanel:proxy-skip-switch-confirm'
+
+function getSkipSwitchConfirm(): boolean {
+  return localStorage.getItem(SKIP_SWITCH_CONFIRM_KEY) === '1'
+}
+
+function setSkipSwitchConfirm(value: boolean) {
+  if (value) localStorage.setItem(SKIP_SWITCH_CONFIRM_KEY, '1')
+  else localStorage.removeItem(SKIP_SWITCH_CONFIRM_KEY)
+}
+
 export default function ProxyPage() {
   const { t } = useI18n()
   const { dialogOpen, setDialogOpen } = useDependencyGate('proxy')
@@ -33,6 +57,8 @@ export default function ProxyPage() {
   const [pendingSelect, setPendingSelect] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
   const delaySourceRef = useRef<EventSource | null>(null)
+  const [switchTarget, setSwitchTarget] = useState<{ group: string; name: string } | null>(null)
+  const [dontAskAgain, setDontAskAgain] = useState(false)
 
   function stopDelayTest() {
     delaySourceRef.current?.close()
@@ -94,9 +120,7 @@ export default function ProxyPage() {
     loadGroup(name)
   }
 
-  async function handleSelect(name: string) {
-    const activeGroup = overview?.mode === 'global' ? 'GLOBAL' : selectedGroup
-    if (!activeGroup) return
+  async function switchProxy(activeGroup: string, name: string) {
     setPendingSelect(name)
     setError(null)
     try {
@@ -106,6 +130,24 @@ export default function ProxyPage() {
     } finally {
       setPendingSelect(null)
     }
+  }
+
+  function handleSelect(name: string) {
+    const activeGroup = overview?.mode === 'global' ? 'GLOBAL' : selectedGroup
+    if (!activeGroup) return
+    if (getSkipSwitchConfirm()) {
+      void switchProxy(activeGroup, name)
+      return
+    }
+    setDontAskAgain(false)
+    setSwitchTarget({ group: activeGroup, name })
+  }
+
+  function confirmSwitch() {
+    if (!switchTarget) return
+    if (dontAskAgain) setSkipSwitchConfirm(true)
+    void switchProxy(switchTarget.group, switchTarget.name)
+    setSwitchTarget(null)
   }
 
   function handleTestDelay() {
@@ -231,11 +273,33 @@ export default function ProxyPage() {
           <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             {group && group.options.length === 0 && <p className="p-2 text-sm text-gray-500">{t('proxy.empty')}</p>}
             {group && group.options.length > 0 && (
-              <ProxyTable options={group.options} now={group.now} pending={pendingSelect} onSelect={(name) => void handleSelect(name)} />
+              <ProxyTable options={group.options} now={group.now} pending={pendingSelect} onSelect={handleSelect} />
             )}
           </ScrollArea>
         </>
       )}
+
+      <AlertDialog open={switchTarget !== null} onOpenChange={(open) => !open && setSwitchTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('proxy.confirmSwitch.title', { name: switchTarget?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogDescription>{t('proxy.confirmSwitch.description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <Checkbox checked={dontAskAgain} onCheckedChange={(v) => setDontAskAgain(v === true)} />
+            {t('proxy.confirmSwitch.dontAskAgain')}
+          </label>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSwitch}
+              className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+            >
+              {t('proxy.confirmSwitch.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DependencyDialog moduleKey="proxy" open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
