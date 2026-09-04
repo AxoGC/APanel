@@ -71,7 +71,7 @@ export function Nav() {
     <nav className="relative shrink-0 border-t border-gray-200 md:flex md:w-auto md:flex-col md:border-t-0 md:border-r dark:border-gray-800">
       <div className="hidden h-14 items-center justify-center md:flex">
         <span className="text-lg font-semibold italic text-theme-700 dark:text-theme-300">
-          {collapsed ? 'A' : 'Apanel'}
+          {collapsed ? 'AP' : 'APanel'}
         </span>
       </div>
 
