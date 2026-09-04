@@ -50,6 +50,10 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 - 支持亮色、暗色和可切换的主题色。
 - 支持中文和英文。
 
+<p align="center">
+  <img src="assets/screenshots/mobile-first.webp" width="240" alt="移动端优先 - 移动端">
+</p>
+
 ### 仪表盘与进程查看器
 
 - 从 Linux `/proc` 读取 CPU、内存、交换空间、网络和进程数据。
@@ -57,6 +61,10 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 - 支持按 CPU 或内存排序。
 - 支持平铺和进程树两种查看方式。
 - 进程树可以收缩子进程，并统计收缩后整个子树的资源占用。
+
+<p align="center">
+  <img src="assets/screenshots/dashboard.webp" width="240" alt="仪表盘与进程查看器 - 移动端">
+</p>
 
 ### systemd 服务管理
 
@@ -67,12 +75,20 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 
 systemd 服务和 Docker 容器是两个独立模块，Apanel 不会将它们合并成一个抽象的“应用”类型。
 
+<p align="center">
+  <img src="assets/screenshots/services.webp" width="240" alt="systemd 服务管理 - 移动端">
+</p>
+
 ### 文件管理
 
 - 浏览目录和文件。
 - 新建文件夹、上传、下载、重命名和删除文件。
 - 支持多选和批量删除。
 - 支持文本文件预览和编辑。
+
+<p align="center">
+  <img src="assets/screenshots/files.webp" width="240" alt="文件管理 - 移动端">
+</p>
 
 ### Docker 容器与镜像管理
 
@@ -86,6 +102,24 @@ systemd 服务和 Docker 容器是两个独立模块，Apanel 不会将它们合
 
 Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项会自动隐藏。
 
+<p align="center">
+  <img src="assets/screenshots/containers.webp" width="240" alt="Docker 容器与镜像管理 - 移动端">
+</p>
+
+### 数据库管理
+
+- 连接一个已有的 PostgreSQL 实例并浏览其内容，不是 Apanel 自身的数据存储。
+- 查看数据库列表，以及每个数据库的表数量和占用空间。
+- 查看单个数据库内每张表的行数和大小。
+- 体积、行数等需要扫描数据计算的统计信息会缓存一段时间，避免频繁查询影响数据库性能。
+- 目前仅支持 PostgreSQL，且仅提供只读查看，暂不支持通过面板增删改数据。
+
+数据库管理是可选扩展模块，需要在设置中手动启用并填写连接信息后使用。
+
+<p align="center">
+  <img src="assets/screenshots/database.webp" width="240" alt="数据库管理 - 移动端">
+</p>
+
 ### 历史状态
 
 - 通过 `sysstat` 提供的 `sadf` 读取结构化历史数据。
@@ -93,6 +127,10 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 - 可以分别配置采集开关、采集间隔和保留天数。
 
 目前没有内置采集回退方案；主机未安装 `sadf` 时，历史状态模块会自动隐藏。
+
+<p align="center">
+  <img src="assets/screenshots/history.webp" width="240" alt="历史状态 - 移动端">
+</p>
 
 ### 防火墙管理
 
@@ -103,6 +141,23 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 
 主机未安装 UFW 时，防火墙模块会自动隐藏。
 
+<p align="center">
+  <img src="assets/screenshots/firewall.webp" width="240" alt="防火墙管理 - 移动端">
+</p>
+
+### 代理设置
+
+- 通过 clash/mihomo 的外部控制器 API 管理代理，不内置或调用某个特定的代理客户端。
+- 支持切换全局、规则、直连三种代理模式。
+- 规则模式下可以按策略组查看和切换当前使用的节点。
+- 支持对策略组内的节点批量测速。
+
+代理设置是可选扩展模块，需要在设置中手动启用并填写控制器地址后使用。
+
+<p align="center">
+  <img src="assets/screenshots/proxy.webp" width="240" alt="代理设置 - 移动端">
+</p>
+
 ### Web 终端
 
 - 前端使用 xterm.js。
@@ -110,6 +165,10 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 - 默认使用 Bash，也可以切换到 sh、zsh 或 fish。
 - 终端主题支持亮色、暗色和跟随应用。
 - 提供当前目录的文件夹快捷列表，点击后执行 `cd`，不会自动执行 `ls`。
+
+<p align="center">
+  <img src="assets/screenshots/terminal.webp" width="240" alt="Web 终端 - 移动端">
+</p>
 
 ## 3. 安装
 
