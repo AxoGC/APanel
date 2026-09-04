@@ -29,6 +29,7 @@ export const UNIT_FILE_STATE_LABELS: Record<string, TranslationKey> = {
   disabled: 'services.unitFileState.disabled',
   masked: 'services.unitFileState.masked',
   'enabled-runtime': 'services.unitFileState.enabledRuntime',
+  indirect: 'services.unitFileState.indirect',
   bad: 'services.unitFileState.bad',
 }
 
