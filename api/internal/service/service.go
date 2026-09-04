@@ -87,6 +87,18 @@ func (m *Manager) invalidateUnitFiles() {
 	m.mu.Unlock()
 }
 
+// templateUnitFileName maps a template instance's unit name (e.g.
+// "postgres@18-main.service") to its template's on-disk file name (e.g.
+// "postgres@.service"), which is what ListUnitFilesContext reports the
+// enablement state under. Names without "@" are returned unchanged.
+func templateUnitFileName(name string) string {
+	at := strings.IndexByte(name, '@')
+	if at < 0 {
+		return name
+	}
+	return name[:at+1] + filepath.Ext(name)
+}
+
 // List returns .service units. With states set, it filters at the D-Bus
 // level via systemd's own ListUnitsFiltered (e.g. []string{"running"}) — this
 // only sees units systemd currently has loaded. With states empty, it falls
@@ -113,13 +125,21 @@ func (m *Manager) List(ctx context.Context, states []string) ([]Unit, error) {
 			if !strings.HasSuffix(st.Name, ".service") {
 				continue
 			}
+			state := enablement[st.Name]
+			if state == "" {
+				// Template instances (e.g. postgres@18-main.service) have no
+				// unit file of their own — only the template
+				// (postgresql@.service) is on disk, so fall back to its
+				// enablement.
+				state = enablement[templateUnitFileName(st.Name)]
+			}
 			units = append(units, Unit{
 				Name:          st.Name,
 				Description:   st.Description,
 				LoadState:     st.LoadState,
 				ActiveState:   st.ActiveState,
 				SubState:      st.SubState,
-				UnitFileState: enablement[st.Name],
+				UnitFileState: state,
 			})
 		}
 		sort.Slice(units, func(i, j int) bool { return units[i].Name < units[j].Name })
