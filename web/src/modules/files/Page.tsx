@@ -1,5 +1,5 @@
 import { ArrowUp, Eye, FolderPlus, Loader2, Search, Trash2, Upload } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ToggleButton } from '@/components/ToggleButton'
 import {
   AlertDialog,
@@ -58,6 +58,22 @@ function parentOf(dir: string): string | null {
 
 const PATH_STORAGE_KEY = 'apanel:files-path'
 
+// The preview dialog has no horizontal chrome (its body has no padding)
+// and a header a bit under 4rem tall, so the desktop image box is capped
+// against the viewport minus that allowance to keep the whole dialog
+// on-screen.
+const PREVIEW_HEADER_ALLOWANCE = 64
+
+// Scales (naturalWidth, naturalHeight) down (never up) by the same factor
+// on both axes so the result fits within (maxWidth, maxHeight) while
+// exactly preserving the image's aspect ratio — unlike capping width and
+// height independently, which can leave a box whose ratio no longer
+// matches the image once one axis clamps before the other.
+function fitWithinBox(naturalWidth: number, naturalHeight: number, maxWidth: number, maxHeight: number) {
+  const scale = Math.min(1, maxWidth / naturalWidth, maxHeight / naturalHeight)
+  return { width: naturalWidth * scale, height: naturalHeight * scale }
+}
+
 export default function FilesPage() {
   const { t } = useI18n()
   const [path, setPath] = useState(() => localStorage.getItem(PATH_STORAGE_KEY) || '/')
@@ -76,6 +92,7 @@ export default function FilesPage() {
   const [previewTarget, setPreviewTarget] = useState<FileEntry | null>(null)
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [savingPreview, setSavingPreview] = useState(false)
+  const [viewportSize, setViewportSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
 
   const [confirmDeletePaths, setConfirmDeletePaths] = useState<string[] | null>(null)
 
@@ -102,6 +119,15 @@ export default function FilesPage() {
   useEffect(() => {
     if (mobileSearchOpen) searchInputRef.current?.focus()
   }, [mobileSearchOpen])
+
+  // Tracked for the page's whole lifetime, not just while an image preview
+  // is open — a resize that happens before the preview opens must still be
+  // picked up, since the desktop preview box is sized against this value.
+  useEffect(() => {
+    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const filtered = useMemo(() => {
     if (!entries) return []
@@ -238,6 +264,19 @@ export default function FilesPage() {
   }
 
   const parent = parentOf(path)
+
+  // Desktop: shrink-wrap the dialog to the image, capped to the viewport.
+  // Below the md breakpoint the dialog's width is fixed instead (see
+  // SectionedDialog's className below), so there's nothing to compute.
+  const previewBox =
+    preview?.status === 'image' && viewportSize.w >= 768
+      ? fitWithinBox(
+          preview.width,
+          preview.height,
+          viewportSize.w * 0.9,
+          viewportSize.h * 0.85 - PREVIEW_HEADER_ALLOWANCE,
+        )
+      : null
 
   return (
     <div className="flex h-full flex-col">
@@ -397,7 +436,10 @@ export default function FilesPage() {
           }
         }}
         title={previewTarget?.name ?? ''}
-        className={cn('max-w-2xl overflow-hidden', preview?.status === 'image' ? 'md:w-fit md:max-w-[90vw]' : 'h-[85vh]')}
+        className={cn(
+          'max-w-2xl overflow-hidden',
+          preview?.status === 'image' ? 'md:w-fit md:max-w-none' : 'h-[85vh]',
+        )}
         bodyClassName="p-0"
         footer={
           preview?.status === 'text' ? (
@@ -427,8 +469,12 @@ export default function FilesPage() {
         )}
         {preview?.status === 'image' && previewTarget && (
           <div
-            style={{ aspectRatio: `${preview.width} / ${preview.height}`, '--img-w': `${preview.width}px` } as CSSProperties}
-            className="mx-auto max-h-[calc(85vh-4rem)] w-full bg-gray-100 md:w-[min(var(--img-w),90vw)] dark:bg-gray-900"
+            style={
+              previewBox
+                ? { width: previewBox.width, height: previewBox.height }
+                : { aspectRatio: `${preview.width} / ${preview.height}` }
+            }
+            className={cn('mx-auto bg-gray-100 dark:bg-gray-900', !previewBox && 'w-full max-h-[calc(85vh-4rem)]')}
           >
             <img
               src={downloadUrl(previewTarget.path)}
