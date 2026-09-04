@@ -10,6 +10,8 @@ export interface HistoryPoint {
   swapUsed: number
   swapTotal: number
   netTxBytesPerSec: number
+  diskUtilPercent: number
+  loadAvg1: number
 }
 
 export interface HistoryDay {

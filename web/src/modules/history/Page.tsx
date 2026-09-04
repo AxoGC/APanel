@@ -91,6 +91,10 @@ export default function HistoryPage() {
     return `${value} ${unit}`
   }
 
+  function formatLoadAvg(value: number): string {
+    return value.toFixed(2)
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-6">
@@ -162,6 +166,22 @@ export default function HistoryPage() {
                 formatValue={formatNetRate}
               />
               {last && <span className="text-xs text-gray-500">{formatNetRate(last.netTxBytesPerSec)}</span>}
+            </div>
+            <HistoryChart
+              label={t('history.disk')}
+              times={day.points.map((p) => p.time)}
+              values={day.points.map((p) => p.diskUtilPercent)}
+              unit="%"
+            />
+            <div className="flex flex-col gap-1">
+              <HistoryChart
+                label={t('history.load')}
+                times={day.points.map((p) => p.time)}
+                values={day.points.map((p) => p.loadAvg1)}
+                max={null}
+                formatValue={formatLoadAvg}
+              />
+              {last && <span className="text-xs text-gray-500">{formatLoadAvg(last.loadAvg1)}</span>}
             </div>
           </div>
         </ScrollArea>

@@ -1,7 +1,7 @@
-// Package history reads historical CPU/memory/swap utilization from
-// sysstat (via sadf), when sysstat is installed on the host. This stage has
-// no self-collection fallback: if sadf isn't present, the feature simply
-// stays unavailable — see Manager.Available.
+// Package history reads historical CPU/memory/swap/network/disk/load
+// utilization from sysstat (via sadf), when sysstat is installed on the
+// host. This stage has no self-collection fallback: if sadf isn't present,
+// the feature simply stays unavailable — see Manager.Available.
 package history
 
 import (
@@ -23,6 +23,8 @@ type Point struct {
 	MemUsed          uint64  `json:"memUsed"`
 	MemTotal         uint64  `json:"memTotal"`
 	NetTxBytesPerSec float64 `json:"netTxBytesPerSec"`
+	DiskUtilPercent  float64 `json:"diskUtilPercent"`
+	LoadAvg1         float64 `json:"loadAvg1"`
 }
 
 type Day struct {
@@ -83,7 +85,7 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 
 	wantDate := time.Now().AddDate(0, 0, -daysAgo).Format("2006-01-02")
 
-	cmd := exec.CommandContext(ctx, m.sadfPath, "-j", "--", "-u", "-r", "-n", "DEV", fmt.Sprintf("-%d", daysAgo))
+	cmd := exec.CommandContext(ctx, m.sadfPath, "-j", "--", "-u", "-r", "-n", "DEV", "-d", "-q", fmt.Sprintf("-%d", daysAgo))
 	out, err := cmd.Output()
 	if err != nil {
 		// No sa file exists for that offset (e.g. the host hasn't been up
@@ -114,6 +116,12 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 	// route right now) just leaves NetTxBytesPerSec at 0 for every point.
 	iface, _ := stats.DefaultRouteInterface()
 
+	// Same reasoning as the interface above: match whichever block device
+	// currently backs the root filesystem, so historical disk %util lines
+	// up with what "the disk" means elsewhere in the app. An unresolved
+	// device just leaves DiskUtilPercent at 0 for every point.
+	diskDev, _ := stats.RootDiskDevice()
+
 	points := make([]Point, 0, len(host.Statistics))
 	for _, s := range host.Statistics {
 		if len(s.CPULoad) == 0 {
@@ -128,6 +136,13 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 				break
 			}
 		}
+		var diskUtil float64
+		for _, d := range s.Disk {
+			if d.Device == diskDev {
+				diskUtil = d.UtilPercent
+				break
+			}
+		}
 		points = append(points, Point{
 			Time:             s.Timestamp.Time,
 			CPUUsedPercent:   round2(100 - cpu.Idle),
@@ -135,6 +150,8 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 			MemUsed:          mem.MemUsed * 1024,
 			MemTotal:         (mem.MemUsed + mem.MemFree + mem.Buffers + mem.Cached) * 1024,
 			NetTxBytesPerSec: netTx,
+			DiskUtilPercent:  diskUtil,
+			LoadAvg1:         s.Queue.LoadAvg1,
 		})
 	}
 
@@ -169,6 +186,13 @@ type sadfOutput struct {
 						TxKB  float64 `json:"txkB"`
 					} `json:"net-dev"`
 				} `json:"network"`
+				Disk []struct {
+					Device      string  `json:"disk-device"`
+					UtilPercent float64 `json:"util-percent"`
+				} `json:"disk"`
+				Queue struct {
+					LoadAvg1 float64 `json:"ldavg-1"`
+				} `json:"queue"`
 			} `json:"statistics"`
 		} `json:"hosts"`
 	} `json:"sysstat"`

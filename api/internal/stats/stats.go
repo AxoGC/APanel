@@ -356,6 +356,50 @@ func DefaultRouteInterface() (string, error) {
 	return best, nil
 }
 
+// RootDiskDevice returns the base block device backing the root filesystem
+// ("vda" for a root on /dev/vda2, "nvme0n1" for /dev/nvme0n1p1), resolved
+// via sysfs since sar -d reports whole-disk devices, not partitions.
+// Exported for reuse by the history package, which needs the same device to
+// filter sadf's per-disk utilization samples.
+func RootDiskDevice() (string, error) {
+	data, err := os.ReadFile("/proc/mounts")
+	if err != nil {
+		return "", err
+	}
+
+	var partName string
+	for line := range strings.SplitSeq(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 || fields[1] != "/" {
+			continue
+		}
+		if !strings.HasPrefix(fields[0], "/dev/") {
+			return "", fmt.Errorf("root filesystem is not on a block device")
+		}
+		partName = strings.TrimPrefix(fields[0], "/dev/")
+		break
+	}
+	if partName == "" {
+		return "", fmt.Errorf("could not find root filesystem in /proc/mounts")
+	}
+
+	// A whole-disk device (root not on a partition) has no "partition" file
+	// under sysfs — return it as-is rather than walking to a parent.
+	if _, err := os.Stat("/sys/class/block/" + partName + "/partition"); err != nil {
+		return partName, nil
+	}
+
+	link, err := os.Readlink("/sys/class/block/" + partName)
+	if err != nil {
+		return partName, nil
+	}
+	parts := strings.Split(link, "/")
+	if len(parts) < 2 {
+		return partName, nil
+	}
+	return parts[len(parts)-2], nil
+}
+
 // readNetDevBytes reads iface's cumulative rx/tx byte counters from
 // /proc/net/dev.
 func readNetDevBytes(iface string) (rx, tx uint64, ok bool) {
