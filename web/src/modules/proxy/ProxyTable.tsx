@@ -22,8 +22,8 @@ export function ProxyTableHeader() {
     <div className="flex items-center gap-3 border-b border-gray-200 pb-1.5 dark:border-gray-800">
       <div className="w-5 shrink-0" />
       <div className="min-w-0 flex-1 text-xs text-gray-500">{t('proxy.column.name')}</div>
-      <div className="w-28 shrink-0 truncate text-xs text-gray-500">{t('proxy.column.type')}</div>
-      <div className="w-16 shrink-0 text-right text-xs text-gray-500">{t('proxy.column.delay')}</div>
+      <div className="w-20 shrink-0 truncate text-xs text-gray-500 sm:w-28">{t('proxy.column.type')}</div>
+      <div className="w-12 shrink-0 truncate text-right text-xs text-gray-500 sm:w-16">{t('proxy.column.delay')}</div>
     </div>
   )
 }
@@ -68,8 +68,8 @@ export function ProxyTable({
             >
               {opt.name}
             </div>
-            <div className="w-28 shrink-0 truncate text-xs text-gray-500">{opt.type}</div>
-            <div className="w-16 shrink-0 text-right text-xs">
+            <div className="w-20 shrink-0 truncate text-xs text-gray-500 sm:w-28">{opt.type}</div>
+            <div className="w-12 shrink-0 truncate text-right text-xs sm:w-16">
               <DelayLabel delay={opt.delay} />
             </div>
           </button>
