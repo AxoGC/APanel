@@ -40,42 +40,29 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 
 新版本由用户自行前往 GitHub Releases 下载并手动更新。这样做不一定适合所有人，但安装内容、升级时机和运行方式都由服务器管理员自己掌握。
 
-## 2. 功能与特点
+## 2. 功能模块一览
 
-### 移动端优先
+### 设置
 
-- 对象列表在窄屏上使用适合触控和阅读的网格布局。
-- 桌面端可以切换表格或网格布局。
-- 响应式导航在桌面端支持收缩，在移动端显示为底部导航。
-- 支持亮色、暗色和可切换的主题色。
-- 支持中文和英文。
+- 包括主机信息栏、支持亮色/暗色、主题色切换、中文/English切换、面板模块（容器/数据库）启用/禁用。
 
 <p align="center">
   <img src="assets/screenshots/mobile-first.webp" height="420" alt="移动端优先 - 移动端">
   <img src="assets/screenshots/mobile-first-desktop.webp" height="420" alt="移动端优先 - 桌面端">
 </p>
 
-### 仪表盘与进程查看器
+### 仪表盘
 
-- 从 Linux `/proc` 读取 CPU、内存、交换空间、网络和进程数据。
-- 使用 SSE 持续推送实时状态。
-- 支持按 CPU 或内存排序。
-- 支持平铺和进程树两种查看方式。
-- 进程树可以收缩子进程，并统计收缩后整个子树的资源占用。
+- 仪表盘展示CPU、内存、带宽占用；进程管理，支持父子进程树、按CPU/内存排序、进程详情。
 
 <p align="center">
   <img src="assets/screenshots/dashboard.webp" height="420" alt="仪表盘与进程查看器 - 移动端">
   <img src="assets/screenshots/dashboard-desktop.webp" height="420" alt="仪表盘与进程查看器 - 桌面端">
 </p>
 
-### systemd 服务管理
+### 服务管理
 
-- 通过 D-Bus 读取和管理 `.service` 单元，而不是解析命令行输出。
-- 支持查看运行状态和开机启用状态。
-- 支持启动、停止、重启、启用和禁用服务。
-- 支持查看和持续追踪服务日志。
-
-systemd 服务和 Docker 容器是两个独立模块，Apanel 不会将它们合并成一个抽象的“应用”类型。
+- 基于systemd，包括服务列表、服务详情和日志、暂停和重启服务。
 
 <p align="center">
   <img src="assets/screenshots/services.webp" height="420" alt="systemd 服务管理 - 移动端">
@@ -84,10 +71,7 @@ systemd 服务和 Docker 容器是两个独立模块，Apanel 不会将它们合
 
 ### 文件管理
 
-- 浏览目录和文件。
-- 新建文件夹、上传、下载、重命名和删除文件。
-- 支持多选和批量删除。
-- 支持文本文件预览和编辑。
+- 创建目录、下载上传删除、多选和批量操作、文本文件预览和编辑、图片预览。
 
 <p align="center">
   <img src="assets/screenshots/files.webp" height="420" alt="文件管理 - 移动端">
@@ -96,15 +80,7 @@ systemd 服务和 Docker 容器是两个独立模块，Apanel 不会将它们合
 
 ### Docker 容器与镜像管理
 
-- 通过 Docker Engine API 管理容器，不调用 Docker CLI。
-- 支持搜索和筛选容器。
-- 支持启动、停止、重启和查看容器日志。
-- 支持在日志窗口切换到 Docker Attach 控制台，与开放了标准输入的容器主进程直接交互。
-- 支持查看本地镜像的名称、大小和使用情况。
-- 支持筛选和批量删除未被容器使用的镜像。
-- 正在使用的镜像不可选中，删除时也不会使用强制删除。
-
-Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项会自动隐藏。
+- 容器详情和日志、关闭/重启/创建容器、docker exec/attach、镜像管理、网络管理、数据卷管理。
 
 <p align="center">
   <img src="assets/screenshots/containers.webp" height="420" alt="Docker 容器与镜像管理 - 移动端">
@@ -113,13 +89,7 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 
 ### 数据库管理
 
-- 连接一个已有的 PostgreSQL 实例并浏览其内容，不是 Apanel 自身的数据存储。
-- 查看数据库列表，以及每个数据库的表数量和占用空间。
-- 查看单个数据库内每张表的行数和大小。
-- 体积、行数等需要扫描数据计算的统计信息会缓存一段时间，避免频繁查询影响数据库性能。
-- 目前仅支持 PostgreSQL，且仅提供只读查看，暂不支持通过面板增删改数据。
-
-数据库管理是可选扩展模块，需要在设置中手动启用并填写连接信息后使用。
+- 支持`MySQL`/`PostgreSQL`，包括占用统计、数据库列表、表列表、字段数量、总行数。
 
 <p align="center">
   <img src="assets/screenshots/database.webp" height="420" alt="数据库管理 - 移动端">
@@ -128,11 +98,7 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 
 ### 历史状态
 
-- 通过 `sysstat` 提供的 `sadf` 读取结构化历史数据。
-- 查看不同日期的 CPU 和内存使用情况。
-- 可以分别配置采集开关、采集间隔和保留天数。
-
-目前没有内置采集回退方案；主机未安装 `sadf` 时，历史状态模块会自动隐藏。
+- 基于`sysstat`，支持CPU、内存、硬盘I/O、上行速率、负载的存储和统计，支持查看历史数据。
 
 <p align="center">
   <img src="assets/screenshots/history.webp" height="420" alt="历史状态 - 移动端">
@@ -141,12 +107,7 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 
 ### 防火墙管理
 
-- 读取 UFW 当前状态和编号规则。
-- 将对应的 IPv4、IPv6 规则合并为一条逻辑规则展示。
-- 支持添加 allow、deny、reject 和 limit 规则。
-- 支持选择 TCP、UDP、IPv4 和 IPv6。
-
-主机未安装 UFW 时，防火墙模块会自动隐藏。
+- 基于`UFW`，支持添加/编辑/删除规则，支持设置允许/拒绝、TCP/UDP、IPv4/IPv6、来源地址。
 
 <p align="center">
   <img src="assets/screenshots/firewall.webp" height="420" alt="防火墙管理 - 移动端">
@@ -155,12 +116,7 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 
 ### 代理设置
 
-- 通过 clash/mihomo 的外部控制器 API 管理代理，不内置或调用某个特定的代理客户端。
-- 支持切换全局、规则、直连三种代理模式。
-- 规则模式下可以按策略组查看和切换当前使用的节点。
-- 支持对策略组内的节点批量测速。
-
-代理设置是可选扩展模块，需要在设置中手动启用并填写控制器地址后使用。
+- 基于`clash`/`mihomo`，支持修改全局/规则/直连、按规则设置代理、代理测速。
 
 <p align="center">
   <img src="assets/screenshots/proxy.webp" height="420" alt="代理设置 - 移动端">
@@ -169,11 +125,7 @@ Docker 是可选功能。主机无法连接 Docker daemon 时，相关导航项�
 
 ### Web 终端
 
-- 前端使用 xterm.js。
-- 后端通过受登录状态保护的 WebSocket 连接 PTY。
-- 默认使用 Bash，也可以切换到 sh、zsh 或 fish。
-- 终端主题支持亮色、暗色和跟随应用。
-- 提供当前目录的文件夹快捷列表，点击后执行 `cd`，不会自动执行 `ls`。
+- 支持`sh`/`bash`/`zsh`/`fish`，连接状态持久化，切换页面后连接不断开。
 
 <p align="center">
   <img src="assets/screenshots/terminal.webp" height="420" alt="Web 终端 - 移动端">
