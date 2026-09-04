@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/adaptive/select'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import {
