@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
-import { MOCK, MockEventSource } from '@/lib/mock'
+import { openDashboardStream } from '@/lib/mock'
 
 export interface ProcessInfo {
   pid: number
@@ -81,9 +81,7 @@ export function useDashboardStream(sort: ProcessSort) {
   const [overview, setOverview] = useState<Overview | null>(null)
 
   useEffect(() => {
-    const source = MOCK
-      ? new MockEventSource(`/api/dashboard/stream?sort=${sort}`)
-      : new EventSource(`/api/dashboard/stream?sort=${sort}`)
+    const source = openDashboardStream(`/api/dashboard/stream?sort=${sort}`)
     source.onmessage = (event) => {
       setOverview(JSON.parse(event.data) as Overview)
     }

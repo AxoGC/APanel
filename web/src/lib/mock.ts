@@ -378,8 +378,30 @@ export function mockApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return Promise.reject(new Error(`mock: unhandled ${method} ${path}`))
 }
 
+// The subset of EventSource every plain SSE call site actually uses. Both
+// the real EventSource and the mock stand-ins below satisfy it, so callers
+// can branch on MOCK through the open* helpers and still get one concrete
+// type back — branching inline instead yields a union whose `onmessage`
+// parameter no longer infers, which is a type error under `noImplicitAny`.
+export interface StreamSource {
+  onmessage: ((event: { data: string }) => void) | null
+  onerror: (() => void) | null
+  close(): void
+}
+
+/** The dashboard's live CPU/memory/process stream. */
+export function openDashboardStream(url: string): StreamSource {
+  return MOCK ? new MockEventSource(url) : (new EventSource(url) as unknown as StreamSource)
+}
+
+/** A service's or container's follow-mode log stream. */
+export function openLogStream(url: string): StreamSource {
+  return MOCK ? new MockLogsEventSource(url) : (new EventSource(url) as unknown as StreamSource)
+}
+
 export class MockEventSource {
   onmessage: ((e: { data: string }) => void) | null = null
+  onerror: (() => void) | null = null
   private timer: ReturnType<typeof setInterval> | null = null
 
   constructor(_url: string) {

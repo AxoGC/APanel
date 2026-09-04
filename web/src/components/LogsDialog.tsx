@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { TextReader } from '@/components/TextReader'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
-import { MOCK, MockLogsEventSource } from '@/lib/mock'
+import { openLogStream } from '@/lib/mock'
 
 const LINE_OPTIONS = [100, 500, 1000, 2000]
 
@@ -62,9 +62,7 @@ export function LogsDialog({
     if (!open || !follow) return
     setContent([])
     setError(null)
-    const source = MOCK
-      ? new MockLogsEventSource(streamUrl(id, lines))
-      : new EventSource(streamUrl(id, lines))
+    const source = openLogStream(streamUrl(id, lines))
     source.onmessage = (event) => {
       setContent((prev) => [...prev, event.data as string])
     }
