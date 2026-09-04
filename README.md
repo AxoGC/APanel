@@ -42,15 +42,6 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 
 ## 2. 功能模块一览
 
-### 设置
-
-- 包括主机信息栏、支持亮色/暗色、主题色切换、中文/English切换、面板模块（容器/数据库）启用/禁用。
-
-<p align="center">
-  <img src="assets/screenshots/mobile-first.webp" height="420" alt="移动端优先 - 移动端">
-  <img src="assets/screenshots/mobile-first-desktop.webp" height="420" alt="移动端优先 - 桌面端">
-</p>
-
 ### 仪表盘
 
 - 仪表盘展示CPU、内存、带宽占用；进程管理，支持父子进程树、按CPU/内存排序、进程详情。
@@ -60,7 +51,16 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
   <img src="assets/screenshots/dashboard-desktop.webp" height="420" alt="仪表盘与进程查看器 - 桌面端">
 </p>
 
-### 服务管理
+### 设置
+
+- 包括主机信息栏、支持亮色/暗色、主题色切换、中文/English切换、面板模块（容器/数据库）启用/禁用。
+
+<p align="center">
+  <img src="assets/screenshots/mobile-first.webp" height="420" alt="移动端优先 - 移动端">
+  <img src="assets/screenshots/mobile-first-desktop.webp" height="420" alt="移动端优先 - 桌面端">
+</p>
+
+### systemd 服务管理
 
 - 基于systemd，包括服务列表、服务详情和日志、暂停和重启服务。
 
@@ -71,14 +71,14 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 
 ### 文件管理
 
-- 创建目录、下载上传删除、多选和批量操作、文本文件预览和编辑、图片预览。
+- 创建目录、上传/下载/删除、多选和批量操作、文本文件预览和编辑、图片预览。
 
 <p align="center">
   <img src="assets/screenshots/files.webp" height="420" alt="文件管理 - 移动端">
   <img src="assets/screenshots/files-desktop.webp" height="420" alt="文件管理 - 桌面端">
 </p>
 
-### Docker 容器与镜像管理
+### Docker 容器管理
 
 - 容器详情和日志、关闭/重启/创建容器、docker exec/attach、镜像管理、网络管理、数据卷管理。
 
@@ -89,7 +89,7 @@ Apanel 不计划提供中心化的软件商城、商业授权版本或自动安�
 
 ### 数据库管理
 
-- 支持`MySQL`/`PostgreSQL`，包括占用统计、数据库列表、表列表、字段数量、总行数。
+- 支持`MySQL`/`PostgreSQL`，统计显示数据库列表、表列表、磁盘占用、字段数、总数据行数。
 
 <p align="center">
   <img src="assets/screenshots/database.webp" height="420" alt="数据库管理 - 移动端">
