@@ -7,10 +7,12 @@ import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
 import ContainersPage from '@/modules/containers/Page'
 import DashboardPage from '@/modules/dashboard/Page'
+import DatabasePage from '@/modules/database/Page'
 import FilesPage from '@/modules/files/Page'
 import FirewallPage from '@/modules/firewall/Page'
 import HistoryPage from '@/modules/history/Page'
 import LoginPage from '@/modules/login/Page'
+import ProxyPage from '@/modules/proxy/Page'
 import ServicesPage from '@/modules/services/Page'
 import SettingsPage from '@/modules/settings/Page'
 
@@ -43,6 +45,8 @@ function Shell() {
           <Route path="/containers" element={<ContainersPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/firewall" element={<FirewallPage />} />
+          <Route path="/proxy" element={<ProxyPage />} />
+          <Route path="/database" element={<DatabasePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
         {terminalStarted && (

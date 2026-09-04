@@ -20,10 +20,6 @@ const NETWORK_NOT_FOUND response.Code = "NETWORK_NOT_FOUND"
 const CONTAINER_CREATE_INVALID response.Code = "CONTAINER_CREATE_INVALID"
 const CONTAINER_NAME_CONFLICT response.Code = "CONTAINER_NAME_CONFLICT"
 
-// FeatureName identifies this package's entry in GET /api/status's
-// per-feature availability map.
-func (m *Manager) FeatureName() string { return "containers" }
-
 // RegisterRoutes wires the /api/containers/* routes onto mux — see
 // httpserver.RouteRegistrar. httpserver never imports this package; it just
 // calls this method on whatever it was given at construction time.

@@ -24,7 +24,6 @@ type Server struct {
 	stats      *stats.Collector
 	settings   *settings.Manager
 	registrars []RouteRegistrar
-	features   []Feature
 	mux        *http.ServeMux
 }
 
@@ -39,11 +38,6 @@ func New(authSvc *auth.Service, statsCollector *stats.Collector, settingsMgr *se
 		settings:   settingsMgr,
 		registrars: registrars,
 		mux:        http.NewServeMux(),
-	}
-	for _, r := range registrars {
-		if f, ok := r.(Feature); ok {
-			s.features = append(s.features, f)
-		}
 	}
 	s.routes()
 	return s
@@ -71,7 +65,7 @@ func (s *Server) routes() {
 	}
 
 	s.mux.Handle("GET /api/status", s.auth.Middleware(http.HandlerFunc(s.getStatus)))
-	s.mux.Handle("PUT /api/status/features", s.auth.Middleware(http.HandlerFunc(s.putDisabledFeatures)))
+	s.mux.Handle("PUT /api/status/features", s.auth.Middleware(http.HandlerFunc(s.putEnabledFeatures)))
 	s.mux.Handle("GET /api/system/info", s.auth.Middleware(http.HandlerFunc(s.getSystemInfo)))
 
 	dist, err := fs.Sub(embeddedDist, "dist")

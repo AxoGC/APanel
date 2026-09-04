@@ -14,10 +14,6 @@ const FIREWALL_UNAVAILABLE response.Code = "FIREWALL_UNAVAILABLE"
 // INVALID_RULE is returned when the add-rule request body fails validation.
 const INVALID_RULE response.Code = "INVALID_RULE"
 
-// FeatureName identifies this package's entry in GET /api/status's
-// per-feature availability map.
-func (m *Manager) FeatureName() string { return "firewall" }
-
 // RegisterRoutes wires the /api/firewall/* routes onto mux — see
 // httpserver.RouteRegistrar. httpserver never imports this package; it just
 // calls this method on whatever it was given at construction time.
