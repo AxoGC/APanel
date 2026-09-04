@@ -15,6 +15,7 @@ export function SectionedDialog({
   footer,
   children,
   className,
+  bodyClassName,
   onOpenAutoFocus,
 }: {
   open: boolean
@@ -23,6 +24,7 @@ export function SectionedDialog({
   footer?: ReactNode
   children: ReactNode
   className?: string
+  bodyClassName?: string
   onOpenAutoFocus?: (event: Event) => void
 }) {
   return (
@@ -40,7 +42,9 @@ export function SectionedDialog({
           </DialogClose>
         </div>
 
-        <div className="scrollbar-shadcn min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
+        <div className={cn('scrollbar-shadcn min-h-0 flex-1 overflow-y-auto overscroll-contain p-4', bodyClassName)}>
+          {children}
+        </div>
 
         {footer && <div className="border-t border-gray-100 p-4 dark:border-gray-800">{footer}</div>}
       </DialogContent>

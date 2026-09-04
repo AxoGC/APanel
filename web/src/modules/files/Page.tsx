@@ -388,6 +388,7 @@ export default function FilesPage() {
         }}
         title={previewTarget?.name ?? ''}
         className="h-[85vh] max-w-2xl"
+        bodyClassName="p-0"
         footer={
           preview?.status === 'text' ? (
             <div className="flex justify-end gap-2">
@@ -410,12 +411,12 @@ export default function FilesPage() {
         }
       >
         {preview?.status === 'loading' && (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center px-4 py-8">
             <Loader2 className="size-5 animate-spin text-gray-400" />
           </div>
         )}
         {preview?.status === 'unavailable' && (
-          <div className="flex flex-col items-start gap-3 py-2">
+          <div className="flex flex-col items-start gap-3 px-4 py-2">
             <p className="text-sm text-gray-500">
               {preview.code === 'FILE_TOO_LARGE' ? t('files.preview.tooLarge') : t('files.preview.binary')}
             </p>
@@ -433,7 +434,7 @@ export default function FilesPage() {
             value={preview.content}
             onChange={(e) => setPreview({ status: 'text', content: e.target.value })}
             spellCheck={false}
-            className="h-full min-h-0 w-full resize-none bg-transparent font-mono text-xs outline-none"
+            className="h-full min-h-0 w-full resize-none bg-transparent p-4 font-mono text-xs outline-none"
           />
         )}
       </SectionedDialog>
