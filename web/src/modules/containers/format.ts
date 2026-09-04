@@ -21,13 +21,25 @@ const DURATION_KEYS: Record<string, TranslationKey> = {
   days: 'containers.duration.days',
 }
 
+const HEALTH_KEYS: Record<string, TranslationKey> = {
+  healthy: 'containers.health.healthy',
+  unhealthy: 'containers.health.unhealthy',
+  'health: starting': 'containers.health.starting',
+}
+
 // Docker returns its human-readable status in English (for example, "Up 3
-// hours"), so translate the state and elapsed-time words before rendering it.
+// hours (unhealthy)"), so translate the state, elapsed-time, and health
+// words before rendering it.
 export function formatContainerStatus(status: string, t: (key: TranslationKey) => string): string {
   return status
     .replace(/^(Up|Exited|Created|Restarting|Paused|Removing|Dead)\b/, (word) => t(STATUS_KEYS[word]))
     .replace(/\b(second|seconds|minute|minutes|hour|hours|day|days)\b/g, (word) => t(DURATION_KEYS[word]))
+    .replace(/\((healthy|unhealthy|health: starting)\)/, (_, word: string) => `(${t(HEALTH_KEYS[word])})`)
     .replace(/\bago\b/g, t('containers.status.ago'))
+}
+
+export function isUnhealthy(status: string): boolean {
+  return /\(unhealthy\)/.test(status)
 }
 
 export function statusClasses(state: string): [dot: string, text: string] {
