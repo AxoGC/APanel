@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SectionedDialog } from '@/components/SectionedDialog'
+import { TextReader } from '@/components/TextReader'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -99,8 +100,9 @@ export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null;
             </div>
           )}
           {detail.env && detail.env.length > 0 && (
-            <div className="col-span-2">
-              <Field label={t('containers.detail.env')} value={<ListValue items={detail.env} />} />
+            <div className="col-span-2 flex min-w-0 flex-col gap-0.5">
+              <span className="text-xs text-gray-500">{t('containers.detail.env')}</span>
+              <TextReader lines={detail.env} mono className="max-h-48" />
             </div>
           )}
         </div>

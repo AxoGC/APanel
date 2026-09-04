@@ -3,8 +3,15 @@ import colors from 'tailwindcss/colors'
 import { BookOpen, ListChecks, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { ToggleButton } from '@/components/ToggleButton'
 import { useAuth } from '@/lib/auth'
 import { useI18n, type Locale, type TranslationKey } from '@/lib/i18n'
+import {
+  getStoredReaderLineNumbers,
+  getStoredReaderTextWrap,
+  setStoredReaderLineNumbers,
+  setStoredReaderTextWrap,
+} from '@/lib/readerPrefs'
 import {
   getStoredScheme,
   getStoredThemeHue,
@@ -70,6 +77,8 @@ export default function SettingsPage() {
   const { logout } = useAuth()
   const [scheme, setScheme] = useState<ColorScheme>(getStoredScheme)
   const [hue, setHue] = useState<ThemeHue>(getStoredThemeHue)
+  const [readerLineNumbers, setReaderLineNumbers] = useState(getStoredReaderLineNumbers)
+  const [readerTextWrap, setReaderTextWrap] = useState(getStoredReaderTextWrap)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false)
 
@@ -137,6 +146,31 @@ export default function SettingsPage() {
               style={{ backgroundColor: colors[h][500] }}
             />
           ))}
+        </div>
+      </Section>
+
+      <Section label={t('settings.reader')}>
+        <div className="flex items-center gap-2">
+          <ToggleButton
+            active={readerLineNumbers}
+            onClick={() => {
+              const next = !readerLineNumbers
+              setStoredReaderLineNumbers(next)
+              setReaderLineNumbers(next)
+            }}
+          >
+            {t('settings.reader.lineNumbers')}
+          </ToggleButton>
+          <ToggleButton
+            active={readerTextWrap}
+            onClick={() => {
+              const next = !readerTextWrap
+              setStoredReaderTextWrap(next)
+              setReaderTextWrap(next)
+            }}
+          >
+            {t('settings.reader.textWrap')}
+          </ToggleButton>
         </div>
       </Section>
 
