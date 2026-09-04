@@ -108,15 +108,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 md:gap-6">
-      <div className="flex items-center justify-between pt-4 px-4 md:pt-6 md:px-6">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
         <h1 className="text-base text-gray-900 dark:text-gray-100">{t('dashboard.title')}</h1>
         <Button variant="ghost" size="icon-sm" aria-label={t('dashboard.networkSettings')} onClick={openSettings}>
           <Settings />
         </Button>
       </div>
 
-      <div className="flex flex-nowrap gap-1 px-4 sm:gap-4 md:px-6">
+      <div className="mt-4 flex flex-nowrap gap-1 px-4 sm:mt-6 sm:gap-4 sm:px-6">
         <div className="min-w-0 flex-1">
           <Gauge
             label={t('dashboard.cpu')}
@@ -152,41 +152,41 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex min-h-0 grow flex-col px-4 md:px-6">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
-          <div className="flex items-center gap-4">
-            <ToggleButton active={tree} onClick={() => setTree((v) => !v)}>
-              {t('dashboard.tree')}
+      <div className="mt-4 mb-2 flex items-center justify-between px-4 sm:mt-6 sm:px-6">
+        <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
+        <div className="flex items-center gap-4">
+          <ToggleButton active={tree} onClick={() => setTree((v) => !v)}>
+            {t('dashboard.tree')}
+          </ToggleButton>
+          {tree && (
+            <ToggleButton active={allExpanded} onClick={toggleExpandAll}>
+              {t('dashboard.expandAll')}
             </ToggleButton>
-            {tree && (
-              <ToggleButton active={allExpanded} onClick={toggleExpandAll}>
-                {t('dashboard.expandAll')}
-              </ToggleButton>
-            )}
-            <SegmentedControl
-              value={sort}
-              onChange={setSort}
-              options={[
-                { value: 'mem', label: t('dashboard.memory') },
-                { value: 'cpu', label: t('dashboard.cpu') },
-              ]}
-            />
-          </div>
-        </div>
-        <ProcessGridHeader />
-        <ScrollArea className="min-h-0 grow">
-          <ProcessGrid
-            processes={overview?.processes ?? []}
-            sort={sort}
-            tree={tree}
-            expanded={expanded}
-            onToggle={toggleExpanded}
-            onShowDetail={setDetailPid}
-            hideHeader
+          )}
+          <SegmentedControl
+            value={sort}
+            onChange={setSort}
+            options={[
+              { value: 'mem', label: t('dashboard.memory') },
+              { value: 'cpu', label: t('dashboard.cpu') },
+            ]}
           />
-        </ScrollArea>
+        </div>
       </div>
+      <div className="px-4 sm:px-6">
+        <ProcessGridHeader />
+      </div>
+      <ScrollArea className="min-h-0 grow px-4 sm:px-6">
+        <ProcessGrid
+          processes={overview?.processes ?? []}
+          sort={sort}
+          tree={tree}
+          expanded={expanded}
+          onToggle={toggleExpanded}
+          onShowDetail={setDetailPid}
+          hideHeader
+        />
+      </ScrollArea>
 
       <ProcessDetailDialog pid={detailPid} onOpenChange={(open) => !open && setDetailPid(null)} />
 
