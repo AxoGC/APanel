@@ -1,4 +1,4 @@
-import { Plug, Settings } from 'lucide-react'
+import { Columns2, Plug, RectangleVertical, Settings } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ import { formatBytes, formatBitrate } from '@/lib/format'
 import { ApiError } from '@/lib/api'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import {
   getHistory,
   getHistorySettings,
@@ -30,6 +31,18 @@ import { HistoryChart } from './HistoryChart'
 
 const DAY_OPTIONS = [0, 1, 2, 3, 4, 5, 6]
 const TARGETS: CollectionTargetName[] = ['cpu', 'memory', 'swap']
+
+// Only affects the narrowest breakpoint (below sm) — sm and up always use a
+// fixed multi-column grid regardless of this preference.
+const NARROW_COLUMNS_KEY = 'apanel:history-narrow-columns'
+
+function getStoredNarrowColumns(): 1 | 2 {
+  return localStorage.getItem(NARROW_COLUMNS_KEY) === '2' ? 2 : 1
+}
+
+function setStoredNarrowColumns(value: 1 | 2) {
+  localStorage.setItem(NARROW_COLUMNS_KEY, String(value))
+}
 
 function dayLabel(daysAgo: number, today: string, yesterday: string): string {
   if (daysAgo === 0) return today
@@ -51,6 +64,14 @@ export default function HistoryPage() {
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
   const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('history')
+
+  const [narrowColumns, setNarrowColumns] = useState(getStoredNarrowColumns)
+
+  function toggleNarrowColumns() {
+    const next = narrowColumns === 1 ? 2 : 1
+    setStoredNarrowColumns(next)
+    setNarrowColumns(next)
+  }
 
   useEffect(() => {
     setError(null)
@@ -117,6 +138,16 @@ export default function HistoryPage() {
           <Button
             variant="ghost"
             size="icon-sm"
+            aria-label={t('history.columns.toggle')}
+            title={t('history.columns.toggle')}
+            onClick={toggleNarrowColumns}
+            className="sm:hidden"
+          >
+            {narrowColumns === 1 ? <RectangleVertical /> : <Columns2 />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             aria-label={t('dependency.configure')}
             title={t('dependency.configure')}
             onClick={() => setDependencyOpen(true)}
@@ -137,7 +168,12 @@ export default function HistoryPage() {
 
       {day && day.points.length > 0 && (
         <ScrollArea className="mt-4 min-h-0 grow px-4 sm:px-6">
-          <div className="flex flex-col gap-6">
+          <div
+            className={cn(
+              'grid gap-6 sm:grid-cols-2 lg:grid-cols-3',
+              narrowColumns === 2 ? 'grid-cols-2' : 'grid-cols-1',
+            )}
+          >
             <HistoryChart
               label={t('history.cpu')}
               times={day.points.map((p) => p.time)}
