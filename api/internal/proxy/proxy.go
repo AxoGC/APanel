@@ -275,25 +275,50 @@ const (
 	testTimeout = "5000"
 )
 
-// TestDelay runs mihomo's own concurrent delay test across every member of
-// a group and returns the group with fresh delay numbers. A member that
-// times out or errors simply keeps its previous (or zero) delay — one bad
-// proxy in a group of thirty shouldn't fail the whole request.
-func (m *Manager) TestDelay(ctx context.Context, group string) (Group, error) {
+// DelayResult is emitted as soon as one proxy option finishes its delay
+// test. A negative delay means the individual test timed out or failed.
+type DelayResult struct {
+	Name  string `json:"name"`
+	Delay int    `json:"delay"`
+}
+
+func (m *Manager) testProxyDelay(ctx context.Context, name string) (int, error) {
 	query := url.Values{"timeout": {testTimeout}, "url": {testURL}}
-	var delays map[string]int
-	if err := m.do(ctx, http.MethodGet, "/group/"+url.PathEscape(group)+"/delay", query, nil, &delays); err != nil {
-		return Group{}, err
+	var result struct {
+		Delay int `json:"delay"`
+	}
+	if err := m.do(ctx, http.MethodGet, "/proxies/"+url.PathEscape(name)+"/delay", query, nil, &result); err != nil {
+		return 0, err
+	}
+	return result.Delay, nil
+}
+
+// TestDelays tests all supplied options concurrently through mihomo's
+// per-proxy delay endpoint, then emits results in completion order. This
+// lets the HTTP layer stream each finished row instead of waiting for the
+// slowest member in the group.
+func (m *Manager) TestDelays(ctx context.Context, options []ProxyOption, emit func(DelayResult)) error {
+	results := make(chan DelayResult, len(options))
+	for _, option := range options {
+		go func(name string) {
+			delay, err := m.testProxyDelay(ctx, name)
+			if err != nil {
+				delay = -1
+			}
+			select {
+			case results <- DelayResult{Name: name, Delay: delay}:
+			case <-ctx.Done():
+			}
+		}(option.Name)
 	}
 
-	g, err := m.Group(ctx, group)
-	if err != nil {
-		return Group{}, err
-	}
-	for i := range g.Options {
-		if d, ok := delays[g.Options[i].Name]; ok {
-			g.Options[i].Delay = d
+	for range options {
+		select {
+		case result := <-results:
+			emit(result)
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
-	return g, nil
+	return nil
 }

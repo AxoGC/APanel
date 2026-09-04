@@ -12,7 +12,8 @@ function delayClasses(delay: number): string {
 
 function DelayLabel({ delay }: { delay: number }) {
   const { t } = useI18n()
-  if (delay <= 0) return <span className={delayClasses(delay)}>{t('proxy.delay.untested')}</span>
+  if (delay < 0) return <span className={delayClasses(delay)}>{t('proxy.delay.timeout')}</span>
+  if (delay === 0) return <span className={delayClasses(delay)}>{t('proxy.delay.untested')}</span>
   return <span className={delayClasses(delay)}>{delay}ms</span>
 }
 

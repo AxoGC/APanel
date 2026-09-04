@@ -19,6 +19,11 @@ export interface ProxyGroup {
   options: ProxyOption[]
 }
 
+export interface ProxyDelayResult {
+  name: string
+  delay: number
+}
+
 export function getProxyOverview() {
   return apiFetch<ProxyOverview>('/proxy/overview')
 }
@@ -41,6 +46,6 @@ export function selectProxyOption(group: string, name: string) {
   })
 }
 
-export function testProxyGroupDelay(group: string) {
-  return apiFetch<ProxyGroup>(`/proxy/groups/${encodeURIComponent(group)}/test`, { method: 'POST' })
+export function proxyDelayStreamUrl(group: string) {
+  return `/api/proxy/groups/${encodeURIComponent(group)}/test/stream`
 }

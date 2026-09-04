@@ -1,5 +1,5 @@
 import { Gauge, Loader2, Plug } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -11,9 +11,10 @@ import { cn } from '@/lib/utils'
 import {
   getProxyGroup,
   getProxyOverview,
+  proxyDelayStreamUrl,
   selectProxyOption,
   setProxyMode,
-  testProxyGroupDelay,
+  type ProxyDelayResult,
   type ProxyGroup,
   type ProxyMode,
   type ProxyOverview,
@@ -31,8 +32,16 @@ export default function ProxyPage() {
   const [switchingMode, setSwitchingMode] = useState(false)
   const [pendingSelect, setPendingSelect] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
+  const delaySourceRef = useRef<EventSource | null>(null)
+
+  function stopDelayTest() {
+    delaySourceRef.current?.close()
+    delaySourceRef.current = null
+    setTesting(false)
+  }
 
   function loadGroup(name: string) {
+    stopDelayTest()
     setGroup(null)
     getProxyGroup(name)
       .then(setGroup)
@@ -50,6 +59,7 @@ export default function ProxyPage() {
         }
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+    return () => delaySourceRef.current?.close()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -98,17 +108,51 @@ export default function ProxyPage() {
     }
   }
 
-  async function handleTestDelay() {
+  function handleTestDelay() {
     const activeGroup = overview?.mode === 'global' ? 'GLOBAL' : selectedGroup
     if (!activeGroup) return
+    stopDelayTest()
     setTesting(true)
     setError(null)
-    try {
-      setGroup(await testProxyGroupDelay(activeGroup))
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
-    } finally {
+
+    setGroup((current) =>
+      current?.name === activeGroup
+        ? { ...current, options: current.options.map((option) => ({ ...option, delay: 0 })) }
+        : current,
+    )
+
+    const source = new EventSource(proxyDelayStreamUrl(activeGroup))
+    delaySourceRef.current = source
+
+    const finish = () => {
+      if (delaySourceRef.current !== source) return
+      source.close()
+      delaySourceRef.current = null
       setTesting(false)
+    }
+
+    source.onmessage = (event) => {
+      try {
+        const result = JSON.parse(event.data) as ProxyDelayResult
+        setGroup((current) =>
+          current?.name === activeGroup
+            ? {
+                ...current,
+                options: current.options.map((option) =>
+                  option.name === result.name ? { ...option, delay: result.delay } : option,
+                ),
+              }
+            : current,
+        )
+      } catch {
+        setError(t('proxy.delay.testFailed'))
+        finish()
+      }
+    }
+    source.addEventListener('done', finish)
+    source.onerror = () => {
+      setError(t('proxy.delay.testFailed'))
+      finish()
     }
   }
 
@@ -127,7 +171,7 @@ export default function ProxyPage() {
               aria-label={t('proxy.testDelay')}
               title={t('proxy.testDelay')}
               disabled={testing || !group}
-              onClick={() => void handleTestDelay()}
+              onClick={handleTestDelay}
             >
               {testing ? <Loader2 className="animate-spin" /> : <Gauge />}
             </Button>

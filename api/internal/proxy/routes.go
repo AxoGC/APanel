@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"apanel/internal/response"
@@ -24,7 +25,7 @@ func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handl
 	mux.Handle("PUT /api/proxy/mode", requireAuth(http.HandlerFunc(m.putMode)))
 	mux.Handle("GET /api/proxy/groups/{name}", requireAuth(http.HandlerFunc(m.getGroup)))
 	mux.Handle("PUT /api/proxy/groups/{name}/selection", requireAuth(http.HandlerFunc(m.putSelection)))
-	mux.Handle("POST /api/proxy/groups/{name}/test", requireAuth(http.HandlerFunc(m.postTestDelay)))
+	mux.Handle("GET /api/proxy/groups/{name}/test/stream", requireAuth(http.HandlerFunc(m.getTestDelayStream)))
 }
 
 // writeProxyError maps the controller-facing errors from proxy.go onto
@@ -100,11 +101,35 @@ func (m *Manager) putSelection(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, group)
 }
 
-func (m *Manager) postTestDelay(w http.ResponseWriter, r *http.Request) {
-	group, err := m.TestDelay(r.Context(), r.PathValue("name"))
+func (m *Manager) getTestDelayStream(w http.ResponseWriter, r *http.Request) {
+	group, err := m.Group(r.Context(), r.PathValue("name"))
 	if err != nil {
 		writeProxyError(w, err)
 		return
 	}
-	response.WriteOK(w, group)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		response.WriteInternalError(w, errors.New("streaming unsupported"))
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+	flusher.Flush()
+
+	err = m.TestDelays(r.Context(), group.Options, func(result DelayResult) {
+		data, marshalErr := json.Marshal(result)
+		if marshalErr != nil {
+			return
+		}
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
+		flusher.Flush()
+	})
+	if err != nil {
+		return
+	}
+	_, _ = fmt.Fprint(w, "event: done\ndata: {}\n\n")
+	flusher.Flush()
 }
