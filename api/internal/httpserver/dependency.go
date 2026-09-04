@@ -69,9 +69,13 @@ func (s *Server) moduleDependencyStatus(ctx context.Context, key string) (depend
 	}
 
 	status := dependencyStatus{
-		Key:            key,
-		Fields:         moduleFields[key],
-		RequiredFields: requiredFields[key],
+		Key: key,
+		// moduleFields/requiredFields return a nil slice for any key with no
+		// entry — encoding/json marshals that as JSON null, which the
+		// frontend's Array methods (.includes, .some) can't handle. Coalesce
+		// to an empty slice so the field is always a JSON array.
+		Fields:         nonNilStrings(moduleFields[key]),
+		RequiredFields: nonNilStrings(requiredFields[key]),
 		Config:         config,
 		DocsURL:        "https://apanel.axogc.net/feature/" + key + "/install.html",
 	}
@@ -95,6 +99,13 @@ func (s *Server) moduleDependencyStatus(ctx context.Context, key string) (depend
 		status.Reason = "unconfigured"
 	}
 	return status, nil
+}
+
+func nonNilStrings(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 func (s *Server) dependencyConfig(key string) (map[string]string, error) {
