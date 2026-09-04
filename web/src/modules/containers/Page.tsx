@@ -72,8 +72,8 @@ export default function ContainersPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center gap-4">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-4 px-4 pt-4 sm:px-6 sm:pt-6">
         <button
           type="button"
           aria-label={t('containers.search')}
@@ -139,13 +139,17 @@ export default function ContainersPage() {
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
-      {containers && containers.length === 0 && <p className="text-sm text-gray-500">{t('containers.empty')}</p>}
+      {containers && containers.length === 0 && (
+        <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('containers.empty')}</p>
+      )}
       {containers && containers.length > 0 && (
-        <div className="flex min-h-0 grow flex-col">
-          <ContainerTableHeader />
-          <ScrollArea className="min-h-0 grow">
+        <>
+          <div className="mt-4 px-4 sm:px-6">
+            <ContainerTableHeader />
+          </div>
+          <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             <ContainerTable
               containers={containers}
               pending={pending}
@@ -155,7 +159,7 @@ export default function ContainersPage() {
               hideHeader
             />
           </ScrollArea>
-        </div>
+        </>
       )}
 
       <ContainerLogsDialog

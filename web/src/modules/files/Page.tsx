@@ -228,8 +228,13 @@ export default function FilesPage() {
   const parent = parentOf(path)
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className={cn('flex flex-wrap items-center gap-3', mobileSearchOpen && 'max-md:block')}>
+    <div className="flex h-full flex-col">
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-6',
+          mobileSearchOpen && 'max-md:block',
+        )}
+      >
         <Button
           variant="ghost"
           size="icon-sm"
@@ -290,13 +295,17 @@ export default function FilesPage() {
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
-      {entries && filtered.length === 0 && <p className="text-sm text-gray-500">{t('files.empty')}</p>}
+      {entries && filtered.length === 0 && (
+        <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('files.empty')}</p>
+      )}
       {entries && filtered.length > 0 && (
-        <div className="flex min-h-0 grow flex-col">
-          <FileGridHeader entries={filtered} selected={selected} onToggleSelectAll={toggleSelectAll} />
-          <ScrollArea className="min-h-0 grow">
+        <>
+          <div className="mt-4 px-4 sm:px-6">
+            <FileGridHeader entries={filtered} selected={selected} onToggleSelectAll={toggleSelectAll} />
+          </div>
+          <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             <FileGrid
               entries={filtered}
               selected={selected}
@@ -308,7 +317,7 @@ export default function FilesPage() {
               hideHeader
             />
           </ScrollArea>
-        </div>
+        </>
       )}
 
       <Dialog open={mkdirOpen} onOpenChange={setMkdirOpen}>

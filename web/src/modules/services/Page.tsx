@@ -58,8 +58,8 @@ export default function ServicesPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center gap-4">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-4 px-4 pt-4 sm:px-6 sm:pt-6">
         <div className="flex items-center gap-2">
           <div className="relative w-48 sm:w-64">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
@@ -87,13 +87,15 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
-      {units && units.length === 0 && <p className="text-sm text-gray-500">{t('services.empty')}</p>}
+      {units && units.length === 0 && <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('services.empty')}</p>}
       {units && units.length > 0 && (
-        <div className="flex min-h-0 grow flex-col">
-          <ServiceTableHeader />
-          <ScrollArea className="min-h-0 grow">
+        <>
+          <div className="mt-4 px-4 sm:px-6">
+            <ServiceTableHeader />
+          </div>
+          <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             <ServiceTable
               units={units}
               pending={pending}
@@ -103,7 +105,7 @@ export default function ServicesPage() {
               hideHeader
             />
           </ScrollArea>
-        </div>
+        </>
       )}
 
       <LogsDialog

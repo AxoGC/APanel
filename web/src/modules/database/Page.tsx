@@ -94,8 +94,8 @@ export default function DatabasePage() {
   }, [selectedDatabase, tables])
 
   return (
-    <div className="flex h-full flex-col gap-3 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-6">
         {selectedDatabase === null ? (
           <>
             <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.database')}</h1>
@@ -125,30 +125,38 @@ export default function DatabasePage() {
         )}
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-3 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {selectedDatabase === null ? (
         <>
-          {databases && databases.length === 0 && <p className="text-sm text-gray-500">{t('database.empty')}</p>}
+          {databases && databases.length === 0 && (
+            <p className="mt-3 px-4 text-sm text-gray-500 sm:px-6">{t('database.empty')}</p>
+          )}
           {databases && databases.length > 0 && (
-            <div className="flex min-h-0 grow flex-col">
-              <DatabaseTableHeader />
-              <ScrollArea className="min-h-0 grow">
+            <>
+              <div className="mt-3 px-4 sm:px-6">
+                <DatabaseTableHeader />
+              </div>
+              <ScrollArea className="min-h-0 grow px-4 sm:px-6">
                 <DatabaseTable databases={databases} sizes={sizes} onSelect={setSelectedDatabase} />
               </ScrollArea>
-            </div>
+            </>
           )}
         </>
       ) : (
         <>
-          {tables && tables.length === 0 && <p className="text-sm text-gray-500">{t('database.table.empty')}</p>}
+          {tables && tables.length === 0 && (
+            <p className="mt-3 px-4 text-sm text-gray-500 sm:px-6">{t('database.table.empty')}</p>
+          )}
           {tables && tables.length > 0 && (
-            <div className="flex min-h-0 grow flex-col">
-              <TableListHeader />
-              <ScrollArea className="min-h-0 grow">
+            <>
+              <div className="mt-3 px-4 sm:px-6">
+                <TableListHeader />
+              </div>
+              <ScrollArea className="min-h-0 grow px-4 sm:px-6">
                 <TableList tables={tables} stats={tableStats} />
               </ScrollArea>
-            </div>
+            </>
           )}
         </>
       )}

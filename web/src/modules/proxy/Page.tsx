@@ -116,8 +116,8 @@ export default function ProxyPage() {
   const showTable = mode !== 'direct'
 
   return (
-    <div className="flex h-full flex-col gap-3 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-6">
         <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.proxy')}</h1>
         <div className="flex items-center gap-1">
           {showTable && (
@@ -144,18 +144,20 @@ export default function ProxyPage() {
         </div>
       </div>
 
-      <SegmentedControl
-        options={[
-          { value: 'global' as ProxyMode, label: t('proxy.mode.global') },
-          { value: 'rule' as ProxyMode, label: t('proxy.mode.rule') },
-          { value: 'direct' as ProxyMode, label: t('proxy.mode.direct') },
-        ]}
-        value={mode}
-        onChange={(v) => void handleModeChange(v)}
-      />
+      <div className="mt-3 px-4 sm:px-6">
+        <SegmentedControl
+          options={[
+            { value: 'global' as ProxyMode, label: t('proxy.mode.global') },
+            { value: 'rule' as ProxyMode, label: t('proxy.mode.rule') },
+            { value: 'direct' as ProxyMode, label: t('proxy.mode.direct') },
+          ]}
+          value={mode}
+          onChange={(v) => void handleModeChange(v)}
+        />
+      </div>
 
       {mode === 'rule' && overview && overview.groups.length > 0 && (
-        <div className="flex flex-row flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-row flex-wrap gap-1.5 px-4 sm:px-6">
           {overview.groups.map((name) => (
             <button
               key={name}
@@ -175,18 +177,20 @@ export default function ProxyPage() {
         </div>
       )}
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-3 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {showTable && (
-        <div className="flex min-h-0 grow flex-col">
-          <ProxyTableHeader />
-          <ScrollArea className="min-h-0 grow">
+        <>
+          <div className="mt-3 px-4 sm:px-6">
+            <ProxyTableHeader />
+          </div>
+          <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             {group && group.options.length === 0 && <p className="p-2 text-sm text-gray-500">{t('proxy.empty')}</p>}
             {group && group.options.length > 0 && (
               <ProxyTable options={group.options} now={group.now} pending={pendingSelect} onSelect={(name) => void handleSelect(name)} />
             )}
           </ScrollArea>
-        </div>
+        </>
       )}
 
       <DependencyDialog moduleKey="proxy" open={dialogOpen} onOpenChange={setDialogOpen} />
