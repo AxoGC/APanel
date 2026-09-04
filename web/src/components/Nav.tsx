@@ -18,8 +18,8 @@ function itemClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
     'flex h-14 min-w-16 shrink-0 flex-col items-center justify-center gap-1 text-xs',
     collapsed
-      ? 'md:size-10 md:min-w-0 md:flex-row md:justify-center md:px-0 md:py-0'
-      : 'md:h-auto md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-2 md:text-sm',
+      ? 'md:h-9 md:w-10 md:min-w-0 md:flex-row md:justify-center md:px-0 md:py-0'
+      : 'md:h-9 md:w-full md:min-w-0 md:flex-row md:justify-start md:gap-2 md:px-3 md:py-0 md:text-sm',
     isActive ? 'text-theme-700 dark:text-theme-300' : 'text-gray-700 dark:text-gray-300',
   )
 }
