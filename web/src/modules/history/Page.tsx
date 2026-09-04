@@ -61,6 +61,17 @@ function formatRate(value: number): string {
   return value.toFixed(1)
 }
 
+// Fixed, distinguishable per-metric colors (rather than the app's single
+// user-switchable theme hue) so the charts read at a glance the way
+// Windows Task Manager's performance graphs do — one color per resource.
+const CHART_COLORS = {
+  cpu: { line: 'text-blue-500', area: 'text-blue-100 dark:text-blue-950' },
+  memory: { line: 'text-fuchsia-500', area: 'text-fuchsia-100 dark:text-fuchsia-950' },
+  upload: { line: 'text-orange-500', area: 'text-orange-100 dark:text-orange-950' },
+  disk: { line: 'text-green-500', area: 'text-green-100 dark:text-green-950' },
+  load: { line: 'text-teal-500', area: 'text-teal-100 dark:text-teal-950' },
+} as const
+
 function dayLabel(daysAgo: number, today: string, yesterday: string): string {
   if (daysAgo === 0) return today
   if (daysAgo === 1) return yesterday
@@ -208,6 +219,8 @@ export default function HistoryPage() {
               values={day.points.map((p) => p.cpuUsedPercent)}
               unit="%"
               heightClassName={chartHeightClassName}
+              lineColorClassName={CHART_COLORS.cpu.line}
+              areaColorClassName={CHART_COLORS.cpu.area}
             />
             <div className="flex flex-col gap-1">
               <HistoryChart
@@ -216,6 +229,8 @@ export default function HistoryPage() {
                 values={day.points.map((p) => p.memUsedPercent)}
                 unit="%"
                 heightClassName={chartHeightClassName}
+                lineColorClassName={CHART_COLORS.memory.line}
+                areaColorClassName={CHART_COLORS.memory.area}
               />
               {last && (
                 <span className="text-xs text-gray-500">
@@ -232,6 +247,8 @@ export default function HistoryPage() {
                 unit={netUnit}
                 formatValue={formatRate}
                 heightClassName={chartHeightClassName}
+                lineColorClassName={CHART_COLORS.upload.line}
+                areaColorClassName={CHART_COLORS.upload.area}
               />
               {last && <span className="text-xs text-gray-500">{formatNetRate(last.netTxBytesPerSec)}</span>}
             </div>
@@ -241,6 +258,8 @@ export default function HistoryPage() {
               values={day.points.map((p) => p.diskUtilPercent)}
               unit="%"
               heightClassName={chartHeightClassName}
+              lineColorClassName={CHART_COLORS.disk.line}
+              areaColorClassName={CHART_COLORS.disk.area}
             />
             <div className="flex flex-col gap-1">
               <HistoryChart
@@ -250,6 +269,8 @@ export default function HistoryPage() {
                 max={null}
                 formatValue={formatLoadAvg}
                 heightClassName={chartHeightClassName}
+                lineColorClassName={CHART_COLORS.load.line}
+                areaColorClassName={CHART_COLORS.load.area}
               />
               {last && <span className="text-xs text-gray-500">{formatLoadAvg(last.loadAvg1)}</span>}
             </div>

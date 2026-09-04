@@ -16,6 +16,8 @@ export function HistoryChart({
   max = 100,
   formatValue,
   heightClassName = 'h-48',
+  lineColorClassName = 'text-theme-500',
+  areaColorClassName = 'text-theme-100 dark:text-theme-950',
 }: {
   label: string
   times: string[]
@@ -24,12 +26,18 @@ export function HistoryChart({
   max?: number | null
   formatValue?: (value: number) => string
   heightClassName?: string
+  // A per-metric fixed color (e.g. "text-blue-500"), overriding the
+  // default user-switchable theme hue — used when charts are meant to be
+  // told apart by color (CPU/memory/upload/disk/load) rather than share
+  // one accent.
+  lineColorClassName?: string
+  areaColorClassName?: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<echarts.ECharts | null>(null)
   const colors = useThemeColors({
-    line: 'text-theme-500',
-    area: 'text-theme-100 dark:text-theme-950',
+    line: lineColorClassName,
+    area: areaColorClassName,
     axis: 'text-gray-400',
     split: 'text-gray-100 dark:text-gray-900',
   })
