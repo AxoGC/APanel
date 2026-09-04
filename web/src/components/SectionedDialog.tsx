@@ -1,13 +1,15 @@
 import { XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/adaptive/dialog'
 
 // A Dialog built on top of the primitives in ui/dialog, opinionated about
 // structure instead of just styling: a title row, a scrollable content
 // area, and an optional footer, separated by dividers — with the divider
 // between content and footer only present when there is a footer at all.
 // The outer shell declares no padding of its own; each row owns its own.
+// `className` is sizing (max-w-*, h-*) — every current caller uses it that
+// way — so it's forwarded as desktop-only; the mobile sheet is always
+// full-width and bounds itself.
 export function SectionedDialog({
   open,
   onOpenChange,
@@ -30,7 +32,8 @@ export function SectionedDialog({
       <DialogContent
         showCloseButton={false}
         onOpenAutoFocus={onOpenAutoFocus}
-        className={cn('flex flex-col gap-0 p-0', className)}
+        className="flex flex-col gap-0 p-0"
+        desktopClassName={className}
       >
         <div className="flex items-center justify-between gap-3 border-b border-gray-100 p-4 dark:border-gray-800">
           <DialogTitle className="min-w-0 truncate">{title}</DialogTitle>

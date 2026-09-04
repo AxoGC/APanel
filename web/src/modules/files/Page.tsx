@@ -18,7 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@/components/adaptive/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
@@ -375,7 +375,7 @@ export default function FilesPage() {
           }
         }}
       >
-        <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col">
+        <DialogContent className="flex flex-col" desktopClassName="max-h-[85vh] max-w-2xl">
           <DialogHeader>
             <DialogTitle>{previewTarget?.name}</DialogTitle>
           </DialogHeader>

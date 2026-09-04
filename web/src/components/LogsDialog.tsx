@@ -5,7 +5,7 @@ import {
   DialogClose,
   DialogContent,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@/components/adaptive/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'
 import { TextReader } from '@/components/TextReader'
@@ -80,7 +80,7 @@ export function LogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] max-w-2xl flex-col gap-0 p-0" showCloseButton={false}>
+      <DialogContent className="flex flex-col gap-0 p-0" desktopClassName="h-[85vh] max-w-2xl" showCloseButton={false}>
         <div className="flex items-center justify-between gap-2 p-4 pb-3">
           <DialogTitle className="truncate">{title}</DialogTitle>
           <DialogClose className="shrink-0 cursor-pointer rounded-sm text-gray-500 outline-none hover:text-gray-700 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:text-gray-300">

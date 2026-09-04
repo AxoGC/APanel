@@ -3,7 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { XIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/adaptive/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
@@ -210,7 +210,7 @@ export function ContainerLogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0" showCloseButton={false}>
+      <DialogContent className="flex flex-col gap-0 p-0" desktopClassName="max-h-[85vh] max-w-2xl" showCloseButton={false}>
         <div className="flex items-center justify-between gap-2 p-4 pb-3">
           <DialogTitle className="truncate">
             {container ? `${container.name} — ${t('containers.logs')}` : ''}

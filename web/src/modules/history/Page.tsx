@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@/components/adaptive/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
@@ -168,7 +168,7 @@ export default function HistoryPage() {
       )}
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="flex max-h-[85vh] flex-col">
+        <DialogContent className="flex flex-col" desktopClassName="max-h-[85vh]">
           <form onSubmit={submitSettings} className="flex min-h-0 flex-col gap-4">
             <DialogHeader>
               <DialogTitle>{t('history.settings.title')}</DialogTitle>
