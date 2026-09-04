@@ -4,6 +4,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useEffect, useRef } from 'react'
 import { useThemeColors } from '@/lib/chartColors'
+import { cn } from '@/lib/utils'
 
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
@@ -14,6 +15,7 @@ export function HistoryChart({
   unit,
   max = 100,
   formatValue,
+  heightClassName = 'h-48',
 }: {
   label: string
   times: string[]
@@ -21,6 +23,7 @@ export function HistoryChart({
   unit?: string
   max?: number | null
   formatValue?: (value: number) => string
+  heightClassName?: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<echarts.ECharts | null>(null)
@@ -35,17 +38,24 @@ export function HistoryChart({
     if (!containerRef.current) return
     const chart = echarts.init(containerRef.current)
     chartRef.current = chart
-    const handleResize = () => chart.resize()
-    window.addEventListener('resize', handleResize)
+    // A ResizeObserver (rather than a window resize listener) also catches
+    // the container changing width on its own — e.g. the history page's
+    // column-count toggle reflowing the grid without the window itself
+    // resizing, which otherwise leaves the canvas at its old width,
+    // overflowing into the next grid column.
+    const observer = new ResizeObserver(() => chart.resize())
+    observer.observe(containerRef.current)
     return () => {
-      window.removeEventListener('resize', handleResize)
+      observer.disconnect()
       chart.dispose()
       chartRef.current = null
     }
   }, [])
 
   useEffect(() => {
-    const format = formatValue ?? ((v: number) => `${v}${unit ?? ''}`)
+    // No unit suffix here — the unit (if any) is shown once, next to the
+    // chart's title, instead of repeated on every axis tick/tooltip line.
+    const format = formatValue ?? ((v: number) => `${v}`)
     chartRef.current?.setOption({
       grid: { left: 40, right: 12, top: 16, bottom: 24 },
       xAxis: {
@@ -81,12 +91,15 @@ export function HistoryChart({
         },
       ],
     })
-  }, [times, values, unit, max, formatValue, colors, label])
+  }, [times, values, max, formatValue, colors, label])
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs text-gray-500">{label}</span>
-      <div ref={containerRef} className="h-48 w-full" />
+      <span className="text-xs text-gray-500">
+        {label}
+        {unit && ` (${unit})`}
+      </span>
+      <div ref={containerRef} className={cn(heightClassName, 'w-full')} />
     </div>
   )
 }

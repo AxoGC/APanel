@@ -44,6 +44,23 @@ function setStoredNarrowColumns(value: 1 | 2) {
   localStorage.setItem(NARROW_COLUMNS_KEY, String(value))
 }
 
+// The axis no longer shows a per-tick unit, so the whole chart is
+// displayed in a single unit (picked from the day's peak, like a typical
+// bandwidth graph) instead of formatBitrate's usual per-value Kbps/Mbps
+// switch — that title-only unit only makes sense if every value shares it.
+function bitrateUnit(maxBytesPerSec: number): 'Kbps' | 'Mbps' {
+  return formatBitrate(maxBytesPerSec).unit
+}
+
+function toBitrateValue(bytesPerSec: number, unit: 'Kbps' | 'Mbps'): number {
+  const bitsPerSec = Math.max(0, bytesPerSec) * 8
+  return unit === 'Mbps' ? bitsPerSec / 1_000_000 : bitsPerSec / 1_000
+}
+
+function formatRate(value: number): string {
+  return value.toFixed(1)
+}
+
 function dayLabel(daysAgo: number, today: string, yesterday: string): string {
   if (daysAgo === 0) return today
   if (daysAgo === 1) return yesterday
@@ -116,6 +133,13 @@ export default function HistoryPage() {
     return value.toFixed(2)
   }
 
+  // Shorter below sm when two narrow columns halve each chart's width, so
+  // it doesn't stay as tall as it was at full width; sm+ is unaffected,
+  // since narrowColumns only applies below that breakpoint.
+  const chartHeightClassName = narrowColumns === 2 ? 'h-32 sm:h-48' : 'h-48'
+
+  const netUnit = bitrateUnit(day ? Math.max(0, ...day.points.map((p) => p.netTxBytesPerSec)) : 0)
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-6">
@@ -170,7 +194,11 @@ export default function HistoryPage() {
         <ScrollArea className="mt-4 min-h-0 grow px-4 sm:px-6">
           <div
             className={cn(
-              'grid gap-6 sm:grid-cols-2 lg:grid-cols-3',
+              // No horizontal gap below sm: narrow screens are tight on
+              // space, and each chart's canvas already reserves its own
+              // left/right padding (see HistoryChart's grid option), so a
+              // column gap there is redundant.
+              'grid gap-x-0 gap-y-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3',
               narrowColumns === 2 ? 'grid-cols-2' : 'grid-cols-1',
             )}
           >
@@ -179,6 +207,7 @@ export default function HistoryPage() {
               times={day.points.map((p) => p.time)}
               values={day.points.map((p) => p.cpuUsedPercent)}
               unit="%"
+              heightClassName={chartHeightClassName}
             />
             <div className="flex flex-col gap-1">
               <HistoryChart
@@ -186,6 +215,7 @@ export default function HistoryPage() {
                 times={day.points.map((p) => p.time)}
                 values={day.points.map((p) => p.memUsedPercent)}
                 unit="%"
+                heightClassName={chartHeightClassName}
               />
               {last && (
                 <span className="text-xs text-gray-500">
@@ -197,9 +227,11 @@ export default function HistoryPage() {
               <HistoryChart
                 label={t('history.upload')}
                 times={day.points.map((p) => p.time)}
-                values={day.points.map((p) => p.netTxBytesPerSec)}
+                values={day.points.map((p) => toBitrateValue(p.netTxBytesPerSec, netUnit))}
                 max={null}
-                formatValue={formatNetRate}
+                unit={netUnit}
+                formatValue={formatRate}
+                heightClassName={chartHeightClassName}
               />
               {last && <span className="text-xs text-gray-500">{formatNetRate(last.netTxBytesPerSec)}</span>}
             </div>
@@ -208,6 +240,7 @@ export default function HistoryPage() {
               times={day.points.map((p) => p.time)}
               values={day.points.map((p) => p.diskUtilPercent)}
               unit="%"
+              heightClassName={chartHeightClassName}
             />
             <div className="flex flex-col gap-1">
               <HistoryChart
@@ -216,6 +249,7 @@ export default function HistoryPage() {
                 values={day.points.map((p) => p.loadAvg1)}
                 max={null}
                 formatValue={formatLoadAvg}
+                heightClassName={chartHeightClassName}
               />
               {last && <span className="text-xs text-gray-500">{formatLoadAvg(last.loadAvg1)}</span>}
             </div>
