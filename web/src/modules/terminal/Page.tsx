@@ -220,7 +220,7 @@ export default function TerminalPage() {
           </div>
         </ScrollArea>
       </div>
-      <div className="min-h-0 grow p-4 sm:p-6">
+      <div className="min-h-0 grow">
         <div ref={containerRef} className="h-full w-full" />
       </div>
     </div>
