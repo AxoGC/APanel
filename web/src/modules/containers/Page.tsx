@@ -79,7 +79,7 @@ export default function ContainersPage() {
           aria-label={t('containers.search')}
           onClick={() => setMobileSearchOpen(true)}
           className={cn(
-            'flex size-8 cursor-pointer items-center justify-center rounded-lg border border-input text-gray-500 hover:bg-accent hover:text-gray-700 dark:bg-input/30 dark:hover:bg-input/50 dark:hover:text-gray-300 md:hidden',
+            'flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-input text-gray-500 hover:bg-accent hover:text-gray-700 dark:bg-input/30 dark:hover:bg-input/50 dark:hover:text-gray-300 md:hidden',
             mobileSearchOpen && 'hidden',
           )}
         >
@@ -96,7 +96,7 @@ export default function ContainersPage() {
             className="pl-8"
           />
         </div>
-        <div className={cn('flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
+        <div className={cn('flex min-w-0 shrink items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
           <span className="hidden text-xs text-gray-500 md:inline">{t('containers.status')}</span>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
             <SelectTrigger>
@@ -119,11 +119,11 @@ export default function ContainersPage() {
           >
             <Plug />
           </Button>
-          <Button variant="outline" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
+          <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
             <Images />
             <span className="hidden md:inline">{t('containers.images')}</span>
           </Button>
-          <Button variant="outline" size="sm" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
+          <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
             <Network />
             <span className="hidden md:inline">{t('containers.networks')}</span>
           </Button>
@@ -131,7 +131,7 @@ export default function ContainersPage() {
             size="sm"
             aria-label={t('containers.create')}
             onClick={() => setCreateOpen(true)}
-            className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+            className="h-8 border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
           >
             <Plus />
             <span className="hidden md:inline">{t('containers.create')}</span>

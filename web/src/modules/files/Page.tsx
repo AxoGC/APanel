@@ -290,16 +290,16 @@ export default function FilesPage() {
             onClick={() => setShowHidden((v) => !v)}
             ariaLabel={t('files.showHidden')}
             title={t('files.showHidden')}
-            className={cn(mobileSearchOpen && 'max-md:hidden')}
+            className={cn('h-8', mobileSearchOpen && 'max-md:hidden')}
           >
             <Eye className="size-3.5" />
             <span className="hidden md:inline">{t('files.showHidden')}</span>
           </ToggleButton>
-          <Button variant="outline" size="sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)} className={cn(mobileSearchOpen && 'max-md:hidden')}>
+          <Button variant="outline" size="sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)} className={cn('h-8', mobileSearchOpen && 'max-md:hidden')}>
             <FolderPlus />
             <span className="hidden md:inline">{t('files.newFolder')}</span>
           </Button>
-          <Button variant="outline" size="sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()} className={cn(mobileSearchOpen && 'max-md:hidden')}>
+          <Button variant="outline" size="sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()} className={cn('h-8', mobileSearchOpen && 'max-md:hidden')}>
             {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
             <span className="hidden md:inline">{t('files.upload')}</span>
           </Button>

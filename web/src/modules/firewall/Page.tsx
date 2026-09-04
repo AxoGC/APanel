@@ -77,7 +77,7 @@ export default function FirewallPage() {
           >
             <Plug />
           </Button>
-          <Button variant="outline" size="sm" onClick={openAdd}>
+          <Button variant="outline" size="sm" className="h-8" onClick={openAdd}>
             <Plus />
             {t('firewall.addRule')}
           </Button>
