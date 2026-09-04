@@ -68,10 +68,9 @@ export function DatabaseTable({
             <div className="flex flex-col gap-2 md:hidden">
               <div className="flex items-center justify-between gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{database.name}</span>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-xs text-gray-500">{t('database.tableCount')}</span>
-                  <span className="text-xs text-gray-500">{database.tableCount}</span>
-                </div>
+                <span className="shrink-0 text-xs text-gray-500">
+                  {t('database.tableCount.mobile', { n: database.tableCount })}
+                </span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-1.5">

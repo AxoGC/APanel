@@ -364,12 +364,11 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'database.back': 'Back',
     'database.name': 'Name',
     'database.tableCount': 'Tables',
+    'database.tableCount.mobile': '{n} tables',
     'database.columnCount': 'Columns',
+    'database.columnCount.mobile': '{n} columns',
     'database.rowCount': 'Rows',
-    'database.rowCount.prefix': '',
-    'database.rowCount.suffix': ' rows',
-    'database.columnCount.prefix': '',
-    'database.columnCount.suffix': ' columns',
+    'database.rowCount.mobile': '{n} rows',
     'database.usedSpace': 'Used',
     'database.actions': 'Actions',
     'database.empty': 'No databases found.',
@@ -732,12 +731,11 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'database.back': '返回',
     'database.name': '数据库名称',
     'database.tableCount': '表数量',
+    'database.tableCount.mobile': '共 {n} 张表',
     'database.columnCount': '列数量',
+    'database.columnCount.mobile': '共 {n} 列',
     'database.rowCount': '行数量',
-    'database.rowCount.prefix': '共 ',
-    'database.rowCount.suffix': ' 行',
-    'database.columnCount.prefix': '共 ',
-    'database.columnCount.suffix': ' 列',
+    'database.rowCount.mobile': '共 {n} 行',
     'database.usedSpace': '已用',
     'database.actions': '操作',
     'database.empty': '未发现数据库。',
@@ -747,10 +745,12 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 
 export type TranslationKey = keyof (typeof dictionaries)['en']
 
+type TranslationParams = Record<string, string | number>
+
 interface I18nContextValue {
   locale: Locale
   setLocale: (locale: Locale) => void
-  t: (key: TranslationKey) => string
+  t: (key: TranslationKey, params?: TranslationParams) => string
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null)
@@ -775,7 +775,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = useMemo(() => {
     const dict = dictionaries[locale]
-    return (key: keyof (typeof dictionaries)['en']) => dict[key] ?? key
+    return (key: keyof (typeof dictionaries)['en'], params?: TranslationParams) => {
+      const template = dict[key] ?? key
+      if (!params) return template
+      return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+        name in params ? String(params[name]) : match,
+      )
+    }
   }, [locale])
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>

@@ -68,17 +68,13 @@ export function TableList({
                   {displayName(table)}
                 </span>
                 <span className="shrink-0 text-xs text-gray-500">
-                  {t('database.columnCount.prefix')}
-                  {table.columnCount}
-                  {t('database.columnCount.suffix')}
+                  {t('database.columnCount.mobile', { n: table.columnCount })}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="shrink-0 text-xs text-gray-500">
-                    {t('database.rowCount.prefix')}
-                    {rowsLabel}
-                    {t('database.rowCount.suffix')}
+                    {t('database.rowCount.mobile', { n: rowsLabel })}
                   </span>
                   <div className="flex min-w-0 items-center gap-1.5">
                     <span className="shrink-0 text-xs text-gray-500">{t('database.usedSpace')}</span>
