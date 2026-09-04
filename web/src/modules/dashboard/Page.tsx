@@ -42,6 +42,13 @@ export default function DashboardPage() {
   const [settingsMaxMbps, setSettingsMaxMbps] = useState(String(DEFAULT_MAX_MBPS))
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
+  // Radix's Tooltip only opens on mouse/pen hover or keyboard focus, never on
+  // touch — there's no hover on a touchscreen, and Radix deliberately skips
+  // touch so a tap isn't hijacked from whatever the trigger would otherwise
+  // do. Since this trigger is a plain, non-interactive span, tapping it
+  // should just toggle the tooltip, so it's driven as a controlled open
+  // state instead of Radix's own (hover-only) internal one.
+  const [maxMbpsTooltipOpen, setMaxMbpsTooltipOpen] = useState(false)
 
   useEffect(() => {
     getDashboardNetworkSettings()
@@ -213,9 +220,12 @@ export default function DashboardPage() {
       >
         <form id={NETWORK_SETTINGS_FORM_ID} onSubmit={submitSettings} className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <Tooltip>
+            <Tooltip open={maxMbpsTooltipOpen} onOpenChange={setMaxMbpsTooltipOpen}>
               <TooltipTrigger asChild>
-                <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
+                <span
+                  onClick={() => setMaxMbpsTooltipOpen((v) => !v)}
+                  className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500"
+                >
                   {t('dashboard.networkSettings.maxMbps')}
                   <Info className="size-3" />
                 </span>
