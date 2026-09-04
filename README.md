@@ -10,7 +10,7 @@ APanel 是一个移动端优先、Linux原生、轻量级的Web运维面板，�
 
 `Apanel` 的命名灵感借鉴 1Panel：`1` 是第一个阿拉伯数字，`A` 是第一个英文字母。
 
-字母 `A` 也代表作者创立的 [Axolotland Gaming Club（AxoGC）](https://www.axogc.net)，致力于开源软件、独立游戏、Minecraft服务器。
+`A` 也代表作者创立的 [Axolotland Gaming Club（AxoGC）](https://www.axogc.net)，致力于开源软件、独立游戏、Minecraft服务器的非营利圈子。
 
 ### Apanel 特点
 
