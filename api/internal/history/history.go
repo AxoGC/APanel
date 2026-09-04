@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"time"
 
+	"apanel/internal/dependency"
 	"apanel/internal/settings"
 )
 
@@ -50,6 +51,23 @@ func New(settingsMgr *settings.Manager) *Manager {
 
 func (m *Manager) Available(ctx context.Context) bool {
 	return m.sadfPath != ""
+}
+
+// Key identifies this package's entry in httpserver's dependency endpoints.
+func (m *Manager) Key() string { return "history" }
+
+// CheckDependency reports whether sadf is on PATH and, if not, whether the
+// sysstat systemd unit exists so httpserver can offer an "enable service"
+// action instead of just an install link.
+func (m *Manager) CheckDependency(ctx context.Context) dependency.State {
+	if m.Available(ctx) {
+		return dependency.State{Installed: true}
+	}
+	exists, active := dependency.Probe(ctx, "sysstat")
+	if !exists {
+		return dependency.State{}
+	}
+	return dependency.State{ServiceName: "sysstat", ServiceActive: active}
 }
 
 // Sample returns one day's CPU/memory/swap samples, daysAgo days before

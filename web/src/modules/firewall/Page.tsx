@@ -1,8 +1,10 @@
-import { Plus } from 'lucide-react'
+import { Plug, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
+import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { deleteFirewallRule, getFirewallStatus, type FirewallRule, type FirewallStatus } from './api'
@@ -17,6 +19,7 @@ export default function FirewallPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null)
   const [deleting, setDeleting] = useState<Record<string, boolean>>({})
+  const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('firewall')
 
   useEffect(() => {
     getFirewallStatus()
@@ -64,10 +67,21 @@ export default function FirewallPage() {
         ) : (
           <div />
         )}
-        <Button variant="outline" size="sm" onClick={openAdd}>
-          <Plus />
-          {t('firewall.addRule')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('dependency.configure')}
+            title={t('dependency.configure')}
+            onClick={() => setDependencyOpen(true)}
+          >
+            <Plug />
+          </Button>
+          <Button variant="outline" size="sm" onClick={openAdd}>
+            <Plus />
+            {t('firewall.addRule')}
+          </Button>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -84,6 +98,7 @@ export default function FirewallPage() {
       )}
 
       <RuleDialog open={dialogOpen} onOpenChange={setDialogOpen} rule={editingRule} onSuccess={setStatus} />
+      <DependencyDialog moduleKey="firewall" open={dependencyOpen} onOpenChange={setDependencyOpen} />
     </div>
   )
 }

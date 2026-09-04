@@ -1,5 +1,6 @@
-import { Settings } from 'lucide-react'
+import { Plug, Settings } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
+import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { formatBytes } from '@/lib/format'
 import { ApiError } from '@/lib/api'
+import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import {
   getHistory,
@@ -48,6 +50,7 @@ export default function HistoryPage() {
   const [settings, setSettings] = useState<HistoryCollectionSettings | null>(null)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
+  const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('history')
 
   useEffect(() => {
     setError(null)
@@ -101,9 +104,20 @@ export default function HistoryPage() {
             </SelectContent>
           </Select>
         </div>
-        <Button variant="ghost" size="icon-sm" aria-label={t('history.settings')} onClick={openSettings}>
-          <Settings />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('dependency.configure')}
+            title={t('dependency.configure')}
+            onClick={() => setDependencyOpen(true)}
+          >
+            <Plug />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label={t('history.settings')} onClick={openSettings}>
+            <Settings />
+          </Button>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -214,6 +228,7 @@ export default function HistoryPage() {
           </form>
         </DialogContent>
       </Dialog>
+      <DependencyDialog moduleKey="history" open={dependencyOpen} onOpenChange={setDependencyOpen} />
     </div>
   )
 }

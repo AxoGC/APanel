@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, FolderOpen, Gauge, PanelRightClose, PanelRightOpen, Server, Settings, SquareTerminal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -7,18 +7,12 @@ import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { MODULE_META } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 
-const BASE_ITEMS = [
-  { to: '/', labelKey: 'nav.dashboard', icon: Gauge },
-  { to: '/terminal', labelKey: 'nav.terminal', icon: SquareTerminal },
-  { to: '/services', labelKey: 'nav.services', icon: Server },
-  { to: '/files', labelKey: 'nav.files', icon: FolderOpen },
-] satisfies { to: string; labelKey: TranslationKey; icon: typeof Gauge }[]
+type NavItem = { to: string; labelKey: TranslationKey; icon: LucideIcon }
 
-const SETTINGS_ITEM = { to: '/settings', labelKey: 'nav.settings', icon: Settings } satisfies {
-  to: string
-  labelKey: TranslationKey
-  icon: typeof Gauge
-}
+// Dashboard and Settings aren't part of the enable/reorder system — they're
+// mandatory, pinned first and last respectively.
+const DASHBOARD_ITEM = { to: '/', labelKey: 'nav.dashboard', icon: Gauge } satisfies NavItem
+const SETTINGS_ITEM = { to: '/settings', labelKey: 'nav.settings', icon: Settings } satisfies NavItem
 
 function itemClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
@@ -64,7 +58,7 @@ export function Nav() {
   const [collapsed, setCollapsed] = useState(false)
 
   const visibleItems = [
-    ...BASE_ITEMS,
+    DASHBOARD_ITEM,
     ...features.modules.filter((m) => m.enabled).map((m) => MODULE_META[m.key]),
     SETTINGS_ITEM,
   ]

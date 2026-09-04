@@ -2,7 +2,15 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { apiFetch } from './api'
 import { useAuth } from './auth'
 
-export type ModuleKey = 'containers' | 'history' | 'firewall' | 'proxy' | 'database'
+export type ModuleKey =
+  | 'terminal'
+  | 'services'
+  | 'files'
+  | 'containers'
+  | 'history'
+  | 'firewall'
+  | 'proxy'
+  | 'database'
 
 export interface ModuleStatus {
   key: ModuleKey

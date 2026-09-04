@@ -24,6 +24,8 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+
+	"apanel/internal/dependency"
 )
 
 var (
@@ -147,6 +149,23 @@ func New() (*Manager, error) {
 func (m *Manager) Available(ctx context.Context) bool {
 	_, err := m.cli.Ping(ctx)
 	return err == nil
+}
+
+// Key identifies this package's entry in httpserver's dependency endpoints.
+func (m *Manager) Key() string { return "containers" }
+
+// CheckDependency reports whether Docker is reachable and, if not, whether
+// its systemd unit exists so httpserver can offer an "enable service"
+// action instead of just an install link.
+func (m *Manager) CheckDependency(ctx context.Context) dependency.State {
+	if m.Available(ctx) {
+		return dependency.State{Installed: true}
+	}
+	exists, active := dependency.Probe(ctx, "docker")
+	if !exists {
+		return dependency.State{}
+	}
+	return dependency.State{ServiceName: "docker", ServiceActive: active}
 }
 
 // List returns containers, optionally filtered by Docker's own state

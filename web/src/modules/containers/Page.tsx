@@ -1,10 +1,12 @@
-import { Images, Network, Plus, Search } from 'lucide-react'
+import { Images, Network, Plug, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useRef, useState } from 'react'
+import { DependencyDialog } from '@/components/DependencyDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
+import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
@@ -35,6 +37,7 @@ export default function ContainersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('containers')
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -107,6 +110,15 @@ export default function ContainersPage() {
           </Select>
         </div>
         <div className={cn('ml-auto flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('dependency.configure')}
+            title={t('dependency.configure')}
+            onClick={() => setDependencyOpen(true)}
+          >
+            <Plug />
+          </Button>
           <Button variant="outline" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
             <Images />
             <span className="hidden md:inline">{t('containers.images')}</span>
@@ -155,6 +167,7 @@ export default function ContainersPage() {
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
       <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
+      <DependencyDialog moduleKey="containers" open={dependencyOpen} onOpenChange={setDependencyOpen} />
     </div>
   )
 }

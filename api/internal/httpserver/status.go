@@ -11,15 +11,24 @@ const enabledFeaturesSettingsKey = "navigation.enabledFeatures"
 
 const invalidEnabledFeatures response.Code = "INVALID_ENABLED_FEATURES"
 
-// moduleOrder is the fixed set of optional extension modules, in their
-// default (nothing-enabled) order. Whether one shows up in the nav is
-// purely this explicit, admin-controlled list — never probed from the host.
-// Auto-detecting a dependency (a reachable Docker daemon, an installed
-// binary, ...) can't tell "not installed" apart from "reachable, just not
-// from here" (a different port, a different IP), so it was never a reliable
-// signal for this; a module whose backend isn't actually reachable simply
-// fails at request time instead.
-var moduleOrder = []string{"containers", "history", "firewall", "proxy", "database"}
+// moduleOrder is the fixed set of every togglable/reorderable module, in
+// their default order. Whether one shows up in the nav, and in what order,
+// is purely this explicit, admin-controlled list — never probed from the
+// host. Auto-detecting a dependency (a reachable Docker daemon, an
+// installed binary, ...) can't tell "not installed" apart from "reachable,
+// just not from here" (a different port, a different IP), so it was never
+// a reliable signal for this; a module whose backend isn't actually
+// reachable simply fails at request time instead. (Dashboard and Settings
+// aren't in this list — they're mandatory, pinned first and last.)
+var moduleOrder = []string{
+	"terminal", "services", "files",
+	"containers", "history", "firewall", "proxy", "database",
+}
+
+// defaultEnabledFeatures seeds a fresh install (nothing saved yet) with
+// the 3 core modules on — every optional extension stays opt-in until
+// explicitly enabled.
+var defaultEnabledFeatures = []string{"terminal", "services", "files"}
 
 var knownModules = func() map[string]struct{} {
 	m := make(map[string]struct{}, len(moduleOrder))
@@ -104,12 +113,16 @@ func buildModuleStatus(enabled []string) []moduleStatus {
 	return modules
 }
 
-// enabledFeatures intentionally defaults to an empty list: absence from the
-// config table means nothing has been explicitly enabled yet.
+// enabledFeatures falls back to defaultEnabledFeatures the first time
+// nothing has been saved yet; any explicit save afterwards — even an empty
+// one — is authoritative from then on.
 func (s *Server) enabledFeatures() ([]string, error) {
 	raw, found, err := s.settings.Get(enabledFeaturesSettingsKey)
-	if err != nil || !found {
-		return []string{}, err
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return defaultEnabledFeatures, nil
 	}
 
 	var stored []string
