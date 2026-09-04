@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,7 @@ export function DependencyDialog({
   const [saving, setSaving] = useState(false)
   const [enabling, setEnabling] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -129,13 +131,34 @@ export function DependencyDialog({
                       {t(FIELD_LABEL_KEYS[field])}
                       {required && <span className="text-red-600"> *</span>}
                     </Label>
-                    <Input
-                      id={`dependency-${field}`}
-                      type={field === 'password' ? 'password' : 'text'}
-                      placeholder={FIELD_PLACEHOLDERS[field]}
-                      value={form[field] ?? ''}
-                      onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                    />
+                    {field === 'password' ? (
+                      <div className="relative">
+                        <Input
+                          id={`dependency-${field}`}
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder={FIELD_PLACEHOLDERS[field]}
+                          value={form[field] ?? ''}
+                          onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                          className="pr-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={t(showPassword ? 'dependency.hidePassword' : 'dependency.showPassword')}
+                          className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                    ) : (
+                      <Input
+                        id={`dependency-${field}`}
+                        type="text"
+                        placeholder={FIELD_PLACEHOLDERS[field]}
+                        value={form[field] ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                      />
+                    )}
                   </div>
                 )
               })}
