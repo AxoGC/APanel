@@ -1,4 +1,4 @@
-import { Download, File, Folder, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Download, File, Folder, Image, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +10,7 @@ import {
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { downloadUrl, type FileEntry } from './api'
+import { isImageFile } from './format'
 
 function formatModTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -37,7 +38,7 @@ function FileRow({
   onDeleteOne: (path: string) => void
 }) {
   const { t } = useI18n()
-  const Icon = entry.isDir ? Folder : File
+  const Icon = entry.isDir ? Folder : isImageFile(entry.name) ? Image : File
 
   return (
     <div className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800">

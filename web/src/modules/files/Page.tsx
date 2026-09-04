@@ -1,5 +1,5 @@
 import { ArrowUp, Eye, FolderPlus, Loader2, Search, Trash2, Upload } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from 'react'
 import { ToggleButton } from '@/components/ToggleButton'
 import {
   AlertDialog,
@@ -38,10 +38,12 @@ import {
   writeFileContent,
   type FileEntry,
 } from './api'
+import { isImageFile } from './format'
 
 type PreviewState =
   | { status: 'loading' }
   | { status: 'text'; content: string }
+  | { status: 'image'; width: number; height: number }
   | { status: 'unavailable'; code: string }
 
 function joinPath(dir: string, name: string): string {
@@ -129,6 +131,14 @@ export default function FilesPage() {
       return
     }
     setPreviewTarget(entry)
+    if (isImageFile(entry.name)) {
+      setPreview({ status: 'loading' })
+      const probe = new window.Image()
+      probe.onload = () => setPreview({ status: 'image', width: probe.naturalWidth, height: probe.naturalHeight })
+      probe.onerror = () => setPreview({ status: 'unavailable', code: 'FILE_NOT_TEXT' })
+      probe.src = downloadUrl(entry.path)
+      return
+    }
     setPreview({ status: 'loading' })
     readFileContent(entry.path)
       .then(({ content }) => setPreview({ status: 'text', content }))
@@ -387,7 +397,7 @@ export default function FilesPage() {
           }
         }}
         title={previewTarget?.name ?? ''}
-        className="h-[85vh] max-w-2xl"
+        className={cn('max-w-2xl overflow-hidden', preview?.status === 'image' ? 'md:w-fit md:max-w-[90vw]' : 'h-[85vh]')}
         bodyClassName="p-0"
         footer={
           preview?.status === 'text' ? (
@@ -413,6 +423,18 @@ export default function FilesPage() {
         {preview?.status === 'loading' && (
           <div className="flex justify-center px-4 py-8">
             <Loader2 className="size-5 animate-spin text-gray-400" />
+          </div>
+        )}
+        {preview?.status === 'image' && previewTarget && (
+          <div
+            style={{ aspectRatio: `${preview.width} / ${preview.height}`, '--img-w': `${preview.width}px` } as CSSProperties}
+            className="mx-auto max-h-[calc(85vh-4rem)] w-full bg-gray-100 md:w-[min(var(--img-w),90vw)] dark:bg-gray-900"
+          >
+            <img
+              src={downloadUrl(previewTarget.path)}
+              alt={previewTarget.name}
+              className="h-full w-full object-contain"
+            />
           </div>
         )}
         {preview?.status === 'unavailable' && (
