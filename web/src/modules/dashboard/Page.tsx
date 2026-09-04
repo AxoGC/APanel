@@ -1,8 +1,8 @@
 import { Info, Settings } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { ToggleButton } from '@/components/ToggleButton'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -22,6 +22,7 @@ import {
 } from './useDashboardStream'
 
 const DEFAULT_MAX_MBPS = 10
+const NETWORK_SETTINGS_FORM_ID = 'dashboard-network-settings-form'
 
 export default function DashboardPage() {
   const { t } = useI18n()
@@ -190,55 +191,53 @@ export default function DashboardPage() {
 
       <ProcessDetailDialog pid={detailPid} onOpenChange={(open) => !open && setDetailPid(null)} />
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="flex max-h-[85vh] flex-col">
-          <form onSubmit={submitSettings} className="flex min-h-0 flex-col gap-4">
-            <DialogHeader>
-              <DialogTitle>{t('dashboard.networkSettings.title')}</DialogTitle>
-            </DialogHeader>
-
-            <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
-              <div className="flex items-center gap-3 pr-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
-                      {t('dashboard.networkSettings.maxMbps')}
-                      <Info className="size-3" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
-                </Tooltip>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={0.1}
-                    step={0.1}
-                    value={settingsMaxMbps}
-                    onChange={(e) => setSettingsMaxMbps(e.target.value)}
-                    className="w-24"
-                  />
-                  <span className="text-xs text-gray-500">Mbps</span>
-                </div>
-              </div>
+      <SectionedDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        title={t('dashboard.networkSettings.title')}
+        className="max-w-lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
+              {t('confirm.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              form={NETWORK_SETTINGS_FORM_ID}
+              disabled={savingSettings}
+              className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+            >
+              {t('files.save')}
+            </Button>
+          </div>
+        }
+      >
+        <form id={NETWORK_SETTINGS_FORM_ID} onSubmit={submitSettings} className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
+                  {t('dashboard.networkSettings.maxMbps')}
+                  <Info className="size-3" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
+            </Tooltip>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={0.1}
+                step={0.1}
+                value={settingsMaxMbps}
+                onChange={(e) => setSettingsMaxMbps(e.target.value)}
+                className="w-24"
+              />
+              <span className="text-xs text-gray-500">Mbps</span>
             </div>
-
-            {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
-                {t('confirm.cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={savingSettings}
-                className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
-              >
-                {t('files.save')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+          {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
+        </form>
+      </SectionedDialog>
     </div>
   )
 }
