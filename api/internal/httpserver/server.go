@@ -20,12 +20,12 @@ import (
 var embeddedDist embed.FS
 
 type Server struct {
-	auth       *auth.Service
-	stats      *stats.Collector
-	settings   *settings.Manager
-	registrars []RouteRegistrar
-	features   []Feature
-	mux        *http.ServeMux
+	auth               *auth.Service
+	stats              *stats.Collector
+	settings           *settings.Manager
+	registrars         []RouteRegistrar
+	dependencyCheckers map[string]DependencyChecker
+	mux                *http.ServeMux
 }
 
 // New wires up the mux: the routes this package owns directly (auth,
@@ -34,15 +34,16 @@ type Server struct {
 // httpserver itself never imports container/service/firewall/history/files.
 func New(authSvc *auth.Service, statsCollector *stats.Collector, settingsMgr *settings.Manager, registrars ...RouteRegistrar) *Server {
 	s := &Server{
-		auth:       authSvc,
-		stats:      statsCollector,
-		settings:   settingsMgr,
-		registrars: registrars,
-		mux:        http.NewServeMux(),
+		auth:               authSvc,
+		stats:              statsCollector,
+		settings:           settingsMgr,
+		registrars:         registrars,
+		dependencyCheckers: make(map[string]DependencyChecker),
+		mux:                http.NewServeMux(),
 	}
 	for _, r := range registrars {
-		if f, ok := r.(Feature); ok {
-			s.features = append(s.features, f)
+		if c, ok := r.(DependencyChecker); ok {
+			s.dependencyCheckers[c.Key()] = c
 		}
 	}
 	s.routes()
@@ -71,8 +72,12 @@ func (s *Server) routes() {
 	}
 
 	s.mux.Handle("GET /api/status", s.auth.Middleware(http.HandlerFunc(s.getStatus)))
-	s.mux.Handle("PUT /api/status/features", s.auth.Middleware(http.HandlerFunc(s.putDisabledFeatures)))
+	s.mux.Handle("PUT /api/status/features", s.auth.Middleware(http.HandlerFunc(s.putEnabledFeatures)))
 	s.mux.Handle("GET /api/system/info", s.auth.Middleware(http.HandlerFunc(s.getSystemInfo)))
+
+	s.mux.Handle("GET /api/modules/{key}/dependency", s.auth.Middleware(http.HandlerFunc(s.getModuleDependency)))
+	s.mux.Handle("PUT /api/modules/{key}/dependency", s.auth.Middleware(http.HandlerFunc(s.putModuleDependency)))
+	s.mux.Handle("POST /api/modules/{key}/dependency/enable-service", s.auth.Middleware(http.HandlerFunc(s.enableModuleService)))
 
 	dist, err := fs.Sub(embeddedDist, "dist")
 	if err != nil {

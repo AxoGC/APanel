@@ -13,6 +13,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'nav.containers': 'Containers',
     'nav.history': 'History',
     'nav.firewall': 'Firewall',
+    'nav.proxy': 'Proxy',
+    'nav.database': 'Database',
     'nav.settings': 'Settings',
     'nav.logout': 'Sign out',
     'nav.menu': 'Menu',
@@ -248,6 +250,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'history.yesterday': 'Yesterday',
     'history.cpu': 'CPU',
     'history.memory': 'Memory',
+    'history.upload': 'Upload',
     'history.empty': 'No data for this day.',
     'history.settings': 'Collection settings',
     'history.settings.title': 'Collection Settings',
@@ -309,8 +312,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.dataLayout': 'Data layout',
     'settings.dataLayout.table': 'Table',
     'settings.dataLayout.grid': 'Grid',
-    'settings.enabledFeatures': 'Enabled features',
-    'settings.account': 'Account',
+    'settings.enabledFeatures': 'Enabled modules',
+    'settings.enableModules': 'Enable modules',
     'settings.signOut': 'Sign out',
     'settings.language': 'Language',
     'settings.appearance': 'Appearance',
@@ -318,6 +321,9 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.appearance.dark': 'Dark',
     'settings.appearance.system': 'System',
     'settings.themeColor': 'Theme color',
+    'settings.reader': 'Reader',
+    'settings.reader.lineNumbers': 'Line numbers',
+    'settings.reader.textWrap': 'Text wrap',
     'settings.systemInfo.title': 'System info',
     'settings.systemInfo.hostname': 'Hostname',
     'settings.systemInfo.distro': 'Distro',
@@ -333,6 +339,44 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.about.documentation': 'Documentation',
     'confirm.cancel': 'Cancel',
     'placeholder.comingSoon': 'Coming soon.',
+    'dependency.configure': 'Connection settings',
+    'dependency.installGuide': 'Installation guide',
+    'dependency.enableService': 'Enable service',
+    'dependency.save': 'Save',
+    'dependency.reason.unavailable':
+      "We couldn't detect this dependency. Follow the installation guide if it isn't installed yet, or fill in its connection details below if it already is.",
+    'dependency.reason.serviceInactive': "This dependency is installed, but its service isn't running.",
+    'dependency.reason.unconfigured': "This module isn't configured yet. Fill in its connection details below.",
+    'dependency.reason.healthy': 'Connected. You can update its connection details below.',
+    'dependency.field.host': 'Host / IP',
+    'dependency.field.port': 'Port',
+    'dependency.field.url': 'Controller URL',
+    'dependency.field.username': 'Username',
+    'dependency.field.password': 'Password',
+    'dependency.showPassword': 'Show password',
+    'dependency.hidePassword': 'Hide password',
+    'proxy.mode.global': 'Global',
+    'proxy.mode.rule': 'Rule',
+    'proxy.mode.direct': 'Direct',
+    'proxy.testDelay': 'Test latency',
+    'proxy.column.name': 'Proxy',
+    'proxy.column.type': 'Protocol',
+    'proxy.column.delay': 'Latency',
+    'proxy.empty': 'No proxies found for this group.',
+    'proxy.delay.timeout': 'Timeout',
+    'proxy.delay.untested': '—',
+    'database.back': 'Back',
+    'database.name': 'Name',
+    'database.tableCount': 'Tables',
+    'database.tableCount.mobile': '{n} tables',
+    'database.columnCount': 'Columns',
+    'database.columnCount.mobile': '{n} columns',
+    'database.rowCount': 'Rows',
+    'database.rowCount.mobile': '{n} rows',
+    'database.usedSpace': 'Used',
+    'database.actions': 'Actions',
+    'database.empty': 'No databases found.',
+    'database.table.empty': 'No tables found.',
   },
   zh: {
     'nav.dashboard': '仪表盘',
@@ -342,6 +386,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'nav.containers': '容器管理',
     'nav.history': '历史状态',
     'nav.firewall': '防火墙',
+    'nav.proxy': '代理设置',
+    'nav.database': '数据库',
     'nav.settings': '设置',
     'nav.logout': '退出登录',
     'nav.menu': '菜单',
@@ -576,6 +622,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'history.yesterday': '昨天',
     'history.cpu': 'CPU',
     'history.memory': '内存',
+    'history.upload': '上传',
     'history.empty': '这一天没有数据。',
     'history.settings': '采集设置',
     'history.settings.title': '采集设置',
@@ -637,8 +684,8 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.dataLayout': '数据布局',
     'settings.dataLayout.table': '表格',
     'settings.dataLayout.grid': '网格',
-    'settings.enabledFeatures': '启用的功能',
-    'settings.account': '账户',
+    'settings.enabledFeatures': '启用的模块',
+    'settings.enableModules': '启用模块',
     'settings.signOut': '退出登录',
     'settings.language': '语言',
     'settings.appearance': '外观',
@@ -646,6 +693,9 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.appearance.dark': '深色',
     'settings.appearance.system': '跟随系统',
     'settings.themeColor': '主题颜色',
+    'settings.reader': '阅读器',
+    'settings.reader.lineNumbers': '显示序号',
+    'settings.reader.textWrap': '自动换行',
     'settings.systemInfo.title': '系统信息',
     'settings.systemInfo.hostname': '主机名称',
     'settings.systemInfo.distro': '发行版本',
@@ -661,15 +711,54 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.about.documentation': '项目文档',
     'confirm.cancel': '取消',
     'placeholder.comingSoon': '即将推出。',
+    'dependency.configure': '连接设置',
+    'dependency.installGuide': '安装教程',
+    'dependency.enableService': '启用服务',
+    'dependency.save': '保存',
+    'dependency.reason.unavailable': '未检测到该依赖。如果还没安装，可参考安装教程；如果已经安装，请在下方填写连接信息。',
+    'dependency.reason.serviceInactive': '已检测到依赖已安装，但对应的服务未启动。',
+    'dependency.reason.unconfigured': '该模块尚未配置。请在下方填写连接信息。',
+    'dependency.reason.healthy': '已连接。你可以在下方修改连接信息。',
+    'dependency.field.host': '主机 / IP',
+    'dependency.field.port': '端口',
+    'dependency.field.url': '控制器地址',
+    'dependency.field.username': '账号',
+    'dependency.field.password': '密码',
+    'dependency.showPassword': '显示密码',
+    'dependency.hidePassword': '隐藏密码',
+    'proxy.mode.global': '全局',
+    'proxy.mode.rule': '规则',
+    'proxy.mode.direct': '直连',
+    'proxy.testDelay': '测试延迟',
+    'proxy.column.name': '代理名称',
+    'proxy.column.type': '代理协议',
+    'proxy.column.delay': '延迟',
+    'proxy.empty': '该分组下没有代理选项。',
+    'proxy.delay.timeout': '超时',
+    'proxy.delay.untested': '—',
+    'database.back': '返回',
+    'database.name': '数据库名称',
+    'database.tableCount': '表数量',
+    'database.tableCount.mobile': '共 {n} 张表',
+    'database.columnCount': '列数量',
+    'database.columnCount.mobile': '共 {n} 列',
+    'database.rowCount': '行数量',
+    'database.rowCount.mobile': '共 {n} 行',
+    'database.usedSpace': '已用',
+    'database.actions': '操作',
+    'database.empty': '未发现数据库。',
+    'database.table.empty': '该数据库下没有表。',
   },
 }
 
 export type TranslationKey = keyof (typeof dictionaries)['en']
 
+type TranslationParams = Record<string, string | number>
+
 interface I18nContextValue {
   locale: Locale
   setLocale: (locale: Locale) => void
-  t: (key: TranslationKey) => string
+  t: (key: TranslationKey, params?: TranslationParams) => string
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null)
@@ -694,7 +783,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = useMemo(() => {
     const dict = dictionaries[locale]
-    return (key: keyof (typeof dictionaries)['en']) => dict[key] ?? key
+    return (key: keyof (typeof dictionaries)['en'], params?: TranslationParams) => {
+      const template = dict[key] ?? key
+      if (!params) return template
+      return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+        name in params ? String(params[name]) : match,
+      )
+    }
   }, [locale])
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>

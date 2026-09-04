@@ -1,8 +1,10 @@
-import { Plus } from 'lucide-react'
+import { Plug, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
+import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { deleteFirewallRule, getFirewallStatus, type FirewallRule, type FirewallStatus } from './api'
@@ -17,6 +19,7 @@ export default function FirewallPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null)
   const [deleting, setDeleting] = useState<Record<string, boolean>>({})
+  const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('firewall')
 
   useEffect(() => {
     getFirewallStatus()
@@ -52,8 +55,8 @@ export default function FirewallPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-6">
         {status ? (
           <div className="flex items-center gap-1.5">
             <span className={cn('size-1.5 rounded-full', status.active ? 'bg-green-500' : 'bg-gray-400')} />
@@ -64,26 +67,42 @@ export default function FirewallPage() {
         ) : (
           <div />
         )}
-        <Button variant="outline" size="sm" onClick={openAdd}>
-          <Plus />
-          {t('firewall.addRule')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('dependency.configure')}
+            title={t('dependency.configure')}
+            onClick={() => setDependencyOpen(true)}
+          >
+            <Plug />
+          </Button>
+          <Button variant="outline" size="sm" onClick={openAdd}>
+            <Plus />
+            {t('firewall.addRule')}
+          </Button>
+        </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
-      {status && status.rules.length === 0 && <p className="text-sm text-gray-500">{t('firewall.empty')}</p>}
+      {status && status.rules.length === 0 && (
+        <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('firewall.empty')}</p>
+      )}
 
       {status && status.rules.length > 0 && (
-        <div className="flex min-h-0 grow flex-col">
-          <FirewallTableHeader />
-          <ScrollArea className="min-h-0 grow">
+        <>
+          <div className="mt-4 px-4 sm:px-6">
+            <FirewallTableHeader />
+          </div>
+          <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             <FirewallTable rules={status.rules} deleting={deleting} onEdit={openEdit} onDelete={handleDelete} hideHeader />
           </ScrollArea>
-        </div>
+        </>
       )}
 
       <RuleDialog open={dialogOpen} onOpenChange={setDialogOpen} rule={editingRule} onSuccess={setStatus} />
+      <DependencyDialog moduleKey="firewall" open={dependencyOpen} onOpenChange={setDependencyOpen} />
     </div>
   )
 }

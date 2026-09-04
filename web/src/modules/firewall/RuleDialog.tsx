@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ApiError } from '@/lib/api'
@@ -21,6 +21,7 @@ type FormMode = 'simple' | 'advanced'
 const PROTOCOLS: Protocol[] = ['tcp', 'udp']
 const ACTIONS: NewFirewallRule['action'][] = ['allow', 'deny', 'reject', 'limit']
 const SIMPLE_ACTIONS: NewFirewallRule['action'][] = ['allow', 'deny']
+const FORM_ID = 'firewall-rule-form'
 
 function ToggleChip({
   active,
@@ -191,28 +192,41 @@ export function RuleDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="flex max-h-[85vh] flex-col"
-        onOpenAutoFocus={(event) => {
-          if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
-        }}
-      >
-        <form onSubmit={submit} className="flex min-h-0 flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>{rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}</DialogTitle>
-            <SegmentedControl
-              value={mode}
-              onChange={changeMode}
-              options={[
-                { value: 'simple', label: t('firewall.mode.simple') },
-                { value: 'advanced', label: t('firewall.mode.advanced') },
-              ]}
-            />
-          </DialogHeader>
+    <SectionedDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}
+      className="h-[85vh]"
+      onOpenAutoFocus={(event) => {
+        if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
+      }}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t('confirm.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form={FORM_ID}
+            disabled={saving}
+            className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+          >
+            {rule ? t('firewall.editRule.submit') : t('firewall.addRule.submit')}
+          </Button>
+        </div>
+      }
+    >
+      <form id={FORM_ID} onSubmit={submit} className="flex flex-col gap-4">
+        <SegmentedControl
+          value={mode}
+          onChange={changeMode}
+          options={[
+            { value: 'simple', label: t('firewall.mode.simple') },
+            { value: 'advanced', label: t('firewall.mode.advanced') },
+          ]}
+        />
 
-          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
-            <div className="flex flex-col gap-4 pr-1">
+        <div className="flex flex-col gap-4">
               <FormRow label={t('firewall.addRule.action')}>
                 <div className="flex flex-wrap justify-start gap-2">
                   {(mode === 'simple' ? SIMPLE_ACTIONS : ACTIONS).map((a) => (
@@ -277,24 +291,9 @@ export function RuleDialog({
                 </>
               )}
 
-              {error && <p className="text-xs text-red-600">{error}</p>}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('confirm.cancel')}
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
-            >
-              {rule ? t('firewall.editRule.submit') : t('firewall.addRule.submit')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+      </form>
+    </SectionedDialog>
   )
 }

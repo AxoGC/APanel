@@ -20,10 +20,6 @@ const INVALID_SETTINGS response.Code = "INVALID_SETTINGS"
 
 const historySettingsKey = "history.collectionSettings"
 
-// FeatureName identifies this package's entry in GET /api/status's
-// per-feature availability map.
-func (m *Manager) FeatureName() string { return "history" }
-
 // RegisterRoutes wires the /api/history/* routes onto mux — see
 // httpserver.RouteRegistrar. httpserver never imports this package; it just
 // calls this method on whatever it was given at construction time.

@@ -283,7 +283,7 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 // against c.prevAt the same way sampleProcesses does (both are called
 // before c.prevAt is advanced to `now` at the end of Sample).
 func (c *Collector) sampleNetwork(now time.Time) (iface string, rxBps, txBps float64) {
-	iface, err := defaultRouteInterface()
+	iface, err := DefaultRouteInterface()
 	if err != nil {
 		c.prevNet = netSample{}
 		return "", 0, 0
@@ -322,12 +322,13 @@ func (c *Collector) sampleNetwork(now time.Time) (iface string, rxBps, txBps flo
 	return iface, float64(rxDelta) / elapsed, float64(txDelta) / elapsed
 }
 
-// defaultRouteInterface returns the network interface that owns the
+// DefaultRouteInterface returns the network interface that owns the
 // system's default IPv4 route (destination 0.0.0.0) — the interface
 // actually used for outbound connectivity, picked by lowest route metric
 // when more than one default route exists (e.g. a VPN alongside the LAN
-// uplink).
-func defaultRouteInterface() (string, error) {
+// uplink). Exported for reuse by the history package, which needs the same
+// interface to filter sadf's per-interface network samples.
+func DefaultRouteInterface() (string, error) {
 	f, err := os.Open("/proc/net/route")
 	if err != nil {
 		return "", err

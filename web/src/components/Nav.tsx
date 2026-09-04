@@ -1,27 +1,18 @@
-import { Box, ChevronLeft, ChevronRight, FolderOpen, Gauge, History, PanelRightClose, PanelRightOpen, Server, Settings, Shield, SquareTerminal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useFeatures, type FeatureKey, type OptionalFeatureKey } from '@/lib/features'
+import { useFeatures } from '@/lib/features'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
+import { MODULE_META } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 
-const items = [
-  { to: '/', labelKey: 'nav.dashboard', icon: Gauge, feature: 'dashboard' },
-  { to: '/terminal', labelKey: 'nav.terminal', icon: SquareTerminal, feature: 'terminal' },
-  { to: '/services', labelKey: 'nav.services', icon: Server, feature: 'services' },
-  { to: '/files', labelKey: 'nav.files', icon: FolderOpen, feature: 'files' },
-  { to: '/containers', labelKey: 'nav.containers', icon: Box, feature: 'containers', requires: 'containers' },
-  { to: '/history', labelKey: 'nav.history', icon: History, feature: 'history', requires: 'history' },
-  { to: '/firewall', labelKey: 'nav.firewall', icon: Shield, feature: 'firewall', requires: 'firewall' },
-  { to: '/settings', labelKey: 'nav.settings', icon: Settings },
-] satisfies {
-  to: string
-  labelKey: TranslationKey
-  icon: typeof Gauge
-  feature?: FeatureKey
-  requires?: OptionalFeatureKey
-}[]
+type NavItem = { to: string; labelKey: TranslationKey; icon: LucideIcon }
+
+// Dashboard and Settings aren't part of the enable/reorder system — they're
+// mandatory, pinned first and last respectively.
+const DASHBOARD_ITEM = { to: '/', labelKey: 'nav.dashboard', icon: Gauge } satisfies NavItem
+const SETTINGS_ITEM = { to: '/settings', labelKey: 'nav.settings', icon: Settings } satisfies NavItem
 
 function itemClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
@@ -66,11 +57,11 @@ export function Nav() {
   const { ref, canScrollLeft, canScrollRight } = useScrollCues()
   const [collapsed, setCollapsed] = useState(false)
 
-  const visibleItems = items.filter(
-    (item) =>
-      !item.feature ||
-      (!features.disabledFeatures.includes(item.feature) && (!item.requires || features[item.requires])),
-  )
+  const visibleItems = [
+    DASHBOARD_ITEM,
+    ...features.modules.filter((m) => m.enabled).map((m) => MODULE_META[m.key]),
+    SETTINGS_ITEM,
+  ]
 
   const scrollBy = (delta: number) => {
     ref.current?.scrollBy({ left: delta, behavior: 'smooth' })

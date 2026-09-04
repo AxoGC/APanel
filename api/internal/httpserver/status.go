@@ -8,125 +8,184 @@ import (
 	"apanel/internal/response"
 )
 
-const disabledFeaturesSettingsKey = "navigation.disabledFeatures"
+const enabledFeaturesSettingsKey = "navigation.enabledFeatures"
 
-const invalidDisabledFeatures response.Code = "INVALID_DISABLED_FEATURES"
+const invalidEnabledFeatures response.Code = "INVALID_ENABLED_FEATURES"
 
-var knownFeatures = map[string]struct{}{
-	"dashboard":  {},
-	"terminal":   {},
-	"services":   {},
-	"files":      {},
-	"containers": {},
-	"history":    {},
-	"firewall":   {},
+// moduleOrder is the fixed set of every togglable/reorderable module, in
+// their default order. Whether one shows up in the nav, and in what order,
+// is purely this explicit, admin-controlled list — never probed from the
+// host. Auto-detecting a dependency (a reachable Docker daemon, an
+// installed binary, ...) can't tell "not installed" apart from "reachable,
+// just not from here" (a different port, a different IP), so it was never
+// a reliable signal for this; a module whose backend isn't actually
+// reachable simply fails at request time instead. (Dashboard and Settings
+// aren't in this list — they're mandatory, pinned first and last.)
+var moduleOrder = []string{
+	"terminal", "services", "files",
+	"containers", "history", "firewall", "proxy", "database",
 }
 
-// featureStatus tells the frontend which optional, dependency-gated
-// features are actually usable on this host and which available entries the
-// operator has explicitly hidden from navigation.
-type featureStatus struct {
-	Containers       bool     `json:"containers"`
-	History          bool     `json:"history"`
-	Firewall         bool     `json:"firewall"`
-	DisabledFeatures []string `json:"disabledFeatures"`
-}
+// mandatoryEnabledFeatures are always on — terminal, files, and services
+// depend on nothing external, so there's nothing to detect for them.
+var mandatoryEnabledFeatures = []string{"terminal", "services", "files"}
 
-// availableFeatures aggregates every registrar's Available() by name,
-// without needing to know which concrete packages provide them — see
-// httpserver.Feature.
-func (s *Server) availableFeatures(ctx context.Context) map[string]bool {
-	available := make(map[string]bool, len(s.features))
-	for _, f := range s.features {
-		available[f.FeatureName()] = f.Available(ctx)
+var knownModules = func() map[string]struct{} {
+	m := make(map[string]struct{}, len(moduleOrder))
+	for _, key := range moduleOrder {
+		m[key] = struct{}{}
 	}
-	return available
+	return m
+}()
+
+// moduleStatus is one row of GET /api/status's module list.
+type moduleStatus struct {
+	Key     string `json:"key"`
+	Enabled bool   `json:"enabled"`
+}
+
+// featureStatus tells the frontend which extension modules are enabled and
+// in what order: entries appear enabled-first in the admin's chosen nav
+// order, then every remaining module. The "enable modules" dialog and Nav
+// both render directly off this order.
+type featureStatus struct {
+	Modules []moduleStatus `json:"modules"`
 }
 
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
-	disabled, err := s.disabledFeatures()
+	enabled, err := s.enabledFeatures(r.Context())
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
 	}
-
-	available := s.availableFeatures(r.Context())
-	response.WriteOK(w, featureStatus{
-		Containers:       available["containers"],
-		History:          available["history"],
-		Firewall:         available["firewall"],
-		DisabledFeatures: disabled,
-	})
+	response.WriteOK(w, featureStatus{Modules: buildModuleStatus(enabled)})
 }
 
-func (s *Server) putDisabledFeatures(w http.ResponseWriter, r *http.Request) {
+func (s *Server) putEnabledFeatures(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		DisabledFeatures []string `json:"disabledFeatures"`
+		EnabledFeatures []string `json:"enabledFeatures"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		response.WriteCode(w, http.StatusBadRequest, invalidDisabledFeatures)
+		response.WriteCode(w, http.StatusBadRequest, invalidEnabledFeatures)
 		return
 	}
 
-	disabled, ok := normalizeDisabledFeatures(body.DisabledFeatures)
+	enabled, ok := normalizeEnabledFeatures(body.EnabledFeatures)
 	if !ok {
-		response.WriteCode(w, http.StatusBadRequest, invalidDisabledFeatures)
+		response.WriteCode(w, http.StatusBadRequest, invalidEnabledFeatures)
 		return
 	}
+
 	var err error
-	if len(disabled) == 0 {
-		err = s.settings.Delete(disabledFeaturesSettingsKey)
+	if len(enabled) == 0 {
+		err = s.settings.Delete(enabledFeaturesSettingsKey)
 	} else {
-		encoded, marshalErr := json.Marshal(disabled)
+		encoded, marshalErr := json.Marshal(enabled)
 		if marshalErr != nil {
 			response.WriteInternalError(w, marshalErr)
 			return
 		}
-		err = s.settings.Set(disabledFeaturesSettingsKey, string(encoded))
+		err = s.settings.Set(enabledFeaturesSettingsKey, string(encoded))
 	}
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
 	}
 
-	available := s.availableFeatures(r.Context())
-	response.WriteOK(w, featureStatus{
-		Containers:       available["containers"],
-		History:          available["history"],
-		Firewall:         available["firewall"],
-		DisabledFeatures: disabled,
-	})
+	response.WriteOK(w, featureStatus{Modules: buildModuleStatus(enabled)})
 }
 
-// disabledFeatures intentionally defaults to an empty list: absence from the
-// config table means enabled. Invalid legacy values are ignored rather than
-// letting a navigation preference make the entire application unavailable.
-func (s *Server) disabledFeatures() ([]string, error) {
-	raw, found, err := s.settings.Get(disabledFeaturesSettingsKey)
-	if err != nil || !found {
-		return []string{}, err
+// buildModuleStatus renders enabled modules first, in the caller's chosen
+// order, followed by every remaining module in moduleOrder.
+func buildModuleStatus(enabled []string) []moduleStatus {
+	modules := make([]moduleStatus, 0, len(moduleOrder))
+	seen := make(map[string]struct{}, len(enabled))
+	for _, key := range enabled {
+		modules = append(modules, moduleStatus{Key: key, Enabled: true})
+		seen[key] = struct{}{}
+	}
+	for _, key := range moduleOrder {
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		modules = append(modules, moduleStatus{Key: key, Enabled: false})
+	}
+	return modules
+}
+
+// enabledFeatures returns the persisted enabled-modules list, seeding it on
+// first read: nothing saved yet means this is the persistence
+// initialization stage, so it probes every optional module's local
+// dependency once, persists the detected set, and returns that from then on.
+// Any explicit save afterwards — even an empty one — is authoritative.
+func (s *Server) enabledFeatures(ctx context.Context) ([]string, error) {
+	raw, found, err := s.settings.Get(enabledFeaturesSettingsKey)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		detected := s.detectInitialEnabledFeatures(ctx)
+		encoded, err := json.Marshal(detected)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.settings.Set(enabledFeaturesSettingsKey, string(encoded)); err != nil {
+			return nil, err
+		}
+		return detected, nil
 	}
 
 	var stored []string
 	if err := json.Unmarshal([]byte(raw), &stored); err != nil {
 		return []string{}, nil
 	}
-	disabled, _ := normalizeDisabledFeatures(stored)
-	return disabled, nil
+	enabled, _ := normalizeEnabledFeatures(stored)
+	return enabled, nil
 }
 
-func normalizeDisabledFeatures(values []string) ([]string, bool) {
+// detectInitialEnabledFeatures seeds a fresh install's enabled-modules list:
+// the 3 core modules are always on, and every optional module gets a single
+// local systemd probe (host-only — a dependency reachable only on some
+// other host/port can't be told apart from "not installed", so it's never
+// probed) to decide its initial state. A module whose dependency is found
+// at all — installed but inactive counts — starts enabled; anything not
+// found starts disabled and stays opt-in.
+func (s *Server) detectInitialEnabledFeatures(ctx context.Context) []string {
+	detected := make([]string, 0, len(mandatoryEnabledFeatures))
+	detected = append(detected, mandatoryEnabledFeatures...)
+	mandatory := make(map[string]struct{}, len(mandatoryEnabledFeatures))
+	for _, key := range mandatoryEnabledFeatures {
+		mandatory[key] = struct{}{}
+	}
+
+	for _, key := range moduleOrder {
+		if _, skip := mandatory[key]; skip {
+			continue
+		}
+		checker, ok := s.dependencyCheckers[key]
+		if !ok {
+			continue
+		}
+		state := checker.CheckDependency(ctx)
+		if state.Installed || state.ServiceName != "" {
+			detected = append(detected, key)
+		}
+	}
+	return detected
+}
+
+func normalizeEnabledFeatures(values []string) ([]string, bool) {
 	seen := make(map[string]struct{}, len(values))
-	disabled := make([]string, 0, len(values))
+	enabled := make([]string, 0, len(values))
 	for _, value := range values {
-		if _, known := knownFeatures[value]; !known {
+		if _, known := knownModules[value]; !known {
 			return nil, false
 		}
 		if _, duplicate := seen[value]; duplicate {
 			continue
 		}
 		seen[value] = struct{}{}
-		disabled = append(disabled, value)
+		enabled = append(enabled, value)
 	}
-	return disabled, true
+	return enabled, true
 }

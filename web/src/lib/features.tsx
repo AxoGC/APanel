@@ -2,55 +2,62 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { apiFetch } from './api'
 import { useAuth } from './auth'
 
-export type FeatureKey = 'dashboard' | 'terminal' | 'services' | 'files' | 'containers' | 'history' | 'firewall'
-export type OptionalFeatureKey = 'containers' | 'history' | 'firewall'
+export type ModuleKey =
+  | 'terminal'
+  | 'services'
+  | 'files'
+  | 'containers'
+  | 'history'
+  | 'firewall'
+  | 'proxy'
+  | 'database'
 
-export const BASE_FEATURES: FeatureKey[] = ['dashboard', 'terminal', 'services', 'files']
-
-export interface Features {
-  containers: boolean
-  history: boolean
-  firewall: boolean
-  disabledFeatures: FeatureKey[]
+export interface ModuleStatus {
+  key: ModuleKey
+  enabled: boolean
 }
 
-interface FeaturesContextValue extends Features {
-  setDisabledFeatures: (disabledFeatures: FeatureKey[]) => Promise<void>
+interface StatusResponse {
+  modules: ModuleStatus[]
 }
 
-const EMPTY: Features = { containers: false, history: false, firewall: false, disabledFeatures: [] }
+interface FeaturesContextValue {
+  modules: ModuleStatus[]
+  setEnabledFeatures: (keys: ModuleKey[]) => Promise<void>
+}
+
+const EMPTY: ModuleStatus[] = []
 
 const FeaturesContext = createContext<FeaturesContextValue>({
-  ...EMPTY,
-  setDisabledFeatures: async () => {},
+  modules: EMPTY,
+  setEnabledFeatures: async () => {},
 })
 
-// Which dependency-gated modules (Docker, sysstat, ufw) are actually usable
-// on this host — fetched once after login so Nav can hide their items
-// entirely instead of the page showing an "unavailable" message.
+// Which optional extension modules (containers, history, firewall, proxy,
+// database) the admin has explicitly enabled, and in what order — fetched
+// once after login so Nav can render exactly the enabled modules, in the
+// chosen order. Never auto-detected: see Settings' "enable modules" dialog.
 export function FeaturesProvider({ children }: { children: ReactNode }) {
   const { state } = useAuth()
-  const [features, setFeatures] = useState<Features>(EMPTY)
+  const [modules, setModules] = useState<ModuleStatus[]>(EMPTY)
 
   useEffect(() => {
     if (state !== 'authenticated') return
-    apiFetch<Features>('/status')
-      .then(setFeatures)
-      .catch(() => setFeatures(EMPTY))
+    apiFetch<StatusResponse>('/status')
+      .then((res) => setModules(res.modules))
+      .catch(() => setModules(EMPTY))
   }, [state])
 
-  const updateDisabledFeatures = async (disabledFeatures: FeatureKey[]) => {
-    const updated = await apiFetch<Features>('/status/features', {
+  const setEnabledFeatures = async (keys: ModuleKey[]) => {
+    const res = await apiFetch<StatusResponse>('/status/features', {
       method: 'PUT',
-      body: JSON.stringify({ disabledFeatures }),
+      body: JSON.stringify({ enabledFeatures: keys }),
     })
-    setFeatures(updated)
+    setModules(res.modules)
   }
 
   return (
-    <FeaturesContext.Provider value={{ ...features, setDisabledFeatures: updateDisabledFeatures }}>
-      {children}
-    </FeaturesContext.Provider>
+    <FeaturesContext.Provider value={{ modules, setEnabledFeatures }}>{children}</FeaturesContext.Provider>
   )
 }
 

@@ -12,11 +12,15 @@ export function HistoryChart({
   times,
   values,
   unit,
+  max = 100,
+  formatValue,
 }: {
   label: string
   times: string[]
   values: number[]
-  unit: string
+  unit?: string
+  max?: number | null
+  formatValue?: (value: number) => string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<echarts.ECharts | null>(null)
@@ -41,6 +45,7 @@ export function HistoryChart({
   }, [])
 
   useEffect(() => {
+    const format = formatValue ?? ((v: number) => `${v}${unit ?? ''}`)
     chartRef.current?.setOption({
       grid: { left: 40, right: 12, top: 16, bottom: 24 },
       xAxis: {
@@ -54,11 +59,11 @@ export function HistoryChart({
       yAxis: {
         type: 'value',
         min: 0,
-        max: 100,
+        max: max ?? undefined,
         splitLine: { lineStyle: { color: colors.split } },
-        axisLabel: { color: colors.axis, fontSize: 10, formatter: `{value}${unit}` },
+        axisLabel: { color: colors.axis, fontSize: 10, formatter: (v: number) => format(v) },
       },
-      tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v}${unit}` },
+      tooltip: { trigger: 'axis', valueFormatter: (v: number) => format(v as number) },
       series: [
         {
           name: label,
@@ -76,7 +81,7 @@ export function HistoryChart({
         },
       ],
     })
-  }, [times, values, unit, colors, label])
+  }, [times, values, unit, max, formatValue, colors, label])
 
   return (
     <div className="flex flex-col gap-1">

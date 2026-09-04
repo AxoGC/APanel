@@ -11,15 +11,18 @@ import (
 	"os/exec"
 	"time"
 
+	"apanel/internal/dependency"
 	"apanel/internal/settings"
+	"apanel/internal/stats"
 )
 
 type Point struct {
-	Time           string  `json:"time"`
-	CPUUsedPercent float64 `json:"cpuUsedPercent"`
-	MemUsedPercent float64 `json:"memUsedPercent"`
-	MemUsed        uint64  `json:"memUsed"`
-	MemTotal       uint64  `json:"memTotal"`
+	Time             string  `json:"time"`
+	CPUUsedPercent   float64 `json:"cpuUsedPercent"`
+	MemUsedPercent   float64 `json:"memUsedPercent"`
+	MemUsed          uint64  `json:"memUsed"`
+	MemTotal         uint64  `json:"memTotal"`
+	NetTxBytesPerSec float64 `json:"netTxBytesPerSec"`
 }
 
 type Day struct {
@@ -52,6 +55,23 @@ func (m *Manager) Available(ctx context.Context) bool {
 	return m.sadfPath != ""
 }
 
+// Key identifies this package's entry in httpserver's dependency endpoints.
+func (m *Manager) Key() string { return "history" }
+
+// CheckDependency reports whether sadf is on PATH and, if not, whether the
+// sysstat systemd unit exists so httpserver can offer an "enable service"
+// action instead of just an install link.
+func (m *Manager) CheckDependency(ctx context.Context) dependency.State {
+	if m.Available(ctx) {
+		return dependency.State{Installed: true}
+	}
+	exists, active := dependency.Probe(ctx, "sysstat")
+	if !exists {
+		return dependency.State{}
+	}
+	return dependency.State{ServiceName: "sysstat", ServiceActive: active}
+}
+
 // Sample returns one day's CPU/memory/swap samples, daysAgo days before
 // today (0 = today). The day is selected via sadf's own relative-file
 // syntax ("-N"), which leaves finding sysstat's log directory entirely to
@@ -63,7 +83,7 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 
 	wantDate := time.Now().AddDate(0, 0, -daysAgo).Format("2006-01-02")
 
-	cmd := exec.CommandContext(ctx, m.sadfPath, "-j", "--", "-u", "-r", fmt.Sprintf("-%d", daysAgo))
+	cmd := exec.CommandContext(ctx, m.sadfPath, "-j", "--", "-u", "-r", "-n", "DEV", fmt.Sprintf("-%d", daysAgo))
 	out, err := cmd.Output()
 	if err != nil {
 		// No sa file exists for that offset (e.g. the host hasn't been up
@@ -88,6 +108,12 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 		return emptyDay(wantDate), nil
 	}
 
+	// Network samples cover every interface sysstat saw that day; filter down
+	// to whichever interface currently owns the default route, matching the
+	// live dashboard gauge's interface selection. An empty iface (no default
+	// route right now) just leaves NetTxBytesPerSec at 0 for every point.
+	iface, _ := stats.DefaultRouteInterface()
+
 	points := make([]Point, 0, len(host.Statistics))
 	for _, s := range host.Statistics {
 		if len(s.CPULoad) == 0 {
@@ -95,12 +121,20 @@ func (m *Manager) Sample(ctx context.Context, daysAgo int) (Day, error) {
 		}
 		cpu := s.CPULoad[0]
 		mem := s.Memory
+		var netTx float64
+		for _, dev := range s.Network.NetDev {
+			if dev.Iface == iface {
+				netTx = dev.TxKB * 1024
+				break
+			}
+		}
 		points = append(points, Point{
-			Time:           s.Timestamp.Time,
-			CPUUsedPercent: round2(100 - cpu.Idle),
-			MemUsedPercent: mem.MemUsedPercent,
-			MemUsed:        mem.MemUsed * 1024,
-			MemTotal:       (mem.MemUsed + mem.MemFree + mem.Buffers + mem.Cached) * 1024,
+			Time:             s.Timestamp.Time,
+			CPUUsedPercent:   round2(100 - cpu.Idle),
+			MemUsedPercent:   mem.MemUsedPercent,
+			MemUsed:          mem.MemUsed * 1024,
+			MemTotal:         (mem.MemUsed + mem.MemFree + mem.Buffers + mem.Cached) * 1024,
+			NetTxBytesPerSec: netTx,
 		})
 	}
 
@@ -129,6 +163,12 @@ type sadfOutput struct {
 					Buffers        uint64  `json:"buffers"`
 					Cached         uint64  `json:"cached"`
 				} `json:"memory"`
+				Network struct {
+					NetDev []struct {
+						Iface string  `json:"iface"`
+						TxKB  float64 `json:"txkB"`
+					} `json:"net-dev"`
+				} `json:"network"`
 			} `json:"statistics"`
 		} `json:"hosts"`
 	} `json:"sysstat"`

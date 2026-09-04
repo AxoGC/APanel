@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
@@ -62,12 +62,8 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
-        <DialogHeader>
-          <DialogTitle>{t('containers.networks.title')}</DialogTitle>
-        </DialogHeader>
-
+    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.networks.title')} className="h-[85vh] max-w-3xl">
+      <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">{t('containers.networks.filter')}</span>
           <Select value={filter} onValueChange={(value) => setFilter(value as NetworkFilter)}>
@@ -129,7 +125,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
             ))}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </SectionedDialog>
   )
 }

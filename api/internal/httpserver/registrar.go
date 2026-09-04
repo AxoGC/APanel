@@ -3,6 +3,8 @@ package httpserver
 import (
 	"context"
 	"net/http"
+
+	"apanel/internal/dependency"
 )
 
 // RouteRegistrar is implemented by business packages that own a slice of
@@ -15,14 +17,15 @@ type RouteRegistrar interface {
 	RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler)
 }
 
-// Feature is implemented by registrars that are optional, host-dependent
-// capabilities — containers need a reachable Docker daemon, history needs
-// sysstat, firewall needs ufw. GET /api/status aggregates these into its
-// per-feature availability map without needing to know which concrete
-// packages provide them; a registrar that's always available (service,
-// files) simply doesn't implement this.
-type Feature interface {
-	RouteRegistrar
-	FeatureName() string
-	Available(ctx context.Context) bool
+// DependencyChecker is implemented by registrars whose module has a
+// checkable dependency — a binary on PATH, a reachable local daemon (Docker,
+// ufw, sysstat), or a reachable remote controller/instance (proxy's
+// clash/mihomo controller, database's Postgres instance). httpserver's
+// dependency endpoints type-assert for it the same way New type-asserts for
+// RouteRegistrar.
+type DependencyChecker interface {
+	// Key identifies which module (see moduleOrder in status.go) this
+	// check is for.
+	Key() string
+	CheckDependency(ctx context.Context) dependency.State
 }

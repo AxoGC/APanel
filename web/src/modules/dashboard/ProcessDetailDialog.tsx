@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { ApiError } from '@/lib/api'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
@@ -74,17 +74,47 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
   }
 
   return (
-    <Dialog open={pid !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] max-w-lg flex-col">
-        <DialogHeader>
-          <DialogTitle>{detail ? detail.name : t('dashboard.detail.title')}</DialogTitle>
-        </DialogHeader>
+    <SectionedDialog
+      open={pid !== null}
+      onOpenChange={onOpenChange}
+      title={detail ? detail.name : t('dashboard.detail.title')}
+      className="h-[85vh] max-w-lg"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          {terminateError && <p className="mr-auto text-xs text-red-600">{terminateError}</p>}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={!detail || terminating}>
+                {terminating ? <Loader2 className="animate-spin" /> : <Square />}
+                {t('dashboard.detail.terminate')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('dashboard.confirmTerminate.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {detail && (
+                    <>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{detail.name}</span>
+                      {' — '}
+                    </>
+                  )}
+                  {t('dashboard.confirmTerminate.description')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleTerminate}>{t('dashboard.detail.terminate')}</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      }
+    >
+      {error && <p className="text-xs text-red-600">{error}</p>}
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
-
-        {detail && (
-          <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
-            <div className="grid grid-cols-2 gap-4 pr-1">
+      {detail && (
+        <div className="grid grid-cols-2 gap-4">
               <Field label={t('dashboard.detail.pid')} value={detail.pid} />
               <Field label={t('dashboard.detail.ppid')} value={detail.ppid} />
               <Field
@@ -122,40 +152,8 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
                   <Field label={t('dashboard.detail.cwd')} value={detail.cwd} wrap />
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        <DialogFooter>
-          {terminateError && <p className="mr-auto self-center text-xs text-red-600">{terminateError}</p>}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={!detail || terminating}>
-                {terminating ? <Loader2 className="animate-spin" /> : <Square />}
-                {t('dashboard.detail.terminate')}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('dashboard.confirmTerminate.title')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {detail && (
-                    <>
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{detail.name}</span>
-                      {' — '}
-                    </>
-                  )}
-                  {t('dashboard.confirmTerminate.description')}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleTerminate}>{t('dashboard.detail.terminate')}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </SectionedDialog>
   )
 }

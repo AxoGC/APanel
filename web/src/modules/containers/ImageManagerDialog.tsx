@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
@@ -88,12 +88,8 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col">
-        <DialogHeader>
-          <DialogTitle>{t('containers.images.title')}</DialogTitle>
-        </DialogHeader>
-
+    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.images.title')} className="h-[85vh] max-w-3xl">
+      <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">{t('containers.images.filter')}</span>
@@ -173,7 +169,7 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
             })}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </SectionedDialog>
   )
 }

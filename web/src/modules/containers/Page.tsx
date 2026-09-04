@@ -1,10 +1,12 @@
-import { Images, Network, Plus, Search } from 'lucide-react'
+import { Images, Network, Plug, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useRef, useState } from 'react'
+import { DependencyDialog } from '@/components/DependencyDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ApiError } from '@/lib/api'
+import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
@@ -35,6 +37,7 @@ export default function ContainersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('containers')
 
   function refresh() {
     return listContainers({ status, q: query }).then(setContainers)
@@ -69,8 +72,8 @@ export default function ContainersPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4 sm:p-6">
-      <div className="flex items-center gap-4">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-4 px-4 pt-4 sm:px-6 sm:pt-6">
         <button
           type="button"
           aria-label={t('containers.search')}
@@ -107,6 +110,15 @@ export default function ContainersPage() {
           </Select>
         </div>
         <div className={cn('ml-auto flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('dependency.configure')}
+            title={t('dependency.configure')}
+            onClick={() => setDependencyOpen(true)}
+          >
+            <Plug />
+          </Button>
           <Button variant="outline" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
             <Images />
             <span className="hidden md:inline">{t('containers.images')}</span>
@@ -127,13 +139,17 @@ export default function ContainersPage() {
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
-      {containers && containers.length === 0 && <p className="text-sm text-gray-500">{t('containers.empty')}</p>}
+      {containers && containers.length === 0 && (
+        <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('containers.empty')}</p>
+      )}
       {containers && containers.length > 0 && (
-        <div className="flex min-h-0 grow flex-col">
-          <ContainerTableHeader />
-          <ScrollArea className="min-h-0 grow">
+        <>
+          <div className="mt-4 px-4 sm:px-6">
+            <ContainerTableHeader />
+          </div>
+          <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             <ContainerTable
               containers={containers}
               pending={pending}
@@ -143,7 +159,7 @@ export default function ContainersPage() {
               hideHeader
             />
           </ScrollArea>
-        </div>
+        </>
       )}
 
       <ContainerLogsDialog
@@ -155,6 +171,7 @@ export default function ContainersPage() {
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
       <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
+      <DependencyDialog moduleKey="containers" open={dependencyOpen} onOpenChange={setDependencyOpen} />
     </div>
   )
 }

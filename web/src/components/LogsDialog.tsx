@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'
+import { TextReader } from '@/components/TextReader'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { MOCK, MockLogsEventSource } from '@/lib/mock'
@@ -109,19 +110,11 @@ export function LogsDialog({
 
         <div className="border-t border-gray-200 dark:border-gray-800" />
 
-        <div ref={bodyRef} className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
-          <div className="p-4 font-mono text-xs text-gray-700 dark:text-gray-300">
-            {content.length === 0 ? (
-              <p className="text-gray-500">{t('logs.empty')}</p>
-            ) : (
-              content.map((line, i) => (
-                <div key={i} className="whitespace-pre-wrap break-all">
-                  {line}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        {content.length === 0 ? (
+          <p className="grow p-4 text-xs text-gray-500">{t('logs.empty')}</p>
+        ) : (
+          <TextReader lines={content} mono viewportRef={bodyRef} className="min-h-0 grow p-4" />
+        )}
       </DialogContent>
     </Dialog>
   )

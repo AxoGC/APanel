@@ -1,13 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { BookOpen, ChevronDown, LogOut } from 'lucide-react'
+import { BookOpen, ListChecks, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { ToggleButton } from '@/components/ToggleButton'
 import { useAuth } from '@/lib/auth'
-import { BASE_FEATURES, useFeatures, type FeatureKey } from '@/lib/features'
 import { useI18n, type Locale, type TranslationKey } from '@/lib/i18n'
+import {
+  getStoredReaderLineNumbers,
+  getStoredReaderTextWrap,
+  setStoredReaderLineNumbers,
+  setStoredReaderTextWrap,
+} from '@/lib/readerPrefs'
 import {
   getStoredScheme,
   getStoredThemeHue,
@@ -20,19 +24,10 @@ import {
 import { cn } from '@/lib/utils'
 import githubIcon from '@/assets/github.svg'
 import { getSystemInfo, type SystemInfo } from './api'
+import { EnableModulesDialog } from './EnableModulesDialog'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
 const LOCALES: Locale[] = ['en', 'zh']
-
-const FEATURE_LABEL_KEYS: Record<FeatureKey, TranslationKey> = {
-  dashboard: 'nav.dashboard',
-  terminal: 'nav.terminal',
-  services: 'nav.services',
-  files: 'nav.files',
-  containers: 'nav.containers',
-  history: 'nav.history',
-  firewall: 'nav.firewall',
-}
 
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -41,6 +36,11 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
+}
+
+// The form's final row: no left-side label, actions right-aligned.
+function ButtonRow({ children }: { children: ReactNode }) {
+  return <div className="flex items-center justify-end gap-2 py-2 first:pt-0">{children}</div>
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -75,40 +75,18 @@ function formatUptime(totalSeconds: number, t: (key: TranslationKey) => string):
 export default function SettingsPage() {
   const { locale, setLocale, t } = useI18n()
   const { logout } = useAuth()
-  const { containers, history, firewall, disabledFeatures, setDisabledFeatures } = useFeatures()
   const [scheme, setScheme] = useState<ColorScheme>(getStoredScheme)
   const [hue, setHue] = useState<ThemeHue>(getStoredThemeHue)
+  const [readerLineNumbers, setReaderLineNumbers] = useState(getStoredReaderLineNumbers)
+  const [readerTextWrap, setReaderTextWrap] = useState(getStoredReaderTextWrap)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
-  const [pendingDisabledFeatures, setPendingDisabledFeatures] = useState<FeatureKey[] | null>(null)
+  const [modulesDialogOpen, setModulesDialogOpen] = useState(false)
 
   useEffect(() => {
     getSystemInfo()
       .then(setSystemInfo)
       .catch(() => {})
   }, [])
-
-  const availableFeatures: FeatureKey[] = [
-    ...BASE_FEATURES,
-    ...(containers ? ['containers' as const] : []),
-    ...(history ? ['history' as const] : []),
-    ...(firewall ? ['firewall' as const] : []),
-  ]
-  const effectiveDisabledFeatures = pendingDisabledFeatures ?? disabledFeatures
-  const enabledFeatureCount = availableFeatures.filter((feature) => !effectiveDisabledFeatures.includes(feature)).length
-
-  const toggleFeature = async (feature: FeatureKey, enabled: boolean) => {
-    const nextDisabledFeatures = enabled
-      ? effectiveDisabledFeatures.filter((value) => value !== feature)
-      : [...effectiveDisabledFeatures, feature]
-    setPendingDisabledFeatures(nextDisabledFeatures)
-    try {
-      await setDisabledFeatures(nextDisabledFeatures)
-    } catch {
-      // Keep the server-provided value when saving fails.
-    } finally {
-      setPendingDisabledFeatures(null)
-    }
-  }
 
   return (
     <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6">
@@ -171,48 +149,43 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      <Section label={t('settings.enabledFeatures')}>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label={t('settings.enabledFeatures')}
-              title={t('settings.enabledFeatures')}
-              className="flex h-8 w-20 cursor-pointer items-center justify-between rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm outline-none transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50"
-            >
-              <span>{enabledFeatureCount}</span>
-              <ChevronDown className="size-4 text-gray-500" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-48 p-1">
-            <div role="listbox" aria-multiselectable="true">
-              {availableFeatures.map((feature) => {
-                const enabled = !effectiveDisabledFeatures.includes(feature)
-                return (
-                  <label
-                    key={feature}
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
-                  >
-                    <Checkbox
-                      checked={enabled}
-                      disabled={pendingDisabledFeatures !== null}
-                      onCheckedChange={(checked) => void toggleFeature(feature, checked === true)}
-                    />
-                    <span>{t(FEATURE_LABEL_KEYS[feature])}</span>
-                  </label>
-                )
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
+      <Section label={t('settings.reader')}>
+        <div className="flex items-center gap-2">
+          <ToggleButton
+            active={readerLineNumbers}
+            onClick={() => {
+              const next = !readerLineNumbers
+              setStoredReaderLineNumbers(next)
+              setReaderLineNumbers(next)
+            }}
+          >
+            {t('settings.reader.lineNumbers')}
+          </ToggleButton>
+          <ToggleButton
+            active={readerTextWrap}
+            onClick={() => {
+              const next = !readerTextWrap
+              setStoredReaderTextWrap(next)
+              setReaderTextWrap(next)
+            }}
+          >
+            {t('settings.reader.textWrap')}
+          </ToggleButton>
+        </div>
       </Section>
 
-      <Section label={t('settings.account')}>
+      <ButtonRow>
+        <Button variant="outline" size="sm" onClick={() => setModulesDialogOpen(true)}>
+          <ListChecks />
+          {t('settings.enableModules')}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => void logout()}>
           <LogOut />
           {t('settings.signOut')}
         </Button>
-      </Section>
+      </ButtonRow>
+
+      <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
 
       <div className="grid grid-cols-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
           <a

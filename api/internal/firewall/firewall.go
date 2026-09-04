@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"apanel/internal/dependency"
 )
 
 // Rule is a display-ready firewall rule. ufw itself always manages IPv4 and
@@ -50,6 +52,23 @@ func New() *Manager {
 
 func (m *Manager) Available(ctx context.Context) bool {
 	return m.ufwPath != ""
+}
+
+// Key identifies this package's entry in httpserver's dependency endpoints.
+func (m *Manager) Key() string { return "firewall" }
+
+// CheckDependency reports whether ufw is on PATH and, if not, whether its
+// systemd unit exists so httpserver can offer an "enable service" action
+// instead of just an install link.
+func (m *Manager) CheckDependency(ctx context.Context) dependency.State {
+	if m.Available(ctx) {
+		return dependency.State{Installed: true}
+	}
+	exists, active := dependency.Probe(ctx, "ufw")
+	if !exists {
+		return dependency.State{}
+	}
+	return dependency.State{ServiceName: "ufw", ServiceActive: active}
 }
 
 var numberedRule = regexp.MustCompile(`^\[\s*(\d+)\]\s*(.+)$`)
