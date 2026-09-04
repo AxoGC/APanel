@@ -4,6 +4,7 @@ import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ApiError } from '@/lib/api'
+import { MOCK, MockDatabaseSizeEventSource, MockTableStatsEventSource } from '@/lib/mock'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import {
@@ -48,7 +49,9 @@ export default function DatabasePage() {
   // scan streams results in (cached ones arrive almost immediately).
   useEffect(() => {
     if (selectedDatabase !== null || databases === null) return
-    const source = new EventSource(databaseSizeStreamUrl())
+    const source = MOCK
+      ? (new MockDatabaseSizeEventSource(databaseSizeStreamUrl()) as unknown as EventSource)
+      : new EventSource(databaseSizeStreamUrl())
     source.onmessage = (event) => {
       const data = JSON.parse(event.data as string) as { name: string; bytes: number }
       setSizes((prev) => ({ ...prev, [data.name]: data.bytes }))
@@ -78,7 +81,9 @@ export default function DatabasePage() {
   // design as the database list's own space column.
   useEffect(() => {
     if (selectedDatabase === null || tables === null) return
-    const source = new EventSource(tableStatsStreamUrl(selectedDatabase))
+    const source = MOCK
+      ? (new MockTableStatsEventSource(tableStatsStreamUrl(selectedDatabase)) as unknown as EventSource)
+      : new EventSource(tableStatsStreamUrl(selectedDatabase))
     source.onmessage = (event) => {
       const data = JSON.parse(event.data as string) as { schema: string; name: string; rows: number; bytes: number }
       setTableStats((prev) => ({ ...prev, [`${data.schema}.${data.name}`]: { rows: data.rows, bytes: data.bytes } }))

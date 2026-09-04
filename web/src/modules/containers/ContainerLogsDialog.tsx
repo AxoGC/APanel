@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
+import { MOCK, MockLogsEventSource } from '@/lib/mock'
 import {
   containerAttachSocketUrl,
   containerLogsStreamUrl,
@@ -85,8 +86,11 @@ export function ContainerLogsDialog({
     if (!open || mode !== 'logs' || !follow) return
     setContent([])
     setError(null)
-    const source = new EventSource(containerLogsStreamUrl(id, lines))
-    source.onmessage = (event) => {
+    const source = MOCK
+      ? new MockLogsEventSource(containerLogsStreamUrl(id, lines))
+      : new EventSource(containerLogsStreamUrl(id, lines))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    source.onmessage = (event: any) => {
       setContent((previous) => [...previous, event.data as string])
     }
     source.onerror = () => {

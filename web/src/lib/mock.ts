@@ -78,7 +78,122 @@ function makeHistoryPoints(count: number) {
     swapUsedPercent: 5 + Math.random() * 10,
     swapUsed: 200_000_000,
     swapTotal: 2_000_000_000,
+    netTxBytesPerSec: 50_000 + Math.random() * 400_000,
   }))
+}
+
+// Canonical order of the 8 togglable/reorderable nav modules — mirrors
+// web/src/lib/modules.tsx's MODULE_ORDER. All start enabled so the mock
+// demo shows the full nav without a manual setup step.
+const MODULE_ORDER = ['terminal', 'services', 'files', 'containers', 'history', 'firewall', 'proxy', 'database']
+let enabledModuleKeys = [...MODULE_ORDER]
+
+function buildStatusResponse(enabledKeys: string[]) {
+  const enabledSet = new Set(enabledKeys)
+  const disabled = MODULE_ORDER.filter((key) => !enabledSet.has(key))
+  return {
+    modules: [
+      ...enabledKeys.map((key) => ({ key, enabled: true })),
+      ...disabled.map((key) => ({ key, enabled: false })),
+    ],
+  }
+}
+
+// One entry per optional extension module with a checkable dependency
+// (see web/src/lib/modules.tsx's DEPENDENCY_MODULES) — all start healthy
+// so every module page works out of the box without a setup dialog.
+interface MockDependencyStatus {
+  key: string
+  healthy: boolean
+  reason?: 'unavailable' | 'serviceInactive' | 'unconfigured'
+  serviceName?: string
+  fields: string[]
+  requiredFields: string[]
+  config: Record<string, string>
+  docsUrl: string
+}
+
+const DEPENDENCY_STATUS: Record<string, MockDependencyStatus> = {
+  containers: {
+    key: 'containers', healthy: true, fields: [], requiredFields: [], config: {},
+    docsUrl: 'https://docs.docker.com/engine/install/',
+  },
+  history: {
+    key: 'history', healthy: true, fields: [], requiredFields: [], config: {},
+    docsUrl: 'https://github.com/sysstat/sysstat',
+  },
+  firewall: {
+    key: 'firewall', healthy: true, fields: [], requiredFields: [], config: {},
+    docsUrl: 'https://help.ubuntu.com/community/UFW',
+  },
+  proxy: {
+    key: 'proxy', healthy: true, fields: ['url', 'password'], requiredFields: ['url'],
+    config: { url: 'http://127.0.0.1:9090', password: '' },
+    docsUrl: 'https://wiki.metacubex.one/',
+  },
+  database: {
+    key: 'database', healthy: true, fields: ['host', 'port', 'username', 'password'],
+    requiredFields: ['host', 'port', 'username', 'password'],
+    config: { host: '127.0.0.1', port: '5432', username: 'postgres', password: 'postgres' },
+    docsUrl: 'https://www.postgresql.org/docs/',
+  },
+}
+
+const PROXY_GROUPS: Record<string, { name: string; now: string; options: { name: string; type: string; delay: number }[] }> = {
+  GLOBAL: {
+    name: 'GLOBAL', now: 'PROXY',
+    options: [
+      { name: 'PROXY', type: 'select', delay: 0 },
+      { name: 'HK-01', type: 'ss', delay: 0 },
+      { name: 'US-01', type: 'vmess', delay: 0 },
+      { name: 'JP-01', type: 'trojan', delay: 0 },
+      { name: 'DIRECT', type: 'direct', delay: 0 },
+      { name: 'REJECT', type: 'reject', delay: 0 },
+    ],
+  },
+  PROXY: {
+    name: 'PROXY', now: 'auto',
+    options: [
+      { name: 'auto', type: 'url-test', delay: 0 },
+      { name: 'HK-01', type: 'ss', delay: 0 },
+      { name: 'US-01', type: 'vmess', delay: 0 },
+      { name: 'JP-01', type: 'trojan', delay: 0 },
+      { name: 'DIRECT', type: 'direct', delay: 0 },
+    ],
+  },
+  Streaming: {
+    name: 'Streaming', now: 'PROXY',
+    options: [
+      { name: 'PROXY', type: 'select', delay: 0 },
+      { name: 'HK-01', type: 'ss', delay: 0 },
+      { name: 'US-01', type: 'vmess', delay: 0 },
+      { name: 'DIRECT', type: 'direct', delay: 0 },
+    ],
+  },
+}
+let proxyMode: 'global' | 'rule' | 'direct' = 'rule'
+
+const DATABASES = [
+  { name: 'app_production', tableCount: 18 },
+  { name: 'app_staging', tableCount: 18 },
+  { name: 'analytics', tableCount: 6 },
+]
+
+const TABLES: Record<string, { schema: string; name: string; columnCount: number }[]> = {
+  app_production: [
+    { schema: 'public', name: 'users', columnCount: 12 },
+    { schema: 'public', name: 'sessions', columnCount: 6 },
+    { schema: 'public', name: 'orders', columnCount: 15 },
+    { schema: 'public', name: 'order_items', columnCount: 8 },
+  ],
+  app_staging: [
+    { schema: 'public', name: 'users', columnCount: 12 },
+    { schema: 'public', name: 'sessions', columnCount: 6 },
+  ],
+  analytics: [
+    { schema: 'public', name: 'events', columnCount: 9 },
+    { schema: 'public', name: 'daily_rollups', columnCount: 5 },
+  ],
 }
 
 function ok<T>(data: T) {
@@ -192,6 +307,74 @@ export function mockApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     return ok({ date: new Date().toISOString().slice(0, 10), points: makeHistoryPoints(288) }) as Promise<T>
   }
 
+  if (path === '/status') return ok(buildStatusResponse(enabledModuleKeys)) as Promise<T>
+  if (path === '/status/features' && method === 'PUT') {
+    enabledModuleKeys = body.enabledFeatures ?? []
+    return ok(buildStatusResponse(enabledModuleKeys)) as Promise<T>
+  }
+
+  const depMatch = path.match(/^\/modules\/([^/]+)\/dependency(\/enable-service)?$/)
+  if (depMatch) {
+    const status = DEPENDENCY_STATUS[depMatch[1]]
+    if (!status) return Promise.reject(new Error(`mock: unknown module ${depMatch[1]}`))
+    if (depMatch[2]) {
+      status.healthy = true
+      status.reason = undefined
+      return ok({ ...status }) as Promise<T>
+    }
+    if (method === 'PUT') {
+      status.config = { ...status.config, ...body }
+      status.healthy = true
+      status.reason = undefined
+      return ok({ ...status }) as Promise<T>
+    }
+    return ok({ ...status }) as Promise<T>
+  }
+
+  if (path.startsWith('/proxy')) {
+    if (path === '/proxy/overview') {
+      return ok({ mode: proxyMode, groups: ['PROXY', 'Streaming'] }) as Promise<T>
+    }
+    if (path === '/proxy/mode' && method === 'PUT') {
+      proxyMode = body.mode
+      return ok({ mode: proxyMode, groups: ['PROXY', 'Streaming'] }) as Promise<T>
+    }
+    const selMatch = path.match(/^\/proxy\/groups\/([^/]+)\/selection$/)
+    if (selMatch) {
+      const group = PROXY_GROUPS[decodeURIComponent(selMatch[1])]
+      if (group) group.now = body.name
+      return ok(group) as Promise<T>
+    }
+    const testMatch = path.match(/^\/proxy\/groups\/([^/]+)\/test$/)
+    if (testMatch) {
+      const group = PROXY_GROUPS[decodeURIComponent(testMatch[1])]
+      if (group) group.options = group.options.map((o) => ({ ...o, delay: o.name === 'REJECT' ? 0 : 30 + Math.floor(Math.random() * 900) }))
+      return ok(group) as Promise<T>
+    }
+    const groupMatch = path.match(/^\/proxy\/groups\/([^/]+)$/)
+    if (groupMatch) return ok(PROXY_GROUPS[decodeURIComponent(groupMatch[1])]) as Promise<T>
+  }
+
+  if (path.startsWith('/database')) {
+    if (path === '/database/databases') return ok(DATABASES) as Promise<T>
+    const tablesMatch = path.match(/^\/database\/databases\/([^/]+)\/tables$/)
+    if (tablesMatch) return ok(TABLES[decodeURIComponent(tablesMatch[1])] ?? []) as Promise<T>
+  }
+
+  if (path.startsWith('/terminal/directories')) {
+    const url = new URL(path, 'http://mock')
+    const cwd = url.searchParams.get('cwd') || '/root'
+    return ok({
+      cwd,
+      directories: [
+        { name: 'root', path: '/root' },
+        { name: 'etc', path: '/etc' },
+        { name: 'var', path: '/var' },
+        { name: 'home', path: '/home' },
+      ],
+    }) as Promise<T>
+  }
+
   return Promise.reject(new Error(`mock: unhandled ${method} ${path}`))
 }
 
@@ -259,5 +442,63 @@ export class MockLogsEventSource {
 
   close() {
     if (this.timer) clearTimeout(this.timer)
+  }
+}
+
+// Shared by MockDatabaseSizeEventSource/MockTableStatsEventSource: both
+// stream a series of named-event payloads on a delay, then a 'done' event —
+// mirroring the backend's per-item SSE + terminal event on the database
+// module's two streaming endpoints.
+class MockNamedEventSource {
+  onmessage: ((e: { data: string }) => void) | null = null
+  private listeners: Record<string, ((e: { data: string }) => void)[]> = {}
+  private timers: ReturnType<typeof setTimeout>[] = []
+
+  protected schedule(steps: { event?: string; data: unknown; delay: number }[]) {
+    let elapsed = 0
+    for (const step of steps) {
+      elapsed += step.delay
+      this.timers.push(
+        setTimeout(() => this.emit(step.event ?? 'message', step.data), elapsed),
+      )
+    }
+  }
+
+  addEventListener(type: string, listener: (event: { data: string }) => void) {
+    ;(this.listeners[type] ??= []).push(listener)
+  }
+
+  private emit(type: string, data: unknown) {
+    const event = { data: JSON.stringify(data) }
+    if (type === 'message') this.onmessage?.(event)
+    else this.listeners[type]?.forEach((cb) => cb(event))
+  }
+
+  close() {
+    this.timers.forEach(clearTimeout)
+  }
+}
+
+export class MockDatabaseSizeEventSource extends MockNamedEventSource {
+  constructor(_url: string) {
+    super()
+    const steps = DATABASES.map((d, i) => ({
+      data: { name: d.name, bytes: 5_000_000 + Math.random() * 500_000_000 },
+      delay: 150 * (i + 1),
+    }))
+    this.schedule([...steps, { event: 'done', data: {}, delay: 150 }])
+  }
+}
+
+export class MockTableStatsEventSource extends MockNamedEventSource {
+  constructor(url: string) {
+    super()
+    const match = url.match(/\/database\/databases\/([^/]+)\/tables\/stream/)
+    const tables = TABLES[match ? decodeURIComponent(match[1]) : ''] ?? []
+    const steps = tables.map((table, i) => ({
+      data: { schema: table.schema, name: table.name, rows: Math.floor(Math.random() * 50_000), bytes: 10_000 + Math.random() * 20_000_000 },
+      delay: 120 * (i + 1),
+    }))
+    this.schedule([...steps, { event: 'done', data: {}, delay: 120 }])
   }
 }
