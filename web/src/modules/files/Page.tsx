@@ -15,13 +15,13 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -378,7 +378,7 @@ export default function FilesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
+      <SectionedDialog
         open={previewTarget !== null}
         onOpenChange={(open) => {
           if (!open) {
@@ -386,58 +386,57 @@ export default function FilesPage() {
             setPreview(null)
           }
         }}
+        title={previewTarget?.name ?? ''}
+        className="h-[85vh] max-w-2xl"
+        footer={
+          preview?.status === 'text' ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPreviewTarget(null)
+                  setPreview(null)
+                }}
+              >
+                {t('confirm.cancel')}
+              </Button>
+              <Button type="button" disabled={savingPreview} onClick={savePreview}>
+                {savingPreview && <Loader2 className="animate-spin" />}
+                {t('files.save')}
+              </Button>
+            </div>
+          ) : undefined
+        }
       >
-        <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col">
-          <DialogHeader>
-            <DialogTitle>{previewTarget?.name}</DialogTitle>
-          </DialogHeader>
-          {preview?.status === 'loading' && (
-            <div className="flex justify-center py-8">
-              <Loader2 className="size-5 animate-spin text-gray-400" />
-            </div>
-          )}
-          {preview?.status === 'unavailable' && (
-            <div className="flex flex-col items-start gap-3 py-2">
-              <DialogDescription>
-                {preview.code === 'FILE_TOO_LARGE' ? t('files.preview.tooLarge') : t('files.preview.binary')}
-              </DialogDescription>
-              {previewTarget && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={downloadUrl(previewTarget.path)} download={previewTarget.name}>
-                    {t('files.download')}
-                  </a>
-                </Button>
-              )}
-            </div>
-          )}
-          {preview?.status === 'text' && (
-            <>
-              <textarea
-                value={preview.content}
-                onChange={(e) => setPreview({ status: 'text', content: e.target.value })}
-                spellCheck={false}
-                className="scrollbar-shadcn h-96 min-h-0 w-full resize-none overscroll-contain rounded-lg border border-input bg-transparent p-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-              />
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setPreviewTarget(null)
-                    setPreview(null)
-                  }}
-                >
-                  {t('confirm.cancel')}
-                </Button>
-                <Button type="button" disabled={savingPreview} onClick={savePreview}>
-                  {savingPreview && <Loader2 className="animate-spin" />}
-                  {t('files.save')}
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+        {preview?.status === 'loading' && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="size-5 animate-spin text-gray-400" />
+          </div>
+        )}
+        {preview?.status === 'unavailable' && (
+          <div className="flex flex-col items-start gap-3 py-2">
+            <p className="text-sm text-gray-500">
+              {preview.code === 'FILE_TOO_LARGE' ? t('files.preview.tooLarge') : t('files.preview.binary')}
+            </p>
+            {previewTarget && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={downloadUrl(previewTarget.path)} download={previewTarget.name}>
+                  {t('files.download')}
+                </a>
+              </Button>
+            )}
+          </div>
+        )}
+        {preview?.status === 'text' && (
+          <textarea
+            value={preview.content}
+            onChange={(e) => setPreview({ status: 'text', content: e.target.value })}
+            spellCheck={false}
+            className="scrollbar-shadcn h-full min-h-0 w-full resize-none overscroll-contain rounded-lg border border-input bg-transparent p-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+          />
+        )}
+      </SectionedDialog>
 
       <AlertDialog open={confirmDeletePaths !== null} onOpenChange={(open) => !open && setConfirmDeletePaths(null)}>
         <AlertDialogContent>
