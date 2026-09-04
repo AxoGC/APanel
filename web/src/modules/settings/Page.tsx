@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { BookOpen, ListChecks, LogOut } from 'lucide-react'
+import { BookOpen, Database, ListChecks, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ToggleButton } from '@/components/ToggleButton'
@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import githubIcon from '@/assets/github.svg'
 import { getSystemInfo, type SystemInfo } from './api'
 import { EnableModulesDialog } from './EnableModulesDialog'
+import { SiteDataDialog } from './SiteDataDialog'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
 const LOCALES: Locale[] = ['en', 'zh']
@@ -81,6 +82,7 @@ export default function SettingsPage() {
   const [readerTextWrap, setReaderTextWrap] = useState(getStoredReaderTextWrap)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false)
+  const [siteDataDialogOpen, setSiteDataDialogOpen] = useState(false)
 
   useEffect(() => {
     getSystemInfo()
@@ -175,6 +177,10 @@ export default function SettingsPage() {
       </Section>
 
       <ButtonRow>
+        <Button variant="outline" size="sm" onClick={() => setSiteDataDialogOpen(true)}>
+          <Database />
+          {t('settings.siteData')}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setModulesDialogOpen(true)}>
           <ListChecks />
           {t('settings.enableModules')}
@@ -186,6 +192,7 @@ export default function SettingsPage() {
       </ButtonRow>
 
       <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
+      <SiteDataDialog open={siteDataDialogOpen} onOpenChange={setSiteDataDialogOpen} />
 
       <div className="grid grid-cols-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
           <a
