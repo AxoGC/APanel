@@ -20,7 +20,6 @@ type FormMode = 'simple' | 'advanced'
 
 const PROTOCOLS: Protocol[] = ['tcp', 'udp']
 const ACTIONS: NewFirewallRule['action'][] = ['allow', 'deny', 'reject', 'limit']
-const SIMPLE_ACTIONS: NewFirewallRule['action'][] = ['allow', 'deny']
 const FORM_ID = 'firewall-rule-form'
 
 function ToggleChip({
@@ -98,11 +97,14 @@ function formFromRule(rule: FirewallRule): FormState {
   }
 }
 
+// Simple mode only ever represents "allow" rules (its action row is hidden
+// and forced to "allow"), so anything else must open in advanced mode or
+// its actual action would be silently lost.
 function modeFromRule(rule: FirewallRule | null): FormMode {
   if (!rule) return 'simple'
   const action = rule.action.split(' ')[0].toLowerCase()
   const hasSource = rule.from !== '' && rule.from !== 'Anywhere'
-  return action === 'reject' || action === 'limit' || !rule.ipv4 || !rule.ipv6 || hasSource ? 'advanced' : 'simple'
+  return action !== 'allow' || !rule.ipv4 || !rule.ipv6 || hasSource ? 'advanced' : 'simple'
 }
 
 // Shared by both "add rule" and "edit rule" — passing `rule` switches the
@@ -137,7 +139,7 @@ export function RuleDialog({
     if (nextMode === 'simple') {
       setForm((current) => ({
         ...current,
-        action: SIMPLE_ACTIONS.includes(current.action) ? current.action : 'allow',
+        action: 'allow',
         families: new Set<Family>(['ipv4', 'ipv6']),
         fromIPv4: '',
         fromIPv6: '',
@@ -195,7 +197,15 @@ export function RuleDialog({
     <SectionedDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={rule ? t('firewall.editRule.title') : t('firewall.addRule.title')}
+      title={
+        mode === 'simple'
+          ? rule
+            ? t('firewall.editRule.title.simple')
+            : t('firewall.addRule.title.simple')
+          : rule
+            ? t('firewall.editRule.title')
+            : t('firewall.addRule.title')
+      }
       className="h-[85vh]"
       onOpenAutoFocus={(event) => {
         if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
@@ -227,15 +237,17 @@ export function RuleDialog({
         />
 
         <div className="flex flex-col gap-4">
-              <FormRow label={t('firewall.addRule.action')}>
-                <div className="flex flex-wrap justify-start gap-2">
-                  {(mode === 'simple' ? SIMPLE_ACTIONS : ACTIONS).map((a) => (
-                    <ToggleChip key={a} active={form.action === a} onClick={() => setForm((c) => ({ ...c, action: a }))}>
-                      {t(`firewall.action.${a}`)}
-                    </ToggleChip>
-                  ))}
-                </div>
-              </FormRow>
+              {mode === 'advanced' && (
+                <FormRow label={t('firewall.addRule.action')}>
+                  <div className="flex flex-wrap justify-start gap-2">
+                    {ACTIONS.map((a) => (
+                      <ToggleChip key={a} active={form.action === a} onClick={() => setForm((c) => ({ ...c, action: a }))}>
+                        {t(`firewall.action.${a}`)}
+                      </ToggleChip>
+                    ))}
+                  </div>
+                </FormRow>
+              )}
 
               <FormRow label={t('firewall.addRule.port')}>
                 <Input
