@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import logo from '@/assets/logo.png'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useFeatures } from '@/lib/features'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
@@ -69,10 +70,9 @@ export function Nav() {
 
   return (
     <nav className="relative shrink-0 border-t border-gray-200 md:flex md:w-auto md:flex-col md:border-t-0 md:border-r dark:border-gray-800">
-      <div className="hidden h-14 items-center justify-center md:flex">
-        <span className="text-lg font-semibold italic text-theme-700 dark:text-theme-300">
-          {collapsed ? 'A' : 'Apanel'}
-        </span>
+      <div className="hidden h-14 items-center justify-center gap-2 md:flex">
+        <img src={logo} alt="APanel" className="size-6 shrink-0" />
+        {!collapsed && <span className="text-sm font-semibold text-theme-700 dark:text-theme-300">Apanel</span>}
       </div>
 
       <div
