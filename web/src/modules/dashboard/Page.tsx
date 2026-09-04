@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ApiError } from '@/lib/api'
 import { formatBitrate, formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
+import { useLayout } from '@/lib/layout'
 import { Gauge } from './Gauge'
 import { buildProcessForest, type ProcessNode } from './processTree'
 import { ProcessDetailDialog } from './ProcessDetailDialog'
@@ -26,6 +27,7 @@ const NETWORK_SETTINGS_FORM_ID = 'dashboard-network-settings-form'
 
 export default function DashboardPage() {
   const { t } = useI18n()
+  const { shell } = useLayout()
   const [sort, setSort] = useState<ProcessSort>('mem')
   const [tree, setTree] = useState(true)
   // Empty by default: every node with children starts collapsed. Lifted up
@@ -214,15 +216,22 @@ export default function DashboardPage() {
       >
         <form id={NETWORK_SETTINGS_FORM_ID} onSubmit={submitSettings} className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
-                  {t('dashboard.networkSettings.maxMbps')}
-                  <Info className="size-3" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
-            </Tooltip>
+            {shell === 'mobile' ? (
+              <span className="flex w-36 shrink-0 items-center gap-1 text-xs text-gray-500">
+                {t('dashboard.networkSettings.maxMbps')}
+                <Info className="size-3" />
+              </span>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex w-36 shrink-0 cursor-help items-center gap-1 text-xs text-gray-500">
+                    {t('dashboard.networkSettings.maxMbps')}
+                    <Info className="size-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('dashboard.networkSettings.maxMbps.tooltip')}</TooltipContent>
+              </Tooltip>
+            )}
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -235,6 +244,7 @@ export default function DashboardPage() {
               <span className="text-xs text-gray-500">Mbps</span>
             </div>
           </div>
+          {shell === 'mobile' && <p className="text-xs text-gray-500">{t('dashboard.networkSettings.maxMbps.tooltip')}</p>}
           {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
         </form>
       </SectionedDialog>
