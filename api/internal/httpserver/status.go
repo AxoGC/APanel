@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -25,10 +26,9 @@ var moduleOrder = []string{
 	"containers", "history", "firewall", "proxy", "database",
 }
 
-// defaultEnabledFeatures seeds a fresh install (nothing saved yet) with
-// the 3 core modules on — every optional extension stays opt-in until
-// explicitly enabled.
-var defaultEnabledFeatures = []string{"terminal", "services", "files"}
+// mandatoryEnabledFeatures are always on — terminal, files, and services
+// depend on nothing external, so there's nothing to detect for them.
+var mandatoryEnabledFeatures = []string{"terminal", "services", "files"}
 
 var knownModules = func() map[string]struct{} {
 	m := make(map[string]struct{}, len(moduleOrder))
@@ -53,7 +53,7 @@ type featureStatus struct {
 }
 
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
-	enabled, err := s.enabledFeatures()
+	enabled, err := s.enabledFeatures(r.Context())
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
@@ -113,16 +113,26 @@ func buildModuleStatus(enabled []string) []moduleStatus {
 	return modules
 }
 
-// enabledFeatures falls back to defaultEnabledFeatures the first time
-// nothing has been saved yet; any explicit save afterwards — even an empty
-// one — is authoritative from then on.
-func (s *Server) enabledFeatures() ([]string, error) {
+// enabledFeatures returns the persisted enabled-modules list, seeding it on
+// first read: nothing saved yet means this is the persistence
+// initialization stage, so it probes every optional module's local
+// dependency once, persists the detected set, and returns that from then on.
+// Any explicit save afterwards — even an empty one — is authoritative.
+func (s *Server) enabledFeatures(ctx context.Context) ([]string, error) {
 	raw, found, err := s.settings.Get(enabledFeaturesSettingsKey)
 	if err != nil {
 		return nil, err
 	}
 	if !found {
-		return defaultEnabledFeatures, nil
+		detected := s.detectInitialEnabledFeatures(ctx)
+		encoded, err := json.Marshal(detected)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.settings.Set(enabledFeaturesSettingsKey, string(encoded)); err != nil {
+			return nil, err
+		}
+		return detected, nil
 	}
 
 	var stored []string
@@ -131,6 +141,38 @@ func (s *Server) enabledFeatures() ([]string, error) {
 	}
 	enabled, _ := normalizeEnabledFeatures(stored)
 	return enabled, nil
+}
+
+// detectInitialEnabledFeatures seeds a fresh install's enabled-modules list:
+// the 3 core modules are always on, and every optional module gets a single
+// local systemd probe (host-only — a dependency reachable only on some
+// other host/port can't be told apart from "not installed", so it's never
+// probed) to decide its initial state. A module whose dependency is found
+// at all — installed but inactive counts — starts enabled; anything not
+// found, or with no live probe at all (proxy, database), starts disabled
+// and stays opt-in.
+func (s *Server) detectInitialEnabledFeatures(ctx context.Context) []string {
+	detected := make([]string, 0, len(mandatoryEnabledFeatures))
+	detected = append(detected, mandatoryEnabledFeatures...)
+	mandatory := make(map[string]struct{}, len(mandatoryEnabledFeatures))
+	for _, key := range mandatoryEnabledFeatures {
+		mandatory[key] = struct{}{}
+	}
+
+	for _, key := range moduleOrder {
+		if _, skip := mandatory[key]; skip {
+			continue
+		}
+		checker, ok := s.dependencyCheckers[key]
+		if !ok {
+			continue
+		}
+		state := checker.CheckDependency(ctx)
+		if state.Installed || state.ServiceName != "" {
+			detected = append(detected, key)
+		}
+	}
+	return detected
 }
 
 func normalizeEnabledFeatures(values []string) ([]string, bool) {
