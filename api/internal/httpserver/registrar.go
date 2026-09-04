@@ -18,12 +18,11 @@ type RouteRegistrar interface {
 }
 
 // DependencyChecker is implemented by registrars whose module has a
-// checkable local dependency (a binary on PATH, a reachable local daemon —
-// Docker, ufw, sysstat). httpserver's dependency endpoints type-assert for
-// it the same way New type-asserts for RouteRegistrar; a registrar that
-// doesn't implement it (proxy, database — no backend package yet) simply
-// has no live probe, and its status is derived from whether connection
-// settings have been saved instead (see dependency.go).
+// checkable dependency — a binary on PATH, a reachable local daemon (Docker,
+// ufw, sysstat), or a reachable remote controller/instance (proxy's
+// clash/mihomo controller, database's Postgres instance). httpserver's
+// dependency endpoints type-assert for it the same way New type-asserts for
+// RouteRegistrar.
 type DependencyChecker interface {
 	// Key identifies which module (see moduleOrder in status.go) this
 	// check is for.

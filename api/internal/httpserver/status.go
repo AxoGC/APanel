@@ -149,8 +149,7 @@ func (s *Server) enabledFeatures(ctx context.Context) ([]string, error) {
 // other host/port can't be told apart from "not installed", so it's never
 // probed) to decide its initial state. A module whose dependency is found
 // at all — installed but inactive counts — starts enabled; anything not
-// found, or with no live probe at all (proxy, database), starts disabled
-// and stays opt-in.
+// found starts disabled and stays opt-in.
 func (s *Server) detectInitialEnabledFeatures(ctx context.Context) []string {
 	detected := make([]string, 0, len(mandatoryEnabledFeatures))
 	detected = append(detected, mandatoryEnabledFeatures...)

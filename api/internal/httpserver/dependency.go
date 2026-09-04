@@ -47,12 +47,10 @@ type dependencyStatus struct {
 	DocsURL     string            `json:"docsUrl"`
 }
 
-// moduleDependencyStatus reports a module's health two different ways
-// depending on whether it has a live DependencyChecker: containers,
-// firewall, history, and proxy are probed directly (a reachable local
-// daemon/binary, or — for proxy — a reachable clash/mihomo controller at
-// its saved or default host:port); database has no backend integration
-// yet, so its health is just "has the admin saved connection settings".
+// moduleDependencyStatus reports a module's health via its live
+// DependencyChecker: containers, firewall, and history probe a local
+// daemon/binary; proxy and database instead probe a reachable controller/
+// instance at their saved or default connection settings.
 func (s *Server) moduleDependencyStatus(ctx context.Context, key string) (dependencyStatus, error) {
 	config, err := s.dependencyConfig(key)
 	if err != nil {
@@ -157,6 +155,17 @@ func (s *Server) putModuleDependency(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
+	}
+
+	// A checker that keeps its own derived-data cache (database's disk-
+	// usage/row-count numbers) ties that cache to whichever instance it was
+	// pointed at when computed — saving new connection settings must throw
+	// it away, or it would keep answering for the old instance for up to an
+	// hour.
+	if checker, ok := s.dependencyCheckers[key]; ok {
+		if invalidator, ok := checker.(interface{ InvalidateCache() }); ok {
+			invalidator.InvalidateCache()
+		}
 	}
 
 	status, err := s.moduleDependencyStatus(r.Context(), key)
