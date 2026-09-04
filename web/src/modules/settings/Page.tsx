@@ -22,7 +22,9 @@ import {
   type ThemeHue,
 } from '@/lib/theme'
 import { cn } from '@/lib/utils'
+import bilibiliIcon from '@/assets/bilibili.svg'
 import githubIcon from '@/assets/github.svg'
+import qqIcon from '@/assets/qq.svg'
 import { getSystemInfo, type SystemInfo } from './api'
 import { EnableModulesDialog } from './EnableModulesDialog'
 import { SiteDataDialog } from './SiteDataDialog'
@@ -212,6 +214,24 @@ export default function SettingsPage() {
           >
             <img src={githubIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
             GitHub
+          </a>
+          <a
+            href="https://qm.qq.com/q/rn3BmSyb06"
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
+          >
+            <img src={qqIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
+            {t('settings.about.qqGroup')} 704280441
+          </a>
+          <a
+            href="https://b23.tv/jfWeS6Z"
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
+          >
+            <img src={bilibiliIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
+            Bilibili
           </a>
       </div>
     </div>
