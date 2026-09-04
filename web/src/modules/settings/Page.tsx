@@ -196,7 +196,7 @@ export default function SettingsPage() {
       <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
       <SiteDataDialog open={siteDataDialogOpen} onOpenChange={setSiteDataDialogOpen} />
 
-      <div className="grid grid-cols-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
+      <div className="grid grid-cols-2 gap-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
           <a
             href="https://apanel.axogc.net"
             target="_blank"
