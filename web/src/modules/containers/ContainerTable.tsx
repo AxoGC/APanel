@@ -44,6 +44,7 @@ export function ContainerTable({ containers, pending, onAction, onShowLogs, onSh
           const state = STATE_LABELS[container.state] ? t(STATE_LABELS[container.state]) : container.state
           const unhealthy = isUnhealthy(container.status)
           const statusText = unhealthy ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500'
+          const statusDot = unhealthy ? 'bg-orange-500' : dot
           return (
             <div key={container.id} className="flex flex-col gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 md:flex-row md:items-center md:gap-3 md:py-2">
               <div className="hidden min-w-0 flex-1 md:block"><div className="truncate text-sm text-gray-900 dark:text-gray-100">{container.name}</div><div className={cn('truncate text-xs', statusText)}>{formatContainerStatus(container.status, t)}</div></div>
@@ -52,7 +53,7 @@ export function ContainerTable({ containers, pending, onAction, onShowLogs, onSh
               <div className="hidden w-28 shrink-0 items-center justify-end gap-0.5 md:flex"><ContainerActions container={container} busy={busy} onAction={onAction} onShowLogs={onShowLogs} onShowDetail={onShowDetail} /></div>
 
               <div className="flex flex-col gap-2 md:hidden">
-                <div className="flex items-center justify-between gap-2"><span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{container.name}</span><div className="flex shrink-0 items-center gap-1.5"><span className={cn('size-1.5 rounded-full', dot)} /><span className={cn('text-xs', unhealthy ? statusText : text)}>{formatContainerStatus(container.status, t)}</span></div></div>
+                <div className="flex items-center justify-between gap-2"><span className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{container.name}</span><div className="flex shrink-0 items-center gap-1.5"><span className={cn('size-1.5 rounded-full', statusDot)} /><span className={cn('text-xs', unhealthy ? statusText : text)}>{formatContainerStatus(container.status, t)}</span></div></div>
                 <div className="flex items-center justify-between gap-2"><div className="flex min-w-0 items-center gap-2"><span className="shrink-0 text-xs text-gray-500">{t('containers.image')}</span><span className="truncate text-xs text-gray-500">{container.image}</span></div><div className="flex shrink-0 items-center justify-end gap-0.5"><ContainerActions container={container} busy={busy} onAction={onAction} onShowLogs={onShowLogs} onShowDetail={onShowDetail} /></div></div>
               </div>
             </div>
