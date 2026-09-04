@@ -108,15 +108,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full flex-col gap-4 md:gap-6">
+      <div className="flex items-center justify-between pt-4 px-4 md:pt-6 md:px-6">
         <h1 className="text-base text-gray-900 dark:text-gray-100">{t('dashboard.title')}</h1>
         <Button variant="ghost" size="icon-sm" aria-label={t('dashboard.networkSettings')} onClick={openSettings}>
           <Settings />
         </Button>
       </div>
 
-      <div className="flex flex-nowrap gap-1 sm:gap-4">
+      <div className="flex flex-nowrap gap-1 px-4 sm:gap-4 md:px-6">
         <div className="min-w-0 flex-1">
           <Gauge
             label={t('dashboard.cpu')}
@@ -152,7 +152,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex min-h-0 grow flex-col">
+      <div className="flex min-h-0 grow flex-col px-4 md:px-6">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
           <div className="flex items-center gap-4">
