@@ -8,22 +8,31 @@ import { cn } from '@/lib/utils'
 export function ToggleButton({
   active,
   onClick,
+  ariaLabel,
+  title,
+  className,
   children,
 }: {
   active: boolean
   onClick: () => void
+  ariaLabel?: string
+  title?: string
+  className?: string
   children: ReactNode
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
+      aria-label={ariaLabel}
+      title={title}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-md border px-2.5 py-1 text-xs transition-colors',
+        'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors',
         active
           ? 'border-theme-200 bg-theme-50 text-theme-700 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300'
           : 'border-gray-200 text-gray-500 hover:text-gray-700 dark:border-gray-800 dark:hover:text-gray-300',
+        className,
       )}
     >
       {children}

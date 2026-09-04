@@ -1,5 +1,6 @@
-import { ArrowUp, FolderPlus, Loader2, Search, Trash2, Upload } from 'lucide-react'
+import { ArrowUp, Eye, FolderPlus, Loader2, Search, Trash2, Upload } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { ToggleButton } from '@/components/ToggleButton'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +61,7 @@ export default function FilesPage() {
   const [path, setPath] = useState(() => localStorage.getItem(PATH_STORAGE_KEY) || '/')
   const [entries, setEntries] = useState<FileEntry[] | null>(null)
   const [query, setQuery] = useState('')
+  const [showHidden, setShowHidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
 
@@ -102,8 +104,8 @@ export default function FilesPage() {
   const filtered = useMemo(() => {
     if (!entries) return []
     const q = query.trim().toLowerCase()
-    return q ? entries.filter((e) => e.name.toLowerCase().includes(q)) : entries
-  }, [entries, query])
+    return entries.filter((e) => (showHidden || !e.name.startsWith('.')) && (!q || e.name.toLowerCase().includes(q)))
+  }, [entries, query, showHidden])
 
   function toggleSelect(p: string) {
     setSelected((s) => {
@@ -283,6 +285,16 @@ export default function FilesPage() {
               <span className="hidden md:inline">{t('files.delete')} ({selected.size})</span>
             </Button>
           )}
+          <ToggleButton
+            active={showHidden}
+            onClick={() => setShowHidden((v) => !v)}
+            ariaLabel={t('files.showHidden')}
+            title={t('files.showHidden')}
+            className={cn(mobileSearchOpen && 'max-md:hidden')}
+          >
+            <Eye className="size-3.5" />
+            <span className="hidden md:inline">{t('files.showHidden')}</span>
+          </ToggleButton>
           <Button variant="outline" size="sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)} className={cn(mobileSearchOpen && 'max-md:hidden')}>
             <FolderPlus />
             <span className="hidden md:inline">{t('files.newFolder')}</span>
