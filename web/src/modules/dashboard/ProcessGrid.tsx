@@ -59,10 +59,10 @@ function ProcessRow({
         </span>
       </div>
       <div className="hidden w-20 shrink-0 truncate text-sm text-gray-700 sm:block dark:text-gray-300">{user}</div>
-      <div className="w-14 shrink-0 text-right text-sm text-gray-700 dark:text-gray-300">
+      <div className="w-12 shrink-0 text-right text-sm text-gray-700 sm:w-14 dark:text-gray-300">
         {formatPercent(cpuPercent)}
       </div>
-      <div className="w-20 shrink-0 text-right text-sm text-gray-700 dark:text-gray-300">{formatBytes(memRSS)}</div>
+      <div className="w-16 shrink-0 text-right text-sm text-gray-700 sm:w-20 dark:text-gray-300">{formatBytes(memRSS)}</div>
       <div className="flex w-8 shrink-0 justify-end">
         <Button variant="ghost" size="icon-xs" aria-label={t('dashboard.more')} onClick={() => onShowDetail(pid)}>
           <MoreHorizontal />
@@ -143,8 +143,8 @@ export function ProcessGridHeader() {
       {t('dashboard.process')}
     </div>
     <div className="hidden w-20 shrink-0 text-xs text-gray-500 sm:block">{t('dashboard.user')}</div>
-    <div className="w-14 shrink-0 text-right text-xs text-gray-500">{t('dashboard.cpu')}</div>
-    <div className="w-20 shrink-0 text-right text-xs text-gray-500">{t('dashboard.memory')}</div>
+    <div className="w-12 shrink-0 text-right text-xs text-gray-500 sm:w-14">{t('dashboard.cpu')}</div>
+    <div className="w-16 shrink-0 text-right text-xs text-gray-500 sm:w-20">{t('dashboard.memory')}</div>
     <div className="w-8 shrink-0 text-right text-xs text-gray-500">{t('dashboard.more')}</div>
   </div>
   )

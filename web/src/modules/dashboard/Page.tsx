@@ -153,8 +153,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-4 mb-2 flex items-center justify-between px-4 sm:mt-6 sm:px-6">
-        <p className="text-xs text-gray-500">{t('dashboard.processes')}</p>
+      <div className="mt-4 mb-2 flex items-center justify-end px-4 sm:mt-6 sm:px-6">
         <div className="flex items-center gap-4">
           <ToggleButton active={tree} onClick={() => setTree((v) => !v)}>
             {t('dashboard.tree')}
