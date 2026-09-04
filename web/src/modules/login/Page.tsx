@@ -17,7 +17,7 @@ export default function LoginPage() {
   if (!isSecureContext()) {
     return (
       <div className="flex min-h-full items-center justify-center p-6">
-        <p className="max-w-sm text-sm text-gray-700">{t('login.httpsRequired')}</p>
+        <p className="max-w-sm text-sm text-gray-700 dark:text-gray-300">{t('login.httpsRequired')}</p>
       </div>
     )
   }
@@ -38,7 +38,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-full items-center justify-center p-6">
       <form onSubmit={handleSubmit} className="flex w-full max-w-xs flex-col gap-4">
-        <h1 className="text-base text-gray-900">{t('login.title')}</h1>
+        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('login.title')}</h1>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="password" className="text-xs font-normal text-gray-500">
             {t('login.password')}
