@@ -1,7 +1,7 @@
 import { apiFetch } from './api'
 import type { DependencyModuleKey } from './modules'
 
-export type DependencyField = 'host' | 'port' | 'username' | 'password'
+export type DependencyField = 'host' | 'port' | 'url' | 'username' | 'password'
 export type DependencyReason = 'unavailable' | 'serviceInactive' | 'unconfigured'
 
 export interface DependencyStatus {

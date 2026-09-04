@@ -18,8 +18,13 @@ import { MODULE_META, type DependencyModuleKey } from '@/lib/modules'
 const FIELD_LABEL_KEYS: Record<DependencyField, TranslationKey> = {
   host: 'dependency.field.host',
   port: 'dependency.field.port',
+  url: 'dependency.field.url',
   username: 'dependency.field.username',
   password: 'dependency.field.password',
+}
+
+const FIELD_PLACEHOLDERS: Partial<Record<DependencyField, string>> = {
+  url: 'http://127.0.0.1:9090',
 }
 
 const REASON_TEXT_KEYS: Record<DependencyReason, TranslationKey> = {
@@ -122,6 +127,7 @@ export function DependencyDialog({
                   <Input
                     id={`dependency-${field}`}
                     type={field === 'password' ? 'password' : 'text'}
+                    placeholder={FIELD_PLACEHOLDERS[field]}
                     value={form[field] ?? ''}
                     onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                   />

@@ -15,6 +15,16 @@ import (
 	"strings"
 )
 
+// ConnectionSettingsKey is the settings key a module's saved connection
+// config (host/port/username/password, any subset) lives under. It's
+// defined here — rather than in httpserver, which owns the dependency
+// dialog's HTTP endpoints — so a business package that needs its own saved
+// config directly (see proxy.Manager) can read the exact same key without
+// importing httpserver.
+func ConnectionSettingsKey(moduleKey string) string {
+	return "module." + moduleKey + ".connection"
+}
+
 // State is one business package's answer to "is my local dependency here
 // and working". ServiceName is only set once the corresponding systemd
 // unit is confirmed to exist, so httpserver knows whether offering an

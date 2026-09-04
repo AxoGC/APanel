@@ -26,12 +26,14 @@ var dependencyModules = map[string]struct{}{
 }
 
 // moduleFields lists which connection fields a module's dependency dialog
-// should collect — any subset of host/port/username/password, chosen per
-// what that dependency actually authenticates with. containers, firewall,
-// and history are checked locally and have nothing to configure.
+// should collect — any subset of host/port/url/username/password, chosen
+// per what that dependency actually authenticates with. containers,
+// firewall, and history are checked locally and have nothing to configure.
+// proxy takes a full URL rather than a host/port pair since a plain
+// host:port can't express http vs. https.
 var moduleFields = map[string][]string{
 	"containers": {"host", "port"},
-	"proxy":      {"host", "port", "password"},
+	"proxy":      {"url", "password"},
 	"database":   {"host", "port", "username", "password"},
 }
 
@@ -45,15 +47,12 @@ type dependencyStatus struct {
 	DocsURL     string            `json:"docsUrl"`
 }
 
-func dependencySettingsKey(key string) string {
-	return "module." + key + ".connection"
-}
-
 // moduleDependencyStatus reports a module's health two different ways
 // depending on whether it has a live DependencyChecker: containers,
-// firewall, and history are probed locally (a reachable daemon, a binary
-// on PATH); proxy and database have no backend integration yet, so their
-// health is just "has the admin saved connection settings for it".
+// firewall, history, and proxy are probed directly (a reachable local
+// daemon/binary, or — for proxy — a reachable clash/mihomo controller at
+// its saved or default host:port); database has no backend integration
+// yet, so its health is just "has the admin saved connection settings".
 func (s *Server) moduleDependencyStatus(ctx context.Context, key string) (dependencyStatus, error) {
 	config, err := s.dependencyConfig(key)
 	if err != nil {
@@ -89,7 +88,7 @@ func (s *Server) moduleDependencyStatus(ctx context.Context, key string) (depend
 }
 
 func (s *Server) dependencyConfig(key string) (map[string]string, error) {
-	raw, found, err := s.settings.Get(dependencySettingsKey(key))
+	raw, found, err := s.settings.Get(dependency.ConnectionSettingsKey(key))
 	if err != nil || !found {
 		return map[string]string{}, err
 	}
@@ -146,14 +145,14 @@ func (s *Server) putModuleDependency(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	if len(config) == 0 {
-		err = s.settings.Delete(dependencySettingsKey(key))
+		err = s.settings.Delete(dependency.ConnectionSettingsKey(key))
 	} else {
 		encoded, marshalErr := json.Marshal(config)
 		if marshalErr != nil {
 			response.WriteInternalError(w, marshalErr)
 			return
 		}
-		err = s.settings.Set(dependencySettingsKey(key), string(encoded))
+		err = s.settings.Set(dependency.ConnectionSettingsKey(key), string(encoded))
 	}
 	if err != nil {
 		response.WriteInternalError(w, err)
