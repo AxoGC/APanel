@@ -15,6 +15,8 @@ type NavItem = { to: string; labelKey: TranslationKey; icon: LucideIcon }
 const DASHBOARD_ITEM = { to: '/', labelKey: 'nav.dashboard', icon: Gauge } satisfies NavItem
 const SETTINGS_ITEM = { to: '/settings', labelKey: 'nav.settings', icon: Settings } satisfies NavItem
 
+const COLLAPSED_STORAGE_KEY = 'apanel:nav-collapsed'
+
 function itemClasses(isActive: boolean, collapsed: boolean): string {
   return cn(
     'flex h-14 min-w-16 shrink-0 flex-col items-center justify-center gap-1 text-xs',
@@ -56,7 +58,12 @@ export function Nav() {
   const { t } = useI18n()
   const features = useFeatures()
   const { ref, canScrollLeft, canScrollRight } = useScrollCues()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsedState] = useState(() => localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true')
+
+  function setCollapsed(value: boolean) {
+    setCollapsedState(value)
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, String(value))
+  }
 
   const visibleItems = [
     DASHBOARD_ITEM,
@@ -113,7 +120,7 @@ export function Nav() {
       <button
         type="button"
         aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-        onClick={() => setCollapsed((value) => !value)}
+        onClick={() => setCollapsed(!collapsed)}
         className="mt-auto mx-2 mb-2 hidden size-10 cursor-pointer items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300 md:flex"
       >
         {collapsed ? <PanelRightOpen className="size-4" /> : <PanelRightClose className="size-4" />}

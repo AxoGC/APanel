@@ -11,3 +11,4 @@
 - `apanel:files-path`
 - `apanel:reader-wrap`
 - `apanel:reader-line-numbers`
+- `apanel:nav-collapsed`
