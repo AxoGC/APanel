@@ -72,7 +72,9 @@ export function HistoryChart({
         boundaryGap: false,
         axisLine: { lineStyle: { color: colors.split } },
         axisTick: { show: false },
-        axisLabel: { color: colors.axis, fontSize: 10 },
+        // Points are timestamped "HH:MM:SS"; the axis only needs "HH:MM" —
+        // seconds add noise without adding anything readable at this scale.
+        axisLabel: { color: colors.axis, fontSize: 10, formatter: (value: string) => value.slice(0, 5) },
       },
       yAxis: {
         type: 'value',
