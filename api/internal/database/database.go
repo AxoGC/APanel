@@ -65,13 +65,17 @@ type connConfig struct {
 	host, port, username, password string
 }
 
-// Defaults match a fresh local Postgres install reachable with peer/trust
-// auth as its superuser — the same "just works with nothing configured"
-// spirit as the proxy module's default controller URL.
+// Defaults match a fresh local Postgres install's own superuser role and
+// standard port — the same "just works with nothing configured but the
+// password" spirit as the proxy module's default controller URL. Unlike
+// proxy's controller, a bare TCP connection to Postgres essentially always
+// needs a password (see moduleFields in httpserver/dependency.go, where
+// password is the one required field), so there's no passwordless default
+// to offer here.
 const (
 	defaultHost = "127.0.0.1"
 	defaultPort = "5432"
-	defaultUser = "root"
+	defaultUser = "postgres"
 	// adminDatabase is Postgres' always-present maintenance database, used
 	// for cluster-wide catalog queries (the database list itself, and
 	// pg_database_size) that aren't scoped to any one database.

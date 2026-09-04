@@ -10,6 +10,7 @@ export interface DependencyStatus {
   reason?: DependencyReason
   serviceName?: string
   fields: DependencyField[]
+  requiredFields: DependencyField[]
   config: Record<string, string>
   docsUrl: string
 }

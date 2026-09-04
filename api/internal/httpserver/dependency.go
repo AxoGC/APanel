@@ -37,14 +37,25 @@ var moduleFields = map[string][]string{
 	"database":   {"host", "port", "username", "password"},
 }
 
+// requiredFields lists which of a module's fields (see moduleFields) can't
+// just fall back to a sensible default and be left blank — database's host,
+// port, and username all have one (127.0.0.1, 5432, postgres), but a bare
+// TCP connection to Postgres essentially always needs a real password, so
+// that's the one field the dialog won't let the admin save empty. A module
+// with no entry here has nothing required.
+var requiredFields = map[string][]string{
+	"database": {"password"},
+}
+
 type dependencyStatus struct {
-	Key         string            `json:"key"`
-	Healthy     bool              `json:"healthy"`
-	Reason      string            `json:"reason,omitempty"` // "unavailable" | "serviceInactive" | "unconfigured"
-	ServiceName string            `json:"serviceName,omitempty"`
-	Fields      []string          `json:"fields"`
-	Config      map[string]string `json:"config"`
-	DocsURL     string            `json:"docsUrl"`
+	Key            string            `json:"key"`
+	Healthy        bool              `json:"healthy"`
+	Reason         string            `json:"reason,omitempty"` // "unavailable" | "serviceInactive" | "unconfigured"
+	ServiceName    string            `json:"serviceName,omitempty"`
+	Fields         []string          `json:"fields"`
+	RequiredFields []string          `json:"requiredFields"`
+	Config         map[string]string `json:"config"`
+	DocsURL        string            `json:"docsUrl"`
 }
 
 // moduleDependencyStatus reports a module's health via its live
@@ -58,10 +69,11 @@ func (s *Server) moduleDependencyStatus(ctx context.Context, key string) (depend
 	}
 
 	status := dependencyStatus{
-		Key:     key,
-		Fields:  moduleFields[key],
-		Config:  config,
-		DocsURL: "https://apanel.axogc.net/feature/" + key + "/install.html",
+		Key:            key,
+		Fields:         moduleFields[key],
+		RequiredFields: requiredFields[key],
+		Config:         config,
+		DocsURL:        "https://apanel.axogc.net/feature/" + key + "/install.html",
 	}
 
 	if checker, ok := s.dependencyCheckers[key]; ok {
@@ -138,6 +150,12 @@ func (s *Server) putModuleDependency(w http.ResponseWriter, r *http.Request) {
 		}
 		if v != "" {
 			config[k] = v
+		}
+	}
+	for _, f := range requiredFields[key] {
+		if config[f] == "" {
+			response.WriteCode(w, http.StatusBadRequest, invalidDependency)
+			return
 		}
 	}
 

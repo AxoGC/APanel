@@ -121,21 +121,27 @@ export function DependencyDialog({
 
           {status.fields.length > 0 && (
             <div className="flex flex-col gap-3">
-              {status.fields.map((field) => (
-                <div key={field} className="flex flex-col gap-1">
-                  <Label htmlFor={`dependency-${field}`}>{t(FIELD_LABEL_KEYS[field])}</Label>
-                  <Input
-                    id={`dependency-${field}`}
-                    type={field === 'password' ? 'password' : 'text'}
-                    placeholder={FIELD_PLACEHOLDERS[field]}
-                    value={form[field] ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  />
-                </div>
-              ))}
+              {status.fields.map((field) => {
+                const required = status.requiredFields.includes(field)
+                return (
+                  <div key={field} className="flex flex-col gap-1">
+                    <Label htmlFor={`dependency-${field}`}>
+                      {t(FIELD_LABEL_KEYS[field])}
+                      {required && <span className="text-red-600"> *</span>}
+                    </Label>
+                    <Input
+                      id={`dependency-${field}`}
+                      type={field === 'password' ? 'password' : 'text'}
+                      placeholder={FIELD_PLACEHOLDERS[field]}
+                      value={form[field] ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                    />
+                  </div>
+                )
+              })}
               <Button
                 size="sm"
-                disabled={saving}
+                disabled={saving || status.requiredFields.some((field) => !form[field])}
                 onClick={() => void handleSave()}
                 className="w-fit border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
               >
