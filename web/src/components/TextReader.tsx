@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type Ref } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { getStoredReaderLineNumbers, getStoredReaderTextWrap } from '@/lib/readerPrefs'
@@ -12,17 +12,19 @@ export function TextReader({
   lines,
   mono,
   className,
+  viewportRef,
 }: {
   lines: string[]
   mono?: boolean
   className?: string
+  viewportRef?: Ref<HTMLDivElement>
 }) {
   const [showLineNumbers] = useState(getStoredReaderLineNumbers)
   const [wrap] = useState(getStoredReaderTextWrap)
   const gutterWidth = `${String(lines.length).length}ch`
 
   return (
-    <ScrollArea className={className} orientation={wrap ? 'vertical' : 'both'}>
+    <ScrollArea className={className} viewportRef={viewportRef} orientation={wrap ? 'vertical' : 'both'}>
       <div className={cn('text-xs text-gray-700 dark:text-gray-300', mono && 'font-mono', !wrap && 'w-max min-w-full')}>
         {lines.map((line, i) => (
           <div key={i} className="flex gap-3">
