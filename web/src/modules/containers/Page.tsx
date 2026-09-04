@@ -73,7 +73,10 @@ export default function ContainersPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-4 px-4 pt-4 sm:px-6 sm:pt-6">
+      <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.containers')}</h1>
+      </div>
+      <div className="mt-3 flex items-center gap-4 px-4 sm:px-6">
         <button
           type="button"
           aria-label={t('containers.search')}

@@ -164,6 +164,7 @@ export default function TerminalPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-col gap-3 border-b border-gray-200 p-4 sm:p-6 dark:border-gray-800">
+        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.terminal')}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.shell')}</span>

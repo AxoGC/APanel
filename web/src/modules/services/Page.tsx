@@ -59,7 +59,10 @@ export default function ServicesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-4 px-4 pt-4 sm:px-6 sm:pt-6">
+      <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.services')}</h1>
+      </div>
+      <div className="mt-3 flex items-center gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-2">
           <div className="relative w-48 sm:w-64">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />

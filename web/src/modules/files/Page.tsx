@@ -229,9 +229,12 @@ export default function FilesPage() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.files')}</h1>
+      </div>
       <div
         className={cn(
-          'flex flex-wrap items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-6',
+          'mt-3 flex flex-wrap items-center gap-3 px-4 sm:px-6',
           mobileSearchOpen && 'max-md:block',
         )}
       >
