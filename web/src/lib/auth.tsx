@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { apiFetch } from './api'
+import { apiFetch, ApiError } from './api'
+import { encryptLoginPassword } from './loginCrypto'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -21,8 +22,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(password: string) {
-    await apiFetch('/login', { method: 'POST', body: JSON.stringify({ password }) })
-    setState('authenticated')
+    // A challenge is single-use and short-lived, so a login can race one
+    // into expiring (e.g. the user took a while typing the password). One
+    // silent retry with a freshly fetched challenge covers that without
+    // bothering the caller.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const payload = await encryptLoginPassword(password)
+        await apiFetch('/login', { method: 'POST', body: JSON.stringify(payload) })
+        setState('authenticated')
+        return
+      } catch (err) {
+        if (attempt === 0 && err instanceof ApiError && err.code === 'CHALLENGE_EXPIRED') continue
+        throw err
+      }
+    }
   }
 
   async function logout() {

@@ -4,7 +4,13 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/apanel
-EnvironmentFile=/etc/apanel/config.env
+# apanel needs no config file: it stores its own settings (including the
+# login password, bcrypt-hashed) in its sqlite database and otherwise just
+# takes defaults. To override a default, inline it here instead of editing
+# a separate file:
+#Environment=APANEL_LISTEN_ADDR=:8080
+#Environment=APANEL_TLS_CERT=/etc/apanel/tls/fullchain.pem
+#Environment=APANEL_TLS_KEY=/etc/apanel/tls/privkey.pem
 Restart=on-failure
 
 [Install]

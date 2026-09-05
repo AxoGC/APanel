@@ -55,9 +55,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /api/login/challenge", s.auth.Challenge)
 	s.mux.HandleFunc("POST /api/login", s.auth.Login)
 	s.mux.HandleFunc("POST /api/logout", s.auth.Logout)
 	s.mux.HandleFunc("GET /api/session", s.auth.Session)
+	s.mux.Handle("POST /api/change-password", s.auth.Middleware(http.HandlerFunc(s.auth.ChangePassword)))
 
 	s.mux.Handle("GET /api/dashboard/stream", s.auth.Middleware(http.HandlerFunc(s.dashboardStream)))
 	s.mux.Handle("GET /api/dashboard/processes/{pid}", s.auth.Middleware(http.HandlerFunc(s.processDetail)))

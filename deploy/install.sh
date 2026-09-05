@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# One-click installer for apanel: downloads the latest release binary,
-# generates a random login password, writes a minimal config + systemd
-# unit, and starts the service. Only ever performs a fresh install — if
-# apanel already looks installed (binary, unit, or DB present) it refuses
-# to touch anything, so it never overwrites an existing setup.
+# One-click installer for apanel: downloads the latest release binary and a
+# minimal systemd unit, then starts the service. apanel needs no config
+# file — its login password is generated on first start and stored
+# (bcrypt-hashed) in its own sqlite database, which this script only points
+# a service unit at. Only ever performs a fresh install — if apanel already
+# looks installed (binary, unit, or DB present) it refuses to touch
+# anything, so it never overwrites an existing setup.
 #
 # Usage: sudo ./install.sh
 set -euo pipefail
@@ -14,12 +16,9 @@ set -euo pipefail
 REPO="${APANEL_INSTALL_REPO:-axogc/apanel}"
 
 BIN_PATH=/usr/local/bin/apanel
-CONFIG_DIR=/etc/apanel
-CONFIG_FILE="$CONFIG_DIR/config.env"
 DATA_DIR=/var/lib/apanel
 DB_FILE="$DATA_DIR/apanel.db"
 SERVICE_FILE=/etc/systemd/system/apanel.service
-LISTEN_ADDR=":8080"
 
 log()  { printf '==> %s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
@@ -64,23 +63,11 @@ gunzip "$tmpdir/apanel.gz"
 install -m 0755 -o root -g root "$tmpdir/apanel" "$BIN_PATH"
 log "installed binary to $BIN_PATH"
 
-# --- 5. Config + data directories ---------------------------------------
-mkdir -p "$CONFIG_DIR"
-mkdir -p "$DATA_DIR"
-chmod 700 "$CONFIG_DIR" "$DATA_DIR"
-
-password="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)"
-[ "${#password}" -eq 12 ] || die "failed to generate a 12-character password"
-
-cat > "$CONFIG_FILE" <<EOF
-APANEL_PASSWORD=$password
-APANEL_LISTEN_ADDR=$LISTEN_ADDR
-APANEL_DSN=sqlite://$DB_FILE
-EOF
-chmod 600 "$CONFIG_FILE"
-log "wrote $CONFIG_FILE"
-
-# --- 6. Minimal systemd unit ---------------------------------------------
+# --- 5. Minimal systemd unit ---------------------------------------------
+# No EnvironmentFile=, no config file at all: apanel's only state is its
+# own sqlite database at $DB_FILE. To change the listen port or terminate
+# TLS directly, add Environment= lines here (see the commented examples)
+# and run `systemctl daemon-reload && systemctl restart apanel`.
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=apanel
@@ -88,7 +75,9 @@ After=network.target
 
 [Service]
 ExecStart=$BIN_PATH
-EnvironmentFile=$CONFIG_FILE
+#Environment=APANEL_LISTEN_ADDR=:8080
+#Environment=APANEL_TLS_CERT=/etc/apanel/tls/fullchain.pem
+#Environment=APANEL_TLS_KEY=/etc/apanel/tls/privkey.pem
 Restart=on-failure
 
 [Install]
@@ -96,7 +85,7 @@ WantedBy=multi-user.target
 EOF
 log "wrote $SERVICE_FILE"
 
-# --- 7. Start the service -------------------------------------------------
+# --- 6. Start the service -------------------------------------------------
 systemctl daemon-reload
 systemctl enable --now apanel
 
@@ -107,21 +96,34 @@ if ! systemctl is-active --quiet apanel; then
 fi
 log "apanel is running (systemctl status apanel)"
 
-# --- 8. Print the generated password --------------------------------------
+# --- 7. Read back the password apanel generated on first start ------------
+# apanel prints this exactly once, the very first time it finds no password
+# stored yet, so it's only recoverable from this boot's logs.
+password="$(journalctl -u apanel -b --no-pager | grep -o 'generated one: .*' | tail -1 | sed 's/^generated one: //')"
+
 cat <<EOF
 
 ============================================================
  apanel installed
-   listening on: $LISTEN_ADDR (plain HTTP)
+   listening on: :8123 (plain HTTP by default)
+EOF
+if [ -n "$password" ]; then
+  cat <<EOF
    password:     $password
+EOF
+else
+  warn "couldn't read the generated password from the journal; run: journalctl -u apanel -b | grep 'generated one'"
+fi
+cat <<EOF
 ============================================================
 This is plain HTTP. Put apanel behind HTTPS (a reverse proxy,
-or APANEL_TLS_CERT/APANEL_TLS_KEY in $CONFIG_FILE) before
+or APANEL_TLS_CERT/APANEL_TLS_KEY in $SERVICE_FILE) before
 exposing it beyond localhost. See the README's install guide.
+Log in with the password above, then change it from Settings.
 
 EOF
 
-# --- 9. Optional dependencies: report what's usable ------------------------
+# --- 8. Optional dependencies: report what's usable ------------------------
 report_optional() {
   local name="$1" check_cmd="$2" feature="$3" install_hint="$4"
   if command -v "$check_cmd" >/dev/null 2>&1; then

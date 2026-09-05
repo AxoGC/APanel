@@ -149,9 +149,17 @@ curl -fsSL https://apanel.axogc.net/install.sh | sudo bash
 
 如果你想自己编译程序，请参阅[apanel.axogc.net/build.md](https://apanel.axogc.net/build.md)
 
+APanel 没有配置文件的概念：默认端口是`8123`，数据（包括登录密码）都存放在自己的 sqlite 数据库里，不需要单独部署或配置数据库。首次启动时，如果数据库里还没有密码记录，APanel 会自动生成一个随机密码并打印到日志中：
+
+```bash
+sudo journalctl -u apanel | grep "generated one"
+```
+
+用这个密码登录后，请尽快到「设置」里改成自己的密码。如果想更换监听端口或直接用 APanel 终止 HTTPS，请编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分内联声明环境变量（见下一节示例），而不是去找一个配置文件。
+
 ### 3.3 启用 HTTPS：二选一
 
-APanel 必须通过 HTTPS 使用。请选择以下一种方式；不需要同时配置两者。
+APanel 强烈建议通过 HTTPS 使用：登录密码本身在传输时已加密保护，但登录后的会话与所有后续操作（文件内容、终端输入输出等）在明文 HTTP 下都会被暴露，详见[安全使用](https://apanel.axogc.net/secure.html)。请选择以下一种方式启用 HTTPS；不需要同时配置两者。
 
 #### 方式 A：由 APanel 直接终止 TLS
 
@@ -159,24 +167,29 @@ APanel 必须通过 HTTPS 使用。请选择以下一种方式；不需要同时
 
 此方式下，普通 HTTP API 与 Web 终端 WebSocket 都由 APanel 的同一个 HTTPS 监听器直接提供，无需额外的 WebSocket 配置。
 
-在 `/etc/apanel/config.env` 中设置证书、私钥和 HTTPS 监听地址：
+编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分内联声明证书、私钥和 HTTPS 监听地址：
 
 ```ini
-APANEL_LISTEN_ADDR=:443
-APANEL_TLS_CERT=/etc/letsencrypt/live/panel.example.com/fullchain.pem
-APANEL_TLS_KEY=/etc/letsencrypt/live/panel.example.com/privkey.pem
+[Service]
+ExecStart=/usr/local/bin/apanel
+Environment=APANEL_LISTEN_ADDR=:443
+Environment=APANEL_TLS_CERT=/etc/letsencrypt/live/panel.example.com/fullchain.pem
+Environment=APANEL_TLS_KEY=/etc/letsencrypt/live/panel.example.com/privkey.pem
+Restart=on-failure
 ```
 
-重启服务后，直接访问 `https://panel.example.com`：
+重新加载并重启服务后，直接访问 `https://panel.example.com`：
 
 ```bash
+sudo systemctl daemon-reload
 sudo systemctl restart apanel
 sudo systemctl status apanel
 ```
 
-证书续期后，重启 APanel 以重新加载证书：
+证书续期后，同样重新加载并重启 APanel 以应用新证书：
 
 ```bash
+sudo systemctl daemon-reload
 sudo systemctl restart apanel
 ```
 
@@ -192,7 +205,7 @@ server {
   ssl_certificate     /path/to/fullchain.pem;
   ssl_certificate_key /path/to/private.key;
   location / {
-    proxy_pass http://127.0.0.1:8080;
+    proxy_pass http://127.0.0.1:8123;
     proxy_http_version 1.1;
     proxy_set_header Upgrade           $http_upgrade;
     proxy_set_header Connection        $connection_upgrade;
@@ -226,10 +239,26 @@ APanel 是高权限管理工具，不是普通网站。
 - 当前阶段服务默认以 root 身份运行。
 - 登录用户可以操作 systemd 服务、Docker、文件、防火墙和本机终端。
 - Web 终端实际执行的是服务器命令，权限与 APanel 进程相同。
-- 必须通过 HTTPS 部署，避免密码和会话被窃取。
-- 请使用足够长的随机密码，并妥善保护 `/etc/apanel/config.env`。
+- 强烈建议通过 HTTPS 部署。明文 HTTP 下登录密码本身受保护，但会话和登录后的所有操作都以明文传输，存在被窃取或篡改的风险；APanel 会在明文 HTTP 下显示风险提示，但不会阻止使用。
+- 首次启动自动生成的密码请尽快在「设置」中改成自己的密码；密码经 bcrypt 哈希后存放在 APanel 自己的 sqlite 数据库里，不会以明文形式出现在任何配置文件中。
 - 建议通过 VPN、访问控制列表或可信反向代理限制访问来源。
 - 不建议将未采取额外安全措施的实例直接暴露到公网。
 - 执行升级、删除文件、删除镜像或修改防火墙前，请先做好备份并确认影响范围。
 
 APanel 当前采用单管理员密码和 Cookie Session，不提供多用户、角色或细粒度权限系统。
+
+### 4.1 忘记密码
+
+如果忘记了登录密码，选择以下一种方式重置：
+
+- **重置整个数据库**：删除`/var/lib/apanel/apanel.db`并重启服务。APanel 会把这当成全新安装，重新生成一个随机密码并打印到日志中，但此前保存的所有设置（已启用的模块、数据库/代理连接信息等）也会一并丢失。
+- **只删除密码记录**：保留其余数据，只清掉密码这一条：
+
+  ```bash
+  sudo systemctl stop apanel
+  sqlite3 /var/lib/apanel/apanel.db "DELETE FROM config_entries WHERE key = 'auth.password_hash';"
+  sudo systemctl start apanel
+  sudo journalctl -u apanel | grep "generated one"
+  ```
+
+  重启后 APanel 发现密码记录缺失，会重新生成一个新密码并打印到日志中，其余设置不受影响。

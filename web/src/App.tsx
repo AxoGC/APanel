@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { HttpRiskDialog } from '@/components/HttpRiskDialog'
 import { Nav } from '@/components/Nav'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AuthProvider, useAuth } from '@/lib/auth'
@@ -32,33 +33,37 @@ function Shell() {
     if (location.pathname === '/terminal') setTerminalStarted(true)
   }, [location.pathname])
 
-  if (state === 'loading') return null
-  if (state === 'unauthenticated') return <LoginPage />
-
   return (
-    <div className="mx-auto flex h-dvh max-w-5xl flex-col md:flex-row-reverse">
-      <ScrollArea className="min-h-0 grow" viewportClassName="[&>div]:h-full [&>div]:block!">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/files" element={<FilesPage />} />
-          <Route path="/containers" element={<ContainersPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/firewall" element={<FirewallPage />} />
-          <Route path="/proxy" element={<ProxyPage />} />
-          <Route path="/database" element={<DatabasePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-        {terminalStarted && (
-          <div hidden={location.pathname !== '/terminal'} className="h-full">
-            <Suspense fallback={null}>
-              <TerminalPage />
-            </Suspense>
-          </div>
-        )}
-      </ScrollArea>
-      <Nav />
-    </div>
+    <>
+      <HttpRiskDialog />
+      {state === 'loading' ? null : state === 'unauthenticated' ? (
+        <LoginPage />
+      ) : (
+        <div className="mx-auto flex h-dvh max-w-5xl flex-col md:flex-row-reverse">
+          <ScrollArea className="min-h-0 grow" viewportClassName="[&>div]:h-full [&>div]:block!">
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/files" element={<FilesPage />} />
+              <Route path="/containers" element={<ContainersPage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/firewall" element={<FirewallPage />} />
+              <Route path="/proxy" element={<ProxyPage />} />
+              <Route path="/database" element={<DatabasePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+            {terminalStarted && (
+              <div hidden={location.pathname !== '/terminal'} className="h-full">
+                <Suspense fallback={null}>
+                  <TerminalPage />
+                </Suspense>
+              </div>
+            )}
+          </ScrollArea>
+          <Nav />
+        </div>
+      )}
+    </>
   )
 }
 

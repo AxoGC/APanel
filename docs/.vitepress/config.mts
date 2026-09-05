@@ -13,6 +13,15 @@ export default defineConfig({
         text: '指南',
         items: [{ text: '简介', link: '/' }],
       },
+      {
+        text: '安装与安全',
+        items: [
+          { text: '安装', link: '/docs/install' },
+          { text: '升级', link: '/docs/upgrade' },
+          { text: '卸载', link: '/docs/uninstall' },
+          { text: '安全使用', link: '/docs/secure' },
+        ],
+      },
     ],
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/axogc/apanel' }],

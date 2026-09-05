@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import { isSecureContext } from '@/lib/https'
 import { useI18n } from '@/lib/i18n'
 
 export default function LoginPage() {
@@ -13,14 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-
-  if (!isSecureContext()) {
-    return (
-      <div className="flex min-h-full items-center justify-center p-6">
-        <p className="max-w-sm text-sm text-gray-700 dark:text-gray-300">{t('login.httpsRequired')}</p>
-      </div>
-    )
-  }
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()

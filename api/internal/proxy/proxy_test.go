@@ -31,7 +31,8 @@ func TestTestDelaysEmitsInCompletionOrder(t *testing.T) {
 	}))
 	defer server.Close()
 
-	database, err := db.Open("sqlite://" + filepath.Join(t.TempDir(), "apanel.db"))
+	t.Setenv("APANEL_DB_PATH", filepath.Join(t.TempDir(), "apanel.db"))
+	database, err := db.Open()
 	if err != nil {
 		t.Fatal(err)
 	}

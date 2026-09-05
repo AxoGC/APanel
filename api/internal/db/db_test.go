@@ -8,8 +8,9 @@ import (
 
 func TestOpenCreatesMissingSQLiteParentDirectory(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "missing", "nested", "apanel.db")
+	t.Setenv("APANEL_DB_PATH", dbPath)
 
-	database, err := Open("sqlite://" + dbPath)
+	database, err := Open()
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}
@@ -30,8 +31,9 @@ func TestOpenRejectsInvalidSQLiteDatabase(t *testing.T) {
 	if err := os.WriteFile(dbPath, []byte("not a sqlite database"), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
+	t.Setenv("APANEL_DB_PATH", dbPath)
 
-	if _, err := Open("sqlite://" + dbPath); err == nil {
+	if _, err := Open(); err == nil {
 		t.Fatal("Open() succeeded for an invalid SQLite database")
 	}
 }

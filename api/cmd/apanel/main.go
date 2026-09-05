@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
-	gormDB, err := db.Open(cfg.DSN)
+	gormDB, err := db.Open()
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
@@ -48,7 +48,7 @@ func main() {
 	proxyMgr := proxy.New(settingsMgr)
 	databaseMgr := database.New(settingsMgr)
 
-	authSvc, err := auth.New(gormDB, cfg.Password)
+	authSvc, err := auth.New(gormDB, settingsMgr)
 	if err != nil {
 		log.Fatalf("auth: %v", err)
 	}
