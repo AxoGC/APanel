@@ -42,91 +42,91 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 
 - 仪表盘展示CPU、内存、带宽占用；进程管理，支持父子进程树、按CPU/内存排序、进程详情。
 
-<p align="center">
-  <img src="/assets/screenshots/dashboard.webp" height="420" alt="仪表盘与进程查看器 - 移动端">
-  <img src="/assets/screenshots/dashboard-desktop.webp" height="420" alt="仪表盘与进程查看器 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/dashboard.webp" alt="仪表盘与进程查看器 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/dashboard-desktop.webp" alt="仪表盘与进程查看器 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### 设置
 
 - 包括主机信息栏、支持亮色/暗色、主题色切换、中文/English切换、面板模块（容器/数据库）启用/禁用。
 
-<p align="center">
-  <img src="/assets/screenshots/mobile-first.webp" height="420" alt="移动端优先 - 移动端">
-  <img src="/assets/screenshots/mobile-first-desktop.webp" height="420" alt="移动端优先 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/mobile-first.webp" alt="移动端优先 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/mobile-first-desktop.webp" alt="移动端优先 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### systemd 服务管理
 
 - 基于systemd，包括服务列表、服务详情和日志、暂停和重启服务。
 
-<p align="center">
-  <img src="/assets/screenshots/services.webp" height="420" alt="systemd 服务管理 - 移动端">
-  <img src="/assets/screenshots/services-desktop.webp" height="420" alt="systemd 服务管理 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/services.webp" alt="systemd 服务管理 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/services-desktop.webp" alt="systemd 服务管理 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### 文件管理
 
 - 创建目录、上传/下载/删除、多选和批量操作、文本文件预览和编辑、图片预览。
 
-<p align="center">
-  <img src="/assets/screenshots/files.webp" height="420" alt="文件管理 - 移动端">
-  <img src="/assets/screenshots/files-desktop.webp" height="420" alt="文件管理 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/files.webp" alt="文件管理 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/files-desktop.webp" alt="文件管理 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### Docker 容器管理
 
 - 容器详情和日志、关闭/重启/创建容器、docker exec/attach、镜像管理、网络管理、数据卷管理。
 
-<p align="center">
-  <img src="/assets/screenshots/containers.webp" height="420" alt="Docker 容器与镜像管理 - 移动端">
-  <img src="/assets/screenshots/containers-desktop.webp" height="420" alt="Docker 容器与镜像管理 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/containers.webp" alt="Docker 容器与镜像管理 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/containers-desktop.webp" alt="Docker 容器与镜像管理 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### 数据库管理
 
 - 支持`MySQL`/`PostgreSQL`，统计显示数据库列表、表列表、磁盘占用、字段数、总数据行数。
 
-<p align="center">
-  <img src="/assets/screenshots/database.webp" height="420" alt="数据库管理 - 移动端">
-  <img src="/assets/screenshots/database-desktop.webp" height="420" alt="数据库管理 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/database.webp" alt="数据库管理 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/database-desktop.webp" alt="数据库管理 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### 历史状态
 
 - 基于`sysstat`，支持CPU、内存、硬盘I/O、上行速率、负载的存储和统计，支持查看历史数据。
 
-<p align="center">
-  <img src="/assets/screenshots/history.webp" height="420" alt="历史状态 - 移动端">
-  <img src="/assets/screenshots/history-desktop.webp" height="420" alt="历史状态 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/history.webp" alt="历史状态 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/history-desktop.webp" alt="历史状态 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### 防火墙管理
 
 - 基于`UFW`，支持添加/编辑/删除规则，支持设置允许/拒绝、TCP/UDP、IPv4/IPv6、来源地址。
 
-<p align="center">
-  <img src="/assets/screenshots/firewall.webp" height="420" alt="防火墙管理 - 移动端">
-  <img src="/assets/screenshots/firewall-desktop.webp" height="420" alt="防火墙管理 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/firewall.webp" alt="防火墙管理 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/firewall-desktop.webp" alt="防火墙管理 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### 代理设置
 
 - 基于`clash`/`mihomo`，支持修改全局/规则/直连、按规则设置代理、代理测速。
 
-<p align="center">
-  <img src="/assets/screenshots/proxy.webp" height="420" alt="代理设置 - 移动端">
-  <img src="/assets/screenshots/proxy-desktop.webp" height="420" alt="代理设置 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/proxy.webp" alt="代理设置 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/proxy-desktop.webp" alt="代理设置 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ### Web 终端
 
 - 支持`sh`/`bash`/`zsh`/`fish`，连接状态持久化，切换页面后连接不断开。
 
-<p align="center">
-  <img src="/assets/screenshots/terminal.webp" height="420" alt="Web 终端 - 移动端">
-  <img src="/assets/screenshots/terminal-desktop.webp" height="420" alt="Web 终端 - 桌面端">
-</p>
+<div style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: nowrap;">
+  <img src="/assets/screenshots/terminal.webp" alt="Web 终端 - 移动端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+  <img src="/assets/screenshots/terminal-desktop.webp" alt="Web 终端 - 桌面端" style="max-height: 420px; max-width: 45%; width: auto; height: auto;">
+</div>
 
 ## 3. 安装
 
