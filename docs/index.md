@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Apanel
-  text: 轻量服务器管理面板
-  tagline: 移动端优先、面向 Linux 运维人员，将常见的状态查看和简单操作集中到一个响应式 Web 界面中
+  text: 移动端优先的运维面板
+  tagline: Linux 原生、轻量级的 Web 运维面板，使用 Go + React 开发，受 1Panel 启发
   actions:
     - theme: brand
       text: 项目 README
