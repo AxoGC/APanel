@@ -251,7 +251,7 @@ func parseRawRule(number int, to, action, from string) rawRule {
 }
 
 func parseStatus(out string) Status {
-	var status Status
+	status := Status{Rules: []Rule{}}
 	var raws []rawRule
 
 	for line := range strings.SplitSeq(out, "\n") {
