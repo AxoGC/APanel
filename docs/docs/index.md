@@ -8,6 +8,9 @@ hero:
   actions:
     - theme: brand
       text: 项目 README
+      link: /readme
+    - theme: alt
+      text: GitHub
       link: https://github.com/axogc/apanel
 
 features:

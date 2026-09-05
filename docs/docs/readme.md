@@ -1,8 +1,10 @@
+---
+title: 项目说明
+---
+
 # APanel
 
 APanel 是一个移动端优先、Linux原生、轻量级的Web运维面板，使用Go + React开发，受到1Panel启发。
-
-[文档：apanel.axogc.net](https://apanel.axogc.net)
 
 > APanel 目前仍处于早期开发阶段，接口、配置和功能可能继续调整。
 
@@ -41,8 +43,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 仪表盘展示CPU、内存、带宽占用；进程管理，支持父子进程树、按CPU/内存排序、进程详情。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/dashboard.webp" height="420" alt="仪表盘与进程查看器 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/dashboard-desktop.webp" height="420" alt="仪表盘与进程查看器 - 桌面端">
+  <img src="/assets/screenshots/dashboard.webp" height="420" alt="仪表盘与进程查看器 - 移动端">
+  <img src="/assets/screenshots/dashboard-desktop.webp" height="420" alt="仪表盘与进程查看器 - 桌面端">
 </p>
 
 ### 设置
@@ -50,8 +52,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 包括主机信息栏、支持亮色/暗色、主题色切换、中文/English切换、面板模块（容器/数据库）启用/禁用。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/mobile-first.webp" height="420" alt="移动端优先 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/mobile-first-desktop.webp" height="420" alt="移动端优先 - 桌面端">
+  <img src="/assets/screenshots/mobile-first.webp" height="420" alt="移动端优先 - 移动端">
+  <img src="/assets/screenshots/mobile-first-desktop.webp" height="420" alt="移动端优先 - 桌面端">
 </p>
 
 ### systemd 服务管理
@@ -59,8 +61,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 基于systemd，包括服务列表、服务详情和日志、暂停和重启服务。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/services.webp" height="420" alt="systemd 服务管理 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/services-desktop.webp" height="420" alt="systemd 服务管理 - 桌面端">
+  <img src="/assets/screenshots/services.webp" height="420" alt="systemd 服务管理 - 移动端">
+  <img src="/assets/screenshots/services-desktop.webp" height="420" alt="systemd 服务管理 - 桌面端">
 </p>
 
 ### 文件管理
@@ -68,8 +70,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 创建目录、上传/下载/删除、多选和批量操作、文本文件预览和编辑、图片预览。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/files.webp" height="420" alt="文件管理 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/files-desktop.webp" height="420" alt="文件管理 - 桌面端">
+  <img src="/assets/screenshots/files.webp" height="420" alt="文件管理 - 移动端">
+  <img src="/assets/screenshots/files-desktop.webp" height="420" alt="文件管理 - 桌面端">
 </p>
 
 ### Docker 容器管理
@@ -77,8 +79,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 容器详情和日志、关闭/重启/创建容器、docker exec/attach、镜像管理、网络管理、数据卷管理。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/containers.webp" height="420" alt="Docker 容器与镜像管理 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/containers-desktop.webp" height="420" alt="Docker 容器与镜像管理 - 桌面端">
+  <img src="/assets/screenshots/containers.webp" height="420" alt="Docker 容器与镜像管理 - 移动端">
+  <img src="/assets/screenshots/containers-desktop.webp" height="420" alt="Docker 容器与镜像管理 - 桌面端">
 </p>
 
 ### 数据库管理
@@ -86,8 +88,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 支持`MySQL`/`PostgreSQL`，统计显示数据库列表、表列表、磁盘占用、字段数、总数据行数。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/database.webp" height="420" alt="数据库管理 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/database-desktop.webp" height="420" alt="数据库管理 - 桌面端">
+  <img src="/assets/screenshots/database.webp" height="420" alt="数据库管理 - 移动端">
+  <img src="/assets/screenshots/database-desktop.webp" height="420" alt="数据库管理 - 桌面端">
 </p>
 
 ### 历史状态
@@ -95,8 +97,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 基于`sysstat`，支持CPU、内存、硬盘I/O、上行速率、负载的存储和统计，支持查看历史数据。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/history.webp" height="420" alt="历史状态 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/history-desktop.webp" height="420" alt="历史状态 - 桌面端">
+  <img src="/assets/screenshots/history.webp" height="420" alt="历史状态 - 移动端">
+  <img src="/assets/screenshots/history-desktop.webp" height="420" alt="历史状态 - 桌面端">
 </p>
 
 ### 防火墙管理
@@ -104,8 +106,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 基于`UFW`，支持添加/编辑/删除规则，支持设置允许/拒绝、TCP/UDP、IPv4/IPv6、来源地址。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/firewall.webp" height="420" alt="防火墙管理 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/firewall-desktop.webp" height="420" alt="防火墙管理 - 桌面端">
+  <img src="/assets/screenshots/firewall.webp" height="420" alt="防火墙管理 - 移动端">
+  <img src="/assets/screenshots/firewall-desktop.webp" height="420" alt="防火墙管理 - 桌面端">
 </p>
 
 ### 代理设置
@@ -113,8 +115,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 基于`clash`/`mihomo`，支持修改全局/规则/直连、按规则设置代理、代理测速。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/proxy.webp" height="420" alt="代理设置 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/proxy-desktop.webp" height="420" alt="代理设置 - 桌面端">
+  <img src="/assets/screenshots/proxy.webp" height="420" alt="代理设置 - 移动端">
+  <img src="/assets/screenshots/proxy-desktop.webp" height="420" alt="代理设置 - 桌面端">
 </p>
 
 ### Web 终端
@@ -122,8 +124,8 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 - 支持`sh`/`bash`/`zsh`/`fish`，连接状态持久化，切换页面后连接不断开。
 
 <p align="center">
-  <img src="docs/docs/public/assets/screenshots/terminal.webp" height="420" alt="Web 终端 - 移动端">
-  <img src="docs/docs/public/assets/screenshots/terminal-desktop.webp" height="420" alt="Web 终端 - 桌面端">
+  <img src="/assets/screenshots/terminal.webp" height="420" alt="Web 终端 - 移动端">
+  <img src="/assets/screenshots/terminal-desktop.webp" height="420" alt="Web 终端 - 桌面端">
 </p>
 
 ## 3. 安装
@@ -145,9 +147,9 @@ curl -fsSL https://apanel.axogc.net/install.sh | sudo bash
 ```
 这个脚本将会下载并解压最新版本程序，删除并替换旧的可执行文件，如果有旧的数据和`.service`文件，则保留，如果没有，则创建最小化的`.service`文件，然后重启apanel服务。
 
-如果你想手动逐步安装，不想用一键脚本，请参阅[apanel.axogc.net/install.md](https://apanel.axogc.net/install.md)
+如果你想手动逐步安装，不想用一键脚本，请参阅[安装文档](./install)
 
-如果你想自己编译程序，请参阅[apanel.axogc.net/build.md](https://apanel.axogc.net/build.md)
+如果你想自己编译程序，请参阅[编译文档](./build)
 
 APanel 没有配置文件的概念：默认端口是`8123`，数据（包括登录密码）都存放在自己的 sqlite 数据库里，不需要单独部署或配置数据库。首次启动时，如果数据库里还没有密码记录，APanel 会自动生成一个随机密码并打印到日志中：
 
@@ -159,7 +161,7 @@ sudo journalctl -u apanel | grep "generated one"
 
 ### 3.3 启用 HTTPS：二选一
 
-APanel 强烈建议通过 HTTPS 使用：登录密码本身在传输时已加密保护，但登录后的会话与所有后续操作（文件内容、终端输入输出等）在明文 HTTP 下都会被暴露，详见[安全使用](https://apanel.axogc.net/secure.html)。请选择以下一种方式启用 HTTPS；不需要同时配置两者。
+APanel 强烈建议通过 HTTPS 使用：登录密码本身在传输时已加密保护，但登录后的会话与所有后续操作（文件内容、终端输入输出等）在明文 HTTP 下都会被暴露，详见[安全使用](./secure)。请选择以下一种方式启用 HTTPS；不需要同时配置两者。
 
 #### 方式 A：由 APanel 直接终止 TLS
 
@@ -222,7 +224,7 @@ server {
 
 ### 3.4 升级
 
-升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体步骤（含一键脚本和手动升级）请参阅[apanel.axogc.net/upgrade.md](https://apanel.axogc.net/upgrade.md)。
+升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体步骤（含一键脚本和手动升级）请参阅[升级文档](./upgrade)。
 
 ## 4. 安全说明
 
@@ -241,8 +243,8 @@ APanel 当前采用单管理员密码和 Cookie Session，不提供多用户、�
 
 ### 4.1 忘记密码
 
-忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.md](https://apanel.axogc.net/install.md)的「5. 忘记密码」一节。
+忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[安装文档](./install#_5-忘记密码)的「5. 忘记密码」一节。
 
 ## 5. 许可证
 
-APanel 使用 [GPLv3](./LICENSE) 许可证开源。
+APanel 使用 [GPLv3](https://github.com/axogc/apanel/blob/main/LICENSE) 许可证开源。

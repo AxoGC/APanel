@@ -11,7 +11,10 @@ export default defineConfig({
     sidebar: [
       {
         text: '指南',
-        items: [{ text: '简介', link: '/' }],
+        items: [
+          { text: '简介', link: '/' },
+          { text: '项目说明', link: '/readme' },
+        ],
       },
       {
         text: '安装与安全',
