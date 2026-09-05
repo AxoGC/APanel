@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -108,10 +109,17 @@ type Collector struct {
 	prevNet   netSample
 	prevAt    time.Time
 	usernames map[uint32]string
+	// cores is the logical CPU count, used to scale a process's CPU% down
+	// from "percent of one core" (which can exceed 100 on a multi-core
+	// system) to "percent of total machine capacity", matching how
+	// Overview.CPUPercent (derived from /proc/stat's already-aggregated
+	// "cpu " line) is scaled.
+	cores int
 }
 
 func NewCollector() *Collector {
-	return &Collector{prevProcs: map[int]procSample{}, usernames: map[uint32]string{}}
+	cores := max(runtime.NumCPU(), 1)
+	return &Collector{prevProcs: map[int]procSample{}, usernames: map[uint32]string{}, cores: cores}
 }
 
 // ProcessSort picks which metric the full process list is ordered by before
@@ -253,7 +261,7 @@ func (c *Collector) sampleProcesses(now time.Time, sortBy ProcessSort) ([]Proces
 		var cpuPercent float64
 		if prev, ok := c.prevProcs[pid]; ok && elapsed > 0 {
 			dTicks := float64(stat.cpuTicks-prev.cpuTicks) / clockTicks
-			cpuPercent = dTicks / elapsed * 100
+			cpuPercent = dTicks / elapsed * 100 / float64(c.cores)
 		}
 
 		procs = append(procs, Process{
@@ -596,7 +604,7 @@ func (c *Collector) ProcessDetail(pid int) (ProcessDetail, error) {
 	if prev, ok := c.prevProcs[pid]; ok {
 		if elapsed := time.Since(prev.at).Seconds(); elapsed > 0 {
 			dTicks := float64(stat.cpuTicks-prev.cpuTicks) / clockTicks
-			cpuPercent = dTicks / elapsed * 100
+			cpuPercent = dTicks / elapsed * 100 / float64(c.cores)
 		}
 	}
 
