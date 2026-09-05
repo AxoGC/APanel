@@ -26,7 +26,7 @@ Docker、UFW 和 sysstat 不是启动 Apanel 的必需依赖；缺少它们时�
 先下载安装脚本，再以 root 权限执行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/deploy/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/install.sh -o install.sh
 sudo bash install.sh
 ```
 

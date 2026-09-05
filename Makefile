@@ -14,9 +14,9 @@ build-api:
 	cd api && go build $(GO_BUILD_FLAGS) -ldflags="$(GO_LDFLAGS)" -o apanel ./cmd/apanel
 
 
-# apanel itself has no notion of a .env file (production loads one via
-# systemd's EnvironmentFile=, see deploy/); for local dev, source one here
-# if present.
+# apanel itself has no notion of a .env file (production overrides go
+# inline into apanel.service's Environment= lines); for local dev, source
+# one here if present.
 dev-api:
 	cd api && set -a && [ -f dev.env ] && . ./dev.env; set +a; go run ./cmd/apanel
 

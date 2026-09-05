@@ -135,7 +135,7 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 ### 3.2 一键安装脚本
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/install.sh | sudo bash
 ```
 
 如果你的服务器因网络问题无法访问GitHub，可以尝试下面的命令：
@@ -223,7 +223,7 @@ server {
 ### 3.4 一键升级脚本
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/deploy/upgrade.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/upgrade.sh | sudo bash
 ```
 
 如果你的服务器因网络问题无法访问GitHub，可以尝试下面的命令：
