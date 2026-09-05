@@ -5,6 +5,8 @@ export default defineConfig({
   description: '移动端优先、面向 Linux 运维人员的轻量服务器管理面板',
   lang: 'zh-CN',
 
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/assets/logo.svg' }]],
+
   themeConfig: {
     nav: [{ text: '首页', link: '/' }],
 
