@@ -15,8 +15,8 @@
 
 # docs (vitepress)
 /docs/node_modules/
-/docs/.vitepress/dist/
-/docs/.vitepress/cache/
+/docs/docs/.vitepress/dist/
+/docs/docs/.vitepress/cache/
 
 # real frontend build embedded into the Go binary (produced by
 # `make build-web`); only the fallback placeholder index.html is tracked

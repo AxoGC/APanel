@@ -16,11 +16,11 @@ export default defineConfig({
       {
         text: '安装与安全',
         items: [
-          { text: '安装', link: '/docs/install' },
-          { text: '编译', link: '/docs/build' },
-          { text: '升级', link: '/docs/upgrade' },
-          { text: '卸载', link: '/docs/uninstall' },
-          { text: '安全使用', link: '/docs/secure' },
+          { text: '安装', link: '/install' },
+          { text: '编译', link: '/build' },
+          { text: '升级', link: '/upgrade' },
+          { text: '卸载', link: '/uninstall' },
+          { text: '安全使用', link: '/secure' },
         ],
       },
     ],
