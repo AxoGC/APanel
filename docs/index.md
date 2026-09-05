@@ -11,10 +11,10 @@ hero:
       link: https://github.com/axogc/apanel
 
 features:
-  - title: systemd 优先
-    details: 将 systemd 服务作为独立的一等功能管理，而不是把一切都塞进容器。
-  - title: 直接管理 Docker
-    details: 直接面向容器、镜像和网络，不引入额外的“应用”抽象层。
   - title: 移动端优先
-    details: 响应式界面为手机场景设计，方便离开电脑时快速查看和处理。
+    details: 优先为手机端做界面适配，方便不在电脑前时快速查看服务状态、进行服务启停。
+  - title: Linux 原生
+    details: 直接暴露进程、systemd 服务、Docker 容器等 Linux 基础概念，不做“应用”等高层抽象。
+  - title: 轻量简洁
+    details: 单一二进制可执行程序，体积仅 22MB，压缩后仅 8MB；界面扁平朴素、以内容为主。
 ---
