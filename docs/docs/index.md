@@ -10,7 +10,7 @@ hero:
     alt: APanel logo
   actions:
     - theme: brand
-      text: 项目 README
+      text: 项目简介
       link: /readme
     - theme: alt
       text: GitHub
