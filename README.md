@@ -220,17 +220,9 @@ server {
 }
 ```
 
-### 3.4 一键升级脚本
+### 3.4 升级
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/upgrade.sh | sudo bash
-```
-
-如果你的服务器因网络问题无法访问GitHub，可以尝试下面的命令：
-
-```bash
-curl -fsSL https://apanel.axogc.net/upgrade.sh | sudo bash
-```
+升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体步骤（含一键脚本和手动升级）请参阅[apanel.axogc.net/upgrade.md](https://apanel.axogc.net/upgrade.md)。
 
 ## 4. 安全说明
 
@@ -249,19 +241,7 @@ APanel 当前采用单管理员密码和 Cookie Session，不提供多用户、�
 
 ### 4.1 忘记密码
 
-如果忘记了登录密码，选择以下一种方式重置：
-
-- **重置整个数据库**：删除`/var/lib/apanel/apanel.db`并重启服务。APanel 会把这当成全新安装，重新生成一个随机密码并打印到日志中，但此前保存的所有设置（已启用的模块、数据库/代理连接信息等）也会一并丢失。
-- **只删除密码记录**：保留其余数据，只清掉密码这一条：
-
-  ```bash
-  sudo systemctl stop apanel
-  sqlite3 /var/lib/apanel/apanel.db "DELETE FROM config_entries WHERE key = 'auth.password_hash';"
-  sudo systemctl start apanel
-  sudo journalctl -u apanel | grep "generated one"
-  ```
-
-  重启后 APanel 发现密码记录缺失，会重新生成一个新密码并打印到日志中，其余设置不受影响。
+忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.md](https://apanel.axogc.net/install.md)的「5. 忘记密码」一节。
 
 ## 5. 许可证
 

@@ -230,3 +230,19 @@ sudo systemctl status apanel
 sudo systemctl daemon-reload
 sudo systemctl restart apanel
 ```
+
+## 5. 忘记密码
+
+如果忘记了登录密码，选择以下一种方式重置：
+
+- **重置整个数据库**：删除 `/var/lib/apanel/apanel.db` 并重启服务。Apanel 会把这当成全新安装，重新生成一个随机密码并打印到日志中，但此前保存的所有设置（已启用的模块、数据库/代理连接信息等）也会一并丢失。
+- **只删除密码记录**：保留其余数据，只清掉密码这一条：
+
+  ```bash
+  sudo systemctl stop apanel
+  sqlite3 /var/lib/apanel/apanel.db "DELETE FROM config_entries WHERE key = 'auth.password_hash';"
+  sudo systemctl start apanel
+  sudo journalctl -u apanel | grep "generated one"
+  ```
+
+  重启后 Apanel 发现密码记录缺失，会重新生成一个新密码并打印到日志中，其余设置不受影响。
