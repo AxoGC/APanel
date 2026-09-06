@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { BookOpen, Database, KeyRound, ListChecks, LogOut } from 'lucide-react'
+import { BookOpen, Database, KeyRound, ListChecks, LogOut, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ToggleButton } from '@/components/ToggleButton'
@@ -29,6 +29,7 @@ import { getSystemInfo, type SystemInfo } from './api'
 import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { EnableModulesDialog } from './EnableModulesDialog'
 import { SiteDataDialog } from './SiteDataDialog'
+import { UpdateDialog } from './UpdateDialog'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
 const LOCALES: Locale[] = ['en', 'zh']
@@ -87,6 +88,7 @@ export default function SettingsPage() {
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false)
   const [siteDataDialogOpen, setSiteDataDialogOpen] = useState(false)
   const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false)
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
 
   useEffect(() => {
     getSystemInfo()
@@ -193,6 +195,10 @@ export default function SettingsPage() {
           <ListChecks />
           {t('settings.enableModules')}
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setUpdateDialogOpen(true)}>
+          <RefreshCw />
+          {t('settings.update')}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => void logout()}>
           <LogOut />
           {t('settings.signOut')}
@@ -202,6 +208,7 @@ export default function SettingsPage() {
       <ChangePasswordDialog open={changePasswordDialogOpen} onOpenChange={setChangePasswordDialogOpen} />
       <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
       <SiteDataDialog open={siteDataDialogOpen} onOpenChange={setSiteDataDialogOpen} />
+      <UpdateDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} />
 
       <div className="grid grid-cols-2 gap-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
           <a

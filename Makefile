@@ -1,7 +1,13 @@
 .PHONY: build build-web build-api dev-api dev-web docs-dev docs-build clean
 
+# VERSION only resolves to a real semver when HEAD is exactly on a release
+# tag (vMAJOR.MINOR.PATCH) — every other build (the entire history today,
+# since no tag exists yet) stays "dev", which internal/version and the
+# updater treat as "never auto-update this build".
+VERSION := $(shell git describe --tags --exact-match 2>/dev/null || echo dev)
+
 GO_BUILD_FLAGS := -trimpath -buildvcs=false
-GO_LDFLAGS := -s -w -buildid=
+GO_LDFLAGS := -s -w -buildid= -X apanel/internal/version.Version=$(VERSION)
 
 build: build-web build-api
 
