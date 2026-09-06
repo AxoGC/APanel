@@ -11,7 +11,7 @@ build-web:
 	cp -r web/dist api/internal/httpserver/dist
 
 build-api:
-	cd api && go build $(GO_BUILD_FLAGS) -ldflags="$(GO_LDFLAGS)" -o apanel ./cmd/apanel
+	cd api && CGO_ENABLED=0 go build $(GO_BUILD_FLAGS) -ldflags="$(GO_LDFLAGS)" -o apanel ./cmd/apanel
 
 
 # apanel itself has no notion of a .env file (production overrides go
