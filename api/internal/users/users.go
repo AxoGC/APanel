@@ -29,7 +29,7 @@ import (
 const minPasswordLength = 8
 
 var (
-	ErrPasswordTooShort = errors.New("password too short")
+	ErrPasswordTooShort  = errors.New("password too short")
 	ErrPasswordDuplicate = errors.New("password already in use by another user")
 	ErrLastUser          = errors.New("cannot delete the last remaining user")
 	ErrNotFound          = errors.New("user not found")
@@ -66,7 +66,7 @@ func (m *Manager) Bootstrap() error {
 	if err != nil {
 		return err
 	}
-	if _, err := m.Create(plain, ""); err != nil {
+	if _, err := m.Create(plain, "admin"); err != nil {
 		return err
 	}
 	log.Printf("apanel: no users exist yet, generated one: %s", plain)
@@ -154,10 +154,10 @@ func (m *Manager) Create(password, remark string) (Info, error) {
 	return Info{ID: u.ID, Remark: u.Remark}, nil
 }
 
-// SetPassword is used both for a user's own change-password flow and for
-// one user resetting another's password from the users-management dialog —
-// there's no extra authorization check here beyond already holding a valid
-// session, since every user has unrestricted access by design.
+// SetPassword resets any user's password from the users-management
+// dialog — there's no current-password check here, and none needed: it's
+// only reachable by a caller who already holds a valid session, and every
+// user has unrestricted access by design.
 func (m *Manager) SetPassword(id uint, newPassword string) error {
 	if len(newPassword) < minPasswordLength {
 		return ErrPasswordTooShort
@@ -193,17 +193,6 @@ func (m *Manager) SetRemark(id uint, remark string) error {
 		return ErrNotFound
 	}
 	return nil
-}
-
-func (m *Manager) VerifyPassword(id uint, password string) (bool, error) {
-	var u model.User
-	if err := m.db.First(&u, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, ErrNotFound
-		}
-		return false, err
-	}
-	return bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) == nil, nil
 }
 
 // Exists reports whether id is still a real user — used by auth's session

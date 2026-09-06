@@ -12,7 +12,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -33,14 +32,6 @@ const (
 	// INVALID_TOKEN is returned when the session cookie is missing, unknown,
 	// or expired, and also when a login attempt uses the wrong password.
 	INVALID_TOKEN response.Code = "INVALID_TOKEN"
-
-	// WRONG_PASSWORD is returned when a change-password request's current
-	// password doesn't match.
-	WRONG_PASSWORD response.Code = "WRONG_PASSWORD"
-
-	// PASSWORD_TOO_SHORT is returned when a change-password request's new
-	// password is shorter than the minimum length.
-	PASSWORD_TOO_SHORT response.Code = "PASSWORD_TOO_SHORT"
 
 	// CHALLENGE_EXPIRED is returned when a login's challengeId is unknown or
 	// has already been used/expired. The frontend retries once with a fresh
@@ -302,51 +293,6 @@ func (s *Service) Session(w http.ResponseWriter, r *http.Request) {
 		response.WriteCode(w, http.StatusUnauthorized, INVALID_TOKEN)
 		return
 	}
-	response.WriteOK(w, nil)
-}
-
-// ChangePassword updates the caller's own login password. It requires the
-// current password, and is only reachable by a caller who already holds a
-// valid session (see Middleware).
-func (s *Service) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.check(r)
-	if !ok {
-		response.WriteCode(w, http.StatusUnauthorized, INVALID_TOKEN)
-		return
-	}
-
-	var req struct {
-		CurrentPassword string `json:"currentPassword"`
-		NewPassword     string `json:"newPassword"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.WriteInternalError(w, err)
-		return
-	}
-
-	verified, err := s.users.VerifyPassword(session.UserID, req.CurrentPassword)
-	if err != nil {
-		response.WriteInternalError(w, err)
-		return
-	}
-	if !verified {
-		response.WriteCode(w, http.StatusUnauthorized, WRONG_PASSWORD)
-		return
-	}
-
-	if err := s.users.SetPassword(session.UserID, req.NewPassword); err != nil {
-		switch {
-		case errors.Is(err, users.ErrPasswordTooShort):
-			response.WriteCode(w, http.StatusBadRequest, PASSWORD_TOO_SHORT)
-		case errors.Is(err, users.ErrPasswordDuplicate):
-			response.WriteCode(w, http.StatusBadRequest, users.PASSWORD_DUPLICATE)
-		default:
-			response.WriteInternalError(w, err)
-		}
-		return
-	}
-
-	s.audit.Record(s.users.Remark(session.UserID), "POST /api/change-password", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
 	response.WriteOK(w, nil)
 }
 

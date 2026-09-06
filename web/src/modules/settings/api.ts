@@ -13,13 +13,6 @@ export function getSystemInfo() {
   return apiFetch<SystemInfo>('/system/info')
 }
 
-export function changePassword(currentPassword: string, newPassword: string) {
-  return apiFetch('/change-password', {
-    method: 'POST',
-    body: JSON.stringify({ currentPassword, newPassword }),
-  })
-}
-
 export interface UpdateSettings {
   enabled: boolean
   source: string

@@ -12,9 +12,8 @@ package auditlog
 // this package to every other one. Forgetting an entry degrades gracefully
 // (see above), so it's a maintenance nuisance, not a correctness bug.
 var actionLabels = map[string]string{
-	"POST /api/login":           "auth.login",
-	"POST /api/logout":          "auth.logout",
-	"POST /api/change-password": "auth.changePassword",
+	"POST /api/login":  "auth.login",
+	"POST /api/logout": "auth.logout",
 
 	"POST /api/dashboard/processes/{pid}/terminate":      "process.terminate",
 	"POST /api/dashboard/processes/{pid}/terminate-tree": "process.terminateTree",

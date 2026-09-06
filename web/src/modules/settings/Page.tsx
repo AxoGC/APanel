@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { BookOpen, Database, KeyRound, ListChecks, LogOut, RefreshCw, Users } from 'lucide-react'
+import { BookOpen, Database, ListChecks, LogOut, RefreshCw, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ToggleButton } from '@/components/ToggleButton'
@@ -26,7 +26,6 @@ import bilibiliIcon from '@/assets/bilibili.svg'
 import githubIcon from '@/assets/github.svg'
 import qqIcon from '@/assets/qq.svg'
 import { getSystemInfo, type SystemInfo } from './api'
-import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { EnableModulesDialog } from './EnableModulesDialog'
 import { SiteDataDialog } from './SiteDataDialog'
 import { UpdateDialog } from './UpdateDialog'
@@ -46,7 +45,7 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
 
 // The form's final row: no left-side label, actions right-aligned.
 function ButtonRow({ children }: { children: ReactNode }) {
-  return <div className="flex items-center justify-end gap-2 py-2 first:pt-0">{children}</div>
+  return <div className="flex flex-wrap items-center justify-end gap-2 py-2 first:pt-0">{children}</div>
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -88,7 +87,6 @@ export default function SettingsPage() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false)
   const [siteDataDialogOpen, setSiteDataDialogOpen] = useState(false)
-  const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false)
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
   const [usersDialogOpen, setUsersDialogOpen] = useState(false)
 
@@ -185,10 +183,6 @@ export default function SettingsPage() {
       </Section>
 
       <ButtonRow>
-        <Button variant="outline" size="sm" onClick={() => setChangePasswordDialogOpen(true)}>
-          <KeyRound />
-          {t('settings.changePassword')}
-        </Button>
         <Button variant="outline" size="sm" onClick={() => setSiteDataDialogOpen(true)}>
           <Database />
           {t('settings.siteData')}
@@ -211,7 +205,6 @@ export default function SettingsPage() {
         </Button>
       </ButtonRow>
 
-      <ChangePasswordDialog open={changePasswordDialogOpen} onOpenChange={setChangePasswordDialogOpen} />
       <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
       <SiteDataDialog open={siteDataDialogOpen} onOpenChange={setSiteDataDialogOpen} />
       <UpdateDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} />

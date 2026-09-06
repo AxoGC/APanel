@@ -12,8 +12,8 @@ const INVALID_QUERY response.Code = "INVALID_QUERY"
 // RegisterRoutes wires the read-only /api/auditlog route onto mux — see
 // httpserver.RouteRegistrar. Writing entries happens exclusively through
 // Record, called from httpserver's global request instrumentation (and
-// directly from internal/auth for login/logout/change-password), not
-// through any route here.
+// directly from internal/auth for login/logout), not through any route
+// here.
 func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler) {
 	mux.Handle("GET /api/auditlog", requireAuth(http.HandlerFunc(m.list)))
 }

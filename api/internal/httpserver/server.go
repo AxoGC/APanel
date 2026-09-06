@@ -66,13 +66,11 @@ var mutatingMethods = map[string]bool{
 // auditLog.Record directly: login only resolves an acting identity mid-
 // handler (on a successful password match), which the generic
 // instrumentation below — keyed off the request's already-established
-// session — can't see, and change-password/logout read that identity from
-// the session before it changes. Everything else goes through the generic
-// path.
+// session — can't see, and logout reads that identity from the session
+// before it's torn down. Everything else goes through the generic path.
 var auditExemptPaths = map[string]bool{
-	"/api/login":           true,
-	"/api/logout":          true,
-	"/api/change-password": true,
+	"/api/login":  true,
+	"/api/logout": true,
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +107,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/login", s.auth.Login)
 	s.mux.HandleFunc("POST /api/logout", s.auth.Logout)
 	s.mux.HandleFunc("GET /api/session", s.auth.Session)
-	s.mux.Handle("POST /api/change-password", s.auth.Middleware(http.HandlerFunc(s.auth.ChangePassword)))
 	s.auditLog.RegisterRoutes(s.mux, s.auth.Middleware)
 
 	s.mux.Handle("GET /api/dashboard/stream", s.auth.Middleware(http.HandlerFunc(s.dashboardStream)))
