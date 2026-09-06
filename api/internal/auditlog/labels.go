@@ -17,6 +17,7 @@ var actionLabels = map[string]string{
 	"POST /api/change-password": "auth.changePassword",
 
 	"POST /api/dashboard/processes/{pid}/terminate":      "process.terminate",
+	"POST /api/dashboard/processes/{pid}/terminate-tree": "process.terminateTree",
 	"PUT /api/dashboard/network-settings":                "dashboard.networkSettings",
 	"PUT /api/status/features":                           "settings.enabledFeatures",
 	"PUT /api/modules/{key}/dependency":                  "module.dependency",

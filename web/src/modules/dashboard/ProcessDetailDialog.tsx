@@ -1,4 +1,4 @@
-import { Loader2, Square } from 'lucide-react'
+import { Loader2, Square, SquareStack } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   AlertDialog,
@@ -17,7 +17,7 @@ import { ApiError } from '@/lib/api'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { getProcessDetail, terminateProcess, type ProcessDetail } from './useDashboardStream'
+import { getProcessDetail, terminateProcess, terminateProcessTree, type ProcessDetail } from './useDashboardStream'
 
 const STATE_LABELS: Record<string, TranslationKey> = {
   R: 'dashboard.state.R',
@@ -47,6 +47,7 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
   const [detail, setDetail] = useState<ProcessDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [terminating, setTerminating] = useState(false)
+  const [terminatingTree, setTerminatingTree] = useState(false)
   const [terminateError, setTerminateError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -73,6 +74,20 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
     }
   }
 
+  async function handleTerminateTree() {
+    if (pid === null) return
+    setTerminatingTree(true)
+    setTerminateError(null)
+    try {
+      await terminateProcessTree(pid)
+      onOpenChange(false)
+    } catch (err) {
+      setTerminateError(err instanceof ApiError ? err.message : String(err))
+    } finally {
+      setTerminatingTree(false)
+    }
+  }
+
   return (
     <SectionedDialog
       open={pid !== null}
@@ -84,7 +99,33 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
           {terminateError && <p className="mr-auto text-xs text-red-600">{terminateError}</p>}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={!detail || terminating}>
+              <Button variant="destructive" size="sm" disabled={!detail || terminating || terminatingTree}>
+                {terminatingTree ? <Loader2 className="animate-spin" /> : <SquareStack />}
+                {t('dashboard.detail.terminateTree')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('dashboard.confirmTerminateTree.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {detail && (
+                    <>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{detail.name}</span>
+                      {' — '}
+                    </>
+                  )}
+                  {t('dashboard.confirmTerminateTree.description')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleTerminateTree}>{t('dashboard.detail.terminateTree')}</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={!detail || terminating || terminatingTree}>
                 {terminating ? <Loader2 className="animate-spin" /> : <Square />}
                 {t('dashboard.detail.terminate')}
               </Button>

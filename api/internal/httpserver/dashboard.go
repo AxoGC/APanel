@@ -115,3 +115,48 @@ func (s *Server) terminateProcess(w http.ResponseWriter, r *http.Request) {
 	}
 	response.WriteOK(w, nil)
 }
+
+// TerminateTreeResult reports how many processes a tree-terminate touched,
+// so the UI can show e.g. "terminated 4 processes" instead of just "OK".
+type TerminateTreeResult struct {
+	Count int `json:"count"`
+}
+
+// terminateProcessTree sends SIGTERM to pid and every one of its descendants
+// (children, grandchildren, ...), found by walking PPID links in /proc. The
+// tree is resolved once up front, then every pid in it is signaled — a
+// process that has already exited by the time we get to it is simply
+// skipped rather than treated as an error.
+func (s *Server) terminateProcessTree(w http.ResponseWriter, r *http.Request) {
+	pid, err := strconv.Atoi(r.PathValue("pid"))
+	if err != nil {
+		response.WriteCode(w, http.StatusBadRequest, PROCESS_NOT_FOUND)
+		return
+	}
+
+	pids, err := stats.ProcessTree(pid)
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	if len(pids) == 0 {
+		response.WriteCode(w, http.StatusNotFound, PROCESS_NOT_FOUND)
+		return
+	}
+
+	terminated := 0
+	for _, p := range pids {
+		process, err := os.FindProcess(p)
+		if err != nil {
+			continue
+		}
+		if err := process.Signal(syscall.SIGTERM); err == nil {
+			terminated++
+		}
+	}
+	if terminated == 0 {
+		response.WriteCode(w, http.StatusNotFound, PROCESS_NOT_FOUND)
+		return
+	}
+	response.WriteOK(w, TerminateTreeResult{Count: terminated})
+}

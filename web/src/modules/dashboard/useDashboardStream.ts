@@ -70,6 +70,14 @@ export function terminateProcess(pid: number) {
   return apiFetch<null>(`/dashboard/processes/${pid}/terminate`, { method: 'POST' })
 }
 
+export interface TerminateTreeResult {
+  count: number
+}
+
+export function terminateProcessTree(pid: number) {
+  return apiFetch<TerminateTreeResult>(`/dashboard/processes/${pid}/terminate-tree`, { method: 'POST' })
+}
+
 /** Subscribes to the dashboard's live CPU/memory/process SSE stream. The
  * server sends every process (with its default sort order set by `sort`,
  * used by the flat view); the tree view re-sorts client-side by
