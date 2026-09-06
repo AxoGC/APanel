@@ -1,8 +1,7 @@
 <p align="center">
-  <img src="docs/docs/public/assets/logo.png" width="120" alt="APanel logo">
+  <img src="docs/docs/public/assets/logo.png" width="48" align="middle" alt="APanel logo">
+  &nbsp;<b>APanel</b> —— 你的掌上Linux系统
 </p>
-
-# APanel
 
 APanel 是一个移动端优先、Linux原生、轻量级的Web运维面板，使用Go + React开发，受到1Panel启发。
 
