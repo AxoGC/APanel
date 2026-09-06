@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Apanel
-  text: 移动端优先的运维面板
-  tagline: Linux 原生、轻量级的 Web 运维面板，使用 Go + React 开发，受 1Panel 启发
+  text: 你的掌上Linux系统
+  tagline: 移动端优先、Linux原生、轻量级的Web运维面板，基于Go+React技术，受1Panel启发
   image:
     src: /assets/logo.png
     alt: APanel logo
