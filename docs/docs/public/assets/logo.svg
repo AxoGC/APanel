@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <title>apanel logo</title>
-  <rect width="512" height="512" fill="#ffffff"/>
   <polygon points="456,256 356,429.28 156,429.28 56,256 156,82.72 356,82.72" fill="#14b8a6"/>
   <g fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
     <!-- A: right leg vertical (parallel to P's stem), left leg diagonal -->
