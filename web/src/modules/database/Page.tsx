@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ApiError } from '@/lib/api'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import {
@@ -41,7 +40,7 @@ export default function DatabasePage() {
     setError(null)
     listDatabases()
       .then(setDatabases)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [selectedDatabase])
 
   // Step 2: each database's used space, filled in as the backend's parallel
@@ -71,7 +70,7 @@ export default function DatabasePage() {
     setError(null)
     listTables(selectedDatabase)
       .then(setTables)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [selectedDatabase])
 
   // Step 2: each table's row count and used space, same streaming/caching

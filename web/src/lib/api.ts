@@ -2,10 +2,27 @@
 
 export class ApiError extends Error {
   code: string
-  constructor(code: string, message?: string) {
-    super(message ?? code)
+  // The envelope's optional free-text `error` field — extra, non-enum detail
+  // (e.g. a driver error string) alongside `code`. Kept separate from
+  // `message` so the global error dialog (see lib/errorFeedback.tsx) can
+  // show a translated `code` up front and this raw text only behind a
+  // collapsed "details" toggle.
+  detail?: string
+  constructor(code: string, detail?: string) {
+    super(detail ?? code)
     this.code = code
+    this.detail = detail
   }
+}
+
+type ErrorListener = (err: ApiError) => void
+let errorListener: ErrorListener | null = null
+
+// Set once by the app root's <ErrorFeedbackDialog/> so every failed request
+// surfaces through one global, out-of-flow confirm dialog instead of each
+// call site rendering its own inline error text. See lib/errorFeedback.tsx.
+export function setApiErrorListener(listener: ErrorListener | null) {
+  errorListener = listener
 }
 
 interface Envelope<T> {
@@ -14,7 +31,14 @@ interface Envelope<T> {
   data?: T
 }
 
-export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+// `silent: true` opts a call out of the global error dialog — for
+// best-effort background probes (polling, dependency checks) and forms that
+// already render their own dedicated error UI (e.g. the login form).
+export async function apiFetch<T = unknown>(
+  path: string,
+  init?: RequestInit,
+  opts?: { silent?: boolean },
+): Promise<T> {
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
@@ -22,7 +46,9 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   })
   const body = (await res.json()) as Envelope<T>
   if (body.code !== 'OK') {
-    throw new ApiError(body.code, body.error)
+    const err = new ApiError(body.code, body.error)
+    if (!opts?.silent) errorListener?.(err)
+    throw err
   }
   return body.data as T
 }

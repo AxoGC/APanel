@@ -4,7 +4,6 @@ import { SectionedDialog } from '@/components/SectionedDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ApiError } from '@/lib/api'
 import {
   enableModuleDependencyService,
   getModuleDependency,
@@ -53,30 +52,27 @@ export function DependencyDialog({
   const [form, setForm] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [enabling, setEnabling] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setStatus(null)
-    setError(null)
     getModuleDependency(moduleKey)
       .then((res) => {
         setStatus(res)
         setForm(res.config)
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [open, moduleKey])
 
   const handleSave = async () => {
     setSaving(true)
-    setError(null)
     try {
       const res = await putModuleDependency(moduleKey, form)
       setStatus(res)
       setForm(res.config)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSaving(false)
     }
@@ -84,11 +80,10 @@ export function DependencyDialog({
 
   const handleEnableService = async () => {
     setEnabling(true)
-    setError(null)
     try {
       setStatus(await enableModuleDependencyService(moduleKey))
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setEnabling(false)
     }
@@ -172,8 +167,6 @@ export function DependencyDialog({
               </Button>
             </div>
           )}
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       )}
     </SectionedDialog>

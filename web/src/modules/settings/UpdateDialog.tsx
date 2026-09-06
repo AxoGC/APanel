@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { ToggleButton } from '@/components/ToggleButton'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { checkForUpdate, getUpdateStatus, putUpdateSettings, type UpdateStatus } from './api'
 
@@ -15,28 +14,25 @@ export function UpdateDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const [source, setSource] = useState('')
   const [checking, setChecking] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
-    setError(null)
     getUpdateStatus()
       .then((s) => {
         setStatus(s)
         setSource(s.settings.source)
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [open])
 
   async function toggleEnabled() {
     if (!status) return
     setSaving(true)
-    setError(null)
     try {
       const next = await putUpdateSettings({ enabled: !status.settings.enabled, source })
       setStatus(next)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSaving(false)
     }
@@ -45,12 +41,11 @@ export function UpdateDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   async function saveSource() {
     if (!status || source === status.settings.source) return
     setSaving(true)
-    setError(null)
     try {
       const next = await putUpdateSettings({ enabled: status.settings.enabled, source })
       setStatus(next)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSaving(false)
     }
@@ -58,11 +53,10 @@ export function UpdateDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
   async function handleCheckNow() {
     setChecking(true)
-    setError(null)
     try {
       setStatus(await checkForUpdate())
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setChecking(false)
     }
@@ -128,8 +122,6 @@ export function UpdateDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             {t('settings.update.checkNow')}
           </Button>
         </div>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     </SectionedDialog>
   )

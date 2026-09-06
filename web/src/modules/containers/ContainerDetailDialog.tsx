@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { TextReader } from '@/components/TextReader'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { getContainerDetail, type ContainerDetail } from './api'
@@ -34,15 +33,13 @@ function ListValue({ items }: { items: string[] }) {
 export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useI18n()
   const [detail, setDetail] = useState<ContainerDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (id === null) return
     setDetail(null)
-    setError(null)
     getContainerDetail(id)
       .then(setDetail)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [id])
 
   return (
@@ -52,8 +49,6 @@ export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null;
       title={detail ? detail.name : t('containers.detail.title')}
       className="h-[85vh] max-w-lg"
     >
-      {error && <p className="text-xs text-red-600">{error}</p>}
-
       {detail && (
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">

@@ -7,7 +7,6 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import {
   containerAttachSocketUrl,
@@ -73,9 +72,7 @@ export function ContainerLogsDialog({
       .then((result) => {
         if (!cancelled) setContent(result)
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : String(err))
-      })
+      .catch(() => {})
     return () => {
       cancelled = true
     }

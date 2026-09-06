@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { deleteContainerNetwork, listContainerNetworks, type ContainerNetwork } from './api'
 import { UsageCell } from './UsageCell'
@@ -20,15 +19,13 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
   const { t } = useI18n()
   const [networks, setNetworks] = useState<ContainerNetwork[] | null>(null)
   const [filter, setFilter] = useState<NetworkFilter>('all')
-  const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadNetworks = async () => {
-    setError(null)
     try {
       setNetworks(await listContainerNetworks())
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     }
   }
 
@@ -50,12 +47,11 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
 
   const deleteNetwork = async (id: string) => {
     setDeletingId(id)
-    setError(null)
     try {
       await deleteContainerNetwork(id)
       await loadNetworks()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setDeletingId(null)
     }
@@ -77,8 +73,6 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
             </SelectContent>
           </Select>
         </div>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
 
         <div className="flex min-h-0 grow flex-col">
           <div className="flex items-center gap-3 border-b border-gray-200 px-2 pb-1.5 dark:border-gray-800">

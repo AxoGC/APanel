@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ApiError } from '@/lib/api'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -14,7 +13,6 @@ import { RuleDialog } from './RuleDialog'
 export default function FirewallPage() {
   const { t } = useI18n()
   const [status, setStatus] = useState<FirewallStatus | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null)
@@ -24,7 +22,7 @@ export default function FirewallPage() {
   useEffect(() => {
     getFirewallStatus()
       .then(setStatus)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [])
 
   function openAdd() {
@@ -40,12 +38,11 @@ export default function FirewallPage() {
   async function handleDelete(rule: FirewallRule) {
     const key = rule.numbers.join('-')
     setDeleting((current) => ({ ...current, [key]: true }))
-    setError(null)
     try {
       const next = await deleteFirewallRule(rule.numbers)
       setStatus(next)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setDeleting((current) => {
         const { [key]: _removed, ...rest } = current
@@ -83,8 +80,6 @@ export default function FirewallPage() {
           </Button>
         </div>
       </div>
-
-      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {status && status.rules.length === 0 && (
         <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('firewall.empty')}</p>

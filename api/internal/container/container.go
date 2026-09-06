@@ -447,6 +447,15 @@ func (m *Manager) Restart(ctx context.Context, id string) error {
 	return translateNotFound(err)
 }
 
+// Delete removes a container. It doesn't force-remove a running one — the
+// frontend only offers this action once a container is already stopped, and
+// Docker's own "container is running" rejection is a reasonable backstop for
+// anything that races past that.
+func (m *Manager) Delete(ctx context.Context, id string) error {
+	err := m.cli.ContainerRemove(ctx, id, container.RemoveOptions{})
+	return translateNotFound(err)
+}
+
 // Attach opens a live connection to the running container's main process.
 // Historical output is excluded because the frontend keeps the log content
 // it fetched before switching into attach mode.

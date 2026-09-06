@@ -80,7 +80,6 @@ export default function FilesPage() {
   const [entries, setEntries] = useState<FileEntry[] | null>(null)
   const [query, setQuery] = useState('')
   const [showHidden, setShowHidden] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
 
   const [mkdirOpen, setMkdirOpen] = useState(false)
@@ -109,10 +108,9 @@ export default function FilesPage() {
     localStorage.setItem(PATH_STORAGE_KEY, path)
     setQuery('')
     setSelected(new Set())
-    setError(null)
     listFiles(path)
       .then(setEntries)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path])
 
@@ -173,7 +171,6 @@ export default function FilesPage() {
           setPreview({ status: 'unavailable', code: err.code })
           return
         }
-        setError(err instanceof ApiError ? err.message : String(err))
         setPreviewTarget(null)
         setPreview(null)
       })
@@ -187,8 +184,8 @@ export default function FilesPage() {
       setPreviewTarget(null)
       setPreview(null)
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSavingPreview(false)
     }
@@ -211,8 +208,8 @@ export default function FilesPage() {
       await renameFile(renameTarget.path, name)
       setRenameTarget(null)
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     }
   }
 
@@ -225,8 +222,8 @@ export default function FilesPage() {
       setMkdirOpen(false)
       setNewFolderName('')
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     }
   }
 
@@ -241,8 +238,8 @@ export default function FilesPage() {
         return next
       })
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setConfirmDeletePaths(null)
     }
@@ -255,8 +252,8 @@ export default function FilesPage() {
     try {
       await uploadFiles(path, fileList)
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setUploading(false)
       e.target.value = ''
@@ -355,8 +352,6 @@ export default function FilesPage() {
           <input ref={fileInputRef} type="file" multiple hidden onChange={onFilesSelected} />
         </div>
       </div>
-
-      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {entries && filtered.length === 0 && (
         <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('files.empty')}</p>

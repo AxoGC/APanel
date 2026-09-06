@@ -26,8 +26,10 @@ export interface NetworkGaugeSettings {
   maxMbps: number
 }
 
+// silent: fetched once in the background to seed the gauge; its own dialog
+// re-fetches and surfaces errors normally when the admin opens it to edit.
 export function getDashboardNetworkSettings() {
-  return apiFetch<NetworkGaugeSettings>('/dashboard/network-settings')
+  return apiFetch<NetworkGaugeSettings>('/dashboard/network-settings', undefined, { silent: true })
 }
 
 export function putDashboardNetworkSettings(settings: NetworkGaugeSettings) {

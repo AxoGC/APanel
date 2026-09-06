@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { ApiError } from '@/lib/api'
 import { formatBitrate, formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { Gauge } from './Gauge'
@@ -75,8 +74,8 @@ export default function DashboardPage() {
       const saved = await putDashboardNetworkSettings({ maxMbps: parsed })
       setMaxMbps(saved.maxMbps)
       setSettingsOpen(false)
-    } catch (err) {
-      setSettingsError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSavingSettings(false)
     }

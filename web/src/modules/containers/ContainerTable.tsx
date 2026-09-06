@@ -1,4 +1,4 @@
-import { Info, Loader2, Play, RotateCw, ScrollText, Square } from 'lucide-react'
+import { Info, Loader2, Play, RotateCw, ScrollText, Square, Trash2 } from 'lucide-react'
 import { ConfirmIconButton } from '@/components/ConfirmIconButton'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/lib/i18n'
@@ -20,7 +20,8 @@ function ContainerActions({ container, busy, onAction, onShowLogs, onShowDetail 
       <Button variant="ghost" size="icon-sm" aria-label={t('containers.logs')} onClick={() => onShowLogs(container)}><ScrollText /></Button>
       {container.state !== 'running' && <Button variant="ghost" size="icon-sm" aria-label={t('containers.start')} disabled={!!busy} onClick={() => onAction(container.id, 'start')}>{busy === 'start' ? <Loader2 className="animate-spin" /> : <Play />}</Button>}
       {container.state === 'running' && <ConfirmIconButton icon={busy === 'stop' ? <Loader2 className="animate-spin" /> : <Square />} label={t('containers.stop')} actionLabel={t('containers.stop')} title={t('containers.confirmStop.title')} description={<><span className="font-medium text-gray-700 dark:text-gray-300">{container.name}</span>{' — '}{t('containers.confirmStop.description')}</>} disabled={!!busy} onConfirm={() => onAction(container.id, 'stop')} />}
-      <ConfirmIconButton icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />} label={t('containers.restart')} actionLabel={t('containers.restart')} title={t('containers.confirmRestart.title')} description={<><span className="font-medium text-gray-700 dark:text-gray-300">{container.name}</span>{' — '}{t('containers.confirmRestart.description')}</>} disabled={!!busy} onConfirm={() => onAction(container.id, 'restart')} />
+      {container.state === 'running' && <ConfirmIconButton icon={busy === 'restart' ? <Loader2 className="animate-spin" /> : <RotateCw />} label={t('containers.restart')} actionLabel={t('containers.restart')} title={t('containers.confirmRestart.title')} description={<><span className="font-medium text-gray-700 dark:text-gray-300">{container.name}</span>{' — '}{t('containers.confirmRestart.description')}</>} disabled={!!busy} onConfirm={() => onAction(container.id, 'restart')} />}
+      {container.state !== 'running' && <ConfirmIconButton icon={busy === 'delete' ? <Loader2 className="animate-spin" /> : <Trash2 />} label={t('containers.delete')} actionLabel={t('containers.delete')} title={t('containers.confirmDelete.title')} description={<><span className="font-medium text-gray-700 dark:text-gray-300">{container.name}</span>{' — '}{t('containers.confirmDelete.description')}</>} disabled={!!busy} onConfirm={() => onAction(container.id, 'delete')} />}
     </>
   )
 }

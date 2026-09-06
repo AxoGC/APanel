@@ -9,7 +9,6 @@ import {
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'
 import { TextReader } from '@/components/TextReader'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 
 const LINE_OPTIONS = [100, 500, 1000, 2000]
@@ -48,10 +47,7 @@ export function LogsDialog({
       .then((ls) => {
         if (!cancelled) setContent(ls)
       })
-      .catch((err) => {
-        if (!cancelled)
-          setError(err instanceof ApiError ? err.message : String(err))
-      })
+      .catch(() => {})
     return () => {
       cancelled = true
     }

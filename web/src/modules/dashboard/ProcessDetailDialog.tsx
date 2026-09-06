@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { SectionedDialog } from '@/components/SectionedDialog'
-import { ApiError } from '@/lib/api'
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -45,30 +44,25 @@ function Field({ label, value, wrap }: { label: string; value: ReactNode; wrap?:
 export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useI18n()
   const [detail, setDetail] = useState<ProcessDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [terminating, setTerminating] = useState(false)
   const [terminatingTree, setTerminatingTree] = useState(false)
-  const [terminateError, setTerminateError] = useState<string | null>(null)
 
   useEffect(() => {
     if (pid === null) return
     setDetail(null)
-    setError(null)
-    setTerminateError(null)
     getProcessDetail(pid)
       .then(setDetail)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [pid])
 
   async function handleTerminate() {
     if (pid === null) return
     setTerminating(true)
-    setTerminateError(null)
     try {
       await terminateProcess(pid)
       onOpenChange(false)
-    } catch (err) {
-      setTerminateError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setTerminating(false)
     }
@@ -77,12 +71,11 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
   async function handleTerminateTree() {
     if (pid === null) return
     setTerminatingTree(true)
-    setTerminateError(null)
     try {
       await terminateProcessTree(pid)
       onOpenChange(false)
-    } catch (err) {
-      setTerminateError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setTerminatingTree(false)
     }
@@ -96,7 +89,6 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
       className="h-[85vh] max-w-lg"
       footer={
         <div className="flex items-center justify-end gap-2">
-          {terminateError && <p className="mr-auto text-xs text-red-600">{terminateError}</p>}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" disabled={!detail || terminating || terminatingTree}>
@@ -152,8 +144,6 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
         </div>
       }
     >
-      {error && <p className="text-xs text-red-600">{error}</p>}
-
       {detail && (
         <div className="grid grid-cols-2 gap-4">
               <Field label={t('dashboard.detail.pid')} value={detail.pid} />

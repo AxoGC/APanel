@@ -4,6 +4,7 @@ import { HttpRiskDialog } from '@/components/HttpRiskDialog'
 import { Nav } from '@/components/Nav'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AuthProvider, useAuth } from '@/lib/auth'
+import { ErrorFeedbackDialog } from '@/lib/errorFeedback'
 import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
 import AuditLogPage from '@/modules/auditlog/Page'
@@ -37,6 +38,7 @@ function Shell() {
   return (
     <>
       <HttpRiskDialog />
+      <ErrorFeedbackDialog />
       {state === 'loading' ? null : state === 'unauthenticated' ? (
         <LoginPage />
       ) : (

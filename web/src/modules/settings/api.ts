@@ -9,8 +9,10 @@ export interface SystemInfo {
   uptimeSeconds: number
 }
 
+// silent: background best-effort fetch for the settings page header; a
+// failure just leaves the fields at their placeholder dashes.
 export function getSystemInfo() {
-  return apiFetch<SystemInfo>('/system/info')
+  return apiFetch<SystemInfo>('/system/info', undefined, { silent: true })
 }
 
 export interface UpdateSettings {

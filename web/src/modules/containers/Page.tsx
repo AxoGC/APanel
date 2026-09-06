@@ -5,7 +5,6 @@ import { DependencyDialog } from '@/components/DependencyDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ApiError } from '@/lib/api'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -29,7 +28,6 @@ export default function ContainersPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ContainerActionName | undefined>>({})
-  const [error, setError] = useState<string | null>(null)
   const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
   const [detailFor, setDetailFor] = useState<string | null>(null)
   const [imagesOpen, setImagesOpen] = useState(false)
@@ -48,7 +46,7 @@ export default function ContainersPage() {
   // change, debounced so typing doesn't fire one per keystroke.
   useEffect(() => {
     const timer = setTimeout(() => {
-      refresh().catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      refresh().catch(() => {})
     }, 250)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,13 +57,12 @@ export default function ContainersPage() {
   }, [mobileSearchOpen])
 
   async function handleAction(id: string, action: ContainerActionName) {
-    setError(null)
     setPending((p) => ({ ...p, [id]: action }))
     try {
       await runContainerAction(id, action)
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setPending((p) => ({ ...p, [id]: undefined }))
     }
@@ -138,8 +135,6 @@ export default function ContainersPage() {
           </Button>
         </div>
       </div>
-
-      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {containers && containers.length === 0 && (
         <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('containers.empty')}</p>

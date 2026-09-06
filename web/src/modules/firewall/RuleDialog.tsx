@@ -3,7 +3,6 @@ import { SectionedDialog } from '@/components/SectionedDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
@@ -124,14 +123,12 @@ export function RuleDialog({
   const { t } = useI18n()
   const [form, setForm] = useState<FormState>(blankForm)
   const [mode, setMode] = useState<FormMode>('simple')
-  const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setForm(rule ? formFromRule(rule) : blankForm())
     setMode(modeFromRule(rule))
-    setError(null)
   }, [open, rule])
 
   function changeMode(nextMode: FormMode) {
@@ -170,7 +167,6 @@ export function RuleDialog({
   async function submit(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setError(null)
     try {
       const protocol: NewFirewallRule['protocol'] =
         form.protocols.size === PROTOCOLS.length ? 'any' : form.protocols.has('tcp') ? 'tcp' : 'udp'
@@ -186,8 +182,8 @@ export function RuleDialog({
       const status = rule ? await updateFirewallRule(rule.numbers, payload) : await addFirewallRule(payload)
       onSuccess(status)
       onOpenChange(false)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSaving(false)
     }
@@ -302,8 +298,6 @@ export function RuleDialog({
                   )}
                 </>
               )}
-
-          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </form>
     </SectionedDialog>

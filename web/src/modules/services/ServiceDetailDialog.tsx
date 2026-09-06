@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SectionedDialog } from '@/components/SectionedDialog'
-import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -34,15 +33,13 @@ function ListValue({ items }: { items: string[] }) {
 export function ServiceDetailDialog({ name, onOpenChange }: { name: string | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useI18n()
   const [detail, setDetail] = useState<ServiceDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (name === null) return
     setDetail(null)
-    setError(null)
     getServiceDetail(name)
       .then(setDetail)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [name])
 
   return (
@@ -52,8 +49,6 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
       title={detail ? displayName(detail.name) : t('services.detail.title')}
       className="h-[85vh] max-w-lg"
     >
-      {error && <p className="text-xs text-red-600">{error}</p>}
-
       {detail && (
         <div className="grid grid-cols-2 gap-4">
           <Field label={t('services.detail.name')} value={displayName(detail.name)} />

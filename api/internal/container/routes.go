@@ -34,6 +34,7 @@ func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handl
 	mux.Handle("POST /api/containers/{id}/start", requireAuth(m.containerAction(m.Start)))
 	mux.Handle("POST /api/containers/{id}/stop", requireAuth(m.containerAction(m.Stop)))
 	mux.Handle("POST /api/containers/{id}/restart", requireAuth(m.containerAction(m.Restart)))
+	mux.Handle("POST /api/containers/{id}/delete", requireAuth(m.containerAction(m.Delete)))
 	mux.Handle("GET /api/containers/{id}", requireAuth(http.HandlerFunc(m.containerDetail)))
 	mux.Handle("GET /api/containers/{id}/logs", requireAuth(http.HandlerFunc(m.containerLogs)))
 	mux.Handle("GET /api/containers/{id}/logs/stream", requireAuth(http.HandlerFunc(m.containerLogsStream)))

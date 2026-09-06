@@ -15,8 +15,12 @@ export interface DependencyStatus {
   docsUrl: string
 }
 
+// silent: this is a background health probe fired whenever a module page
+// mounts or its dependency dialog opens, not a user-initiated action — a
+// failure here surfaces as the dialog's own "unhealthy" state, not a global
+// error popup.
 export function getModuleDependency(key: DependencyModuleKey) {
-  return apiFetch<DependencyStatus>(`/modules/${key}/dependency`)
+  return apiFetch<DependencyStatus>(`/modules/${key}/dependency`, undefined, { silent: true })
 }
 
 export function putModuleDependency(key: DependencyModuleKey, config: Record<string, string>) {

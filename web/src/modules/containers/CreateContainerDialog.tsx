@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiError } from '@/lib/api'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { createContainer, listContainerImageTags, listContainerNetworks, type ContainerNetwork } from './api'
 
@@ -66,7 +65,6 @@ export function CreateContainerDialog({
 
   const [imageTags, setImageTags] = useState<string[]>([])
   const [networks, setNetworks] = useState<ContainerNetwork[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
@@ -79,19 +77,17 @@ export function CreateContainerDialog({
     setRestartPolicy('no')
     setEnv('')
     setVolumes('')
-    setError(null)
     Promise.all([listContainerImageTags(), listContainerNetworks()])
       .then(([tags, nets]) => {
         setImageTags(tags)
         setNetworks(nets)
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [open])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setCreating(true)
-    setError(null)
     try {
       await createContainer({
         name,
@@ -105,8 +101,8 @@ export function CreateContainerDialog({
       })
       onCreated()
       onOpenChange(false)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setCreating(false)
     }
@@ -204,8 +200,6 @@ export function CreateContainerDialog({
             rows={3}
           />
         </FormRow>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
       </form>
     </SectionedDialog>
   )

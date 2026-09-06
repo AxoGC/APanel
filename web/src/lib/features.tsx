@@ -44,7 +44,7 @@ export function FeaturesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (state !== 'authenticated') return
-    apiFetch<StatusResponse>('/status')
+    apiFetch<StatusResponse>('/status', undefined, { silent: true })
       .then((res) => setModules(res.modules))
       .catch(() => setModules(EMPTY))
   }, [state])

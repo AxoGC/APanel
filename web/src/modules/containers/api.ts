@@ -59,7 +59,7 @@ export function deleteContainerNetwork(id: string) {
   return apiFetch<null>(`/containers/networks/${encodeURIComponent(id)}/delete`, { method: 'POST' })
 }
 
-export type ContainerActionName = 'start' | 'stop' | 'restart'
+export type ContainerActionName = 'start' | 'stop' | 'restart' | 'delete'
 
 export function runContainerAction(id: string, action: ContainerActionName) {
   return apiFetch<null>(`/containers/${encodeURIComponent(id)}/${action}`, { method: 'POST' })

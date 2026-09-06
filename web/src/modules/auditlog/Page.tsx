@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SectionedDialog } from '@/components/SectionedDialog'
-import { ApiError } from '@/lib/api'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { getAuditLog, type AuditLogEntry } from './api'
@@ -53,18 +52,18 @@ export default function AuditLogPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [exhausted, setExhausted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [detail, setDetail] = useState<AuditLogEntry | null>(null)
 
   useEffect(() => {
     setLoading(true)
-    setError(null)
+    setLoadFailed(false)
     getAuditLog({ limit: PAGE_SIZE })
       .then((res) => {
         setEntries(res)
         setExhausted(res.length < PAGE_SIZE)
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -75,8 +74,8 @@ export default function AuditLogPage() {
       const res = await getAuditLog({ limit: PAGE_SIZE, beforeId: entries[entries.length - 1].id })
       setEntries((prev) => [...prev, ...res])
       setExhausted(res.length < PAGE_SIZE)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setLoadingMore(false)
     }
@@ -88,8 +87,7 @@ export default function AuditLogPage() {
         <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.auditlog')}</h1>
       </div>
 
-      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
-      {!loading && entries.length === 0 && !error && (
+      {!loading && entries.length === 0 && !loadFailed && (
         <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('auditlog.empty')}</p>
       )}
 

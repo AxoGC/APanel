@@ -28,6 +28,7 @@ var actionLabels = map[string]string{
 	"POST /api/containers/{id}/start":           "container.start",
 	"POST /api/containers/{id}/stop":            "container.stop",
 	"POST /api/containers/{id}/restart":         "container.restart",
+	"POST /api/containers/{id}/delete":          "container.delete",
 
 	"POST /api/services/{name}/start":   "service.start",
 	"POST /api/services/{name}/stop":    "service.stop",

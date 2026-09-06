@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { deleteContainerImages, listContainerImages, type ContainerImage } from './api'
@@ -28,15 +27,13 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
   const [images, setImages] = useState<ContainerImage[] | null>(null)
   const [filter, setFilter] = useState<ImageFilter>('all')
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
-  const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const loadImages = async () => {
-    setError(null)
     try {
       setImages(await listContainerImages())
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     }
   }
 
@@ -75,13 +72,12 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
 
   const deleteSelected = async () => {
     setDeleting(true)
-    setError(null)
     try {
       await deleteContainerImages(Array.from(selected))
       setSelected(new Set())
       await loadImages()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setDeleting(false)
     }
@@ -124,8 +120,6 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
             </AlertDialogContent>
           </AlertDialog>
         </div>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
 
         <div className="flex min-h-0 grow flex-col">
           <div className="flex items-center gap-3 border-b border-gray-200 px-2 pb-1.5 dark:border-gray-800">

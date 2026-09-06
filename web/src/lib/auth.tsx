@@ -16,7 +16,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>('loading')
 
   useEffect(() => {
-    apiFetch('/session')
+    apiFetch('/session', undefined, { silent: true })
       .then(() => setState('authenticated'))
       .catch(() => setState('unauthenticated'))
   }, [])
@@ -29,7 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     for (let attempt = 0; ; attempt++) {
       try {
         const payload = await encryptLoginPassword(password)
-        await apiFetch('/login', { method: 'POST', body: JSON.stringify(payload) })
+        // silent: the login form renders its own dedicated invalid-password message.
+        await apiFetch('/login', { method: 'POST', body: JSON.stringify(payload) }, { silent: true })
         setState('authenticated')
         return
       } catch (err) {

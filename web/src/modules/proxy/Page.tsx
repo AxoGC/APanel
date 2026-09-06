@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { ApiError } from '@/lib/api'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -71,7 +70,7 @@ export default function ProxyPage() {
     setGroup(null)
     getProxyGroup(name)
       .then(setGroup)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }
 
   useEffect(() => {
@@ -84,7 +83,7 @@ export default function ProxyPage() {
           loadGroup(target)
         }
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
     return () => delaySourceRef.current?.close()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -107,8 +106,8 @@ export default function ProxyPage() {
         setSelectedGroup(null)
         setGroup(null)
       }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSwitchingMode(false)
     }
@@ -125,8 +124,8 @@ export default function ProxyPage() {
     setError(null)
     try {
       setGroup(await selectProxyOption(activeGroup, name))
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setPendingSelect(null)
     }

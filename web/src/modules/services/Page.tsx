@@ -4,7 +4,6 @@ import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ApiError } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import {
   getServiceLogs,
@@ -25,7 +24,6 @@ export default function ServicesPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ServiceActionName | undefined>>({})
-  const [error, setError] = useState<string | null>(null)
   const [logsFor, setLogsFor] = useState<ServiceUnit | null>(null)
   const [detailFor, setDetailFor] = useState<string | null>(null)
 
@@ -38,20 +36,19 @@ export default function ServicesPage() {
   // filter change, debounced so typing doesn't fire one per keystroke.
   useEffect(() => {
     const timer = setTimeout(() => {
-      refresh().catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      refresh().catch(() => {})
     }, 250)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, query])
 
   async function handleAction(name: string, action: ServiceActionName) {
-    setError(null)
     setPending((p) => ({ ...p, [name]: action }))
     try {
       await runServiceAction(name, action)
       await refresh()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setPending((p) => ({ ...p, [name]: undefined }))
     }
@@ -86,8 +83,6 @@ export default function ServicesPage() {
           </Select>
         </div>
       </div>
-
-      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {units && units.length === 0 && <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('services.empty')}</p>}
       {units && units.length > 0 && (

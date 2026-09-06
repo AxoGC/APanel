@@ -15,7 +15,6 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { formatBytes, formatBitrate } from '@/lib/format'
-import { ApiError } from '@/lib/api'
 import { useDependencyGate } from '@/lib/useDependencyGate'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -84,12 +83,10 @@ export default function HistoryPage() {
   const { t } = useI18n()
   const [daysAgo, setDaysAgo] = useState(0)
   const [day, setDay] = useState<HistoryDay | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<CollectionTargetName>('cpu')
   const [settings, setSettings] = useState<HistoryCollectionSettings | null>(null)
-  const [settingsError, setSettingsError] = useState<string | null>(null)
   const [savingSettings, setSavingSettings] = useState(false)
   const { dialogOpen: dependencyOpen, setDialogOpen: setDependencyOpen } = useDependencyGate('history')
 
@@ -102,31 +99,28 @@ export default function HistoryPage() {
   }
 
   useEffect(() => {
-    setError(null)
     getHistory(daysAgo)
       .then(setDay)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }, [daysAgo])
 
   function openSettings() {
-    setSettingsError(null)
     setSettingsTarget('cpu')
     setSettingsOpen(true)
     getHistorySettings()
       .then(setSettings)
-      .catch((err) => setSettingsError(err instanceof ApiError ? err.message : String(err)))
+      .catch(() => {})
   }
 
   async function submitSettings(e: FormEvent) {
     e.preventDefault()
     if (!settings) return
     setSavingSettings(true)
-    setSettingsError(null)
     try {
       setSettings(await putHistorySettings(settings))
       setSettingsOpen(false)
-    } catch (err) {
-      setSettingsError(err instanceof ApiError ? err.message : String(err))
+    } catch {
+      // surfaced by the global error dialog
     } finally {
       setSavingSettings(false)
     }
@@ -194,8 +188,6 @@ export default function HistoryPage() {
           </Button>
         </div>
       </div>
-
-      {error && <p className="mt-4 px-4 text-xs text-red-600 sm:px-6">{error}</p>}
 
       {day && day.points.length === 0 && (
         <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('history.empty')}</p>
@@ -336,8 +328,6 @@ export default function HistoryPage() {
                     </div>
                   </>
                 )}
-
-                {settingsError && <p className="text-xs text-red-600">{settingsError}</p>}
               </div>
             </div>
 
