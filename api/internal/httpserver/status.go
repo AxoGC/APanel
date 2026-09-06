@@ -23,12 +23,15 @@ const invalidEnabledFeatures response.Code = "INVALID_ENABLED_FEATURES"
 // aren't in this list — they're mandatory, pinned first and last.)
 var moduleOrder = []string{
 	"terminal", "services", "files",
-	"containers", "history", "firewall", "proxy", "database",
+	"containers", "history", "firewall", "proxy", "database", "auditlog",
 }
 
-// mandatoryEnabledFeatures are always on — terminal, files, and services
-// depend on nothing external, so there's nothing to detect for them.
-var mandatoryEnabledFeatures = []string{"terminal", "services", "files"}
+// mandatoryEnabledFeatures start enabled — terminal, files, services, and
+// auditlog depend on nothing external, so there's nothing to detect for
+// them. "Mandatory" only describes this initial-detection default: like
+// every other entry in moduleOrder, the admin can still toggle any of these
+// off from the "enable modules" dialog.
+var mandatoryEnabledFeatures = []string{"terminal", "services", "files", "auditlog"}
 
 var knownModules = func() map[string]struct{} {
 	m := make(map[string]struct{}, len(moduleOrder))

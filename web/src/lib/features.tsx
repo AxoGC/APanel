@@ -11,6 +11,7 @@ export type ModuleKey =
   | 'firewall'
   | 'proxy'
   | 'database'
+  | 'auditlog'
 
 export interface ModuleStatus {
   key: ModuleKey

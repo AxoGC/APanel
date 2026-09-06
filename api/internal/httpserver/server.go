@@ -86,7 +86,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(rec, r)
 
 	if remark, ok := s.auth.CurrentUserRemark(r); ok {
-		s.auditLog.Record(remark, pattern, r.Method, r.URL.Path, rec.status)
+		s.auditLog.Record(remark, pattern, r.Method, r.URL.Path, rec.status, auditlog.ClientIP(r))
 	}
 }
 

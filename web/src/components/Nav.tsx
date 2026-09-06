@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, ScrollText, Settings, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -9,11 +9,12 @@ import { cn } from '@/lib/utils'
 
 type NavItem = { to: string; labelKey: TranslationKey; icon: LucideIcon }
 
-// Dashboard, the audit log, and Settings aren't part of the enable/reorder
-// system — they're mandatory, pinned first, second-to-last, and last
-// respectively.
+// Dashboard and Settings aren't part of the enable/reorder system — they're
+// mandatory, pinned first and last. The audit log is just another
+// togglable/reorderable module (see lib/modules) even though its recording
+// middleware runs regardless of whether it's enabled here — this toggle
+// only controls whether it has a nav entry and shows up in the reorder list.
 const DASHBOARD_ITEM = { to: '/', labelKey: 'nav.dashboard', icon: Gauge } satisfies NavItem
-const AUDITLOG_ITEM = { to: '/auditlog', labelKey: 'nav.auditlog', icon: ScrollText } satisfies NavItem
 const SETTINGS_ITEM = { to: '/settings', labelKey: 'nav.settings', icon: Settings } satisfies NavItem
 
 function itemClasses(isActive: boolean, collapsed: boolean): string {
@@ -62,7 +63,6 @@ export function Nav() {
   const visibleItems = [
     DASHBOARD_ITEM,
     ...features.modules.filter((m) => m.enabled).map((m) => MODULE_META[m.key]),
-    AUDITLOG_ITEM,
     SETTINGS_ITEM,
   ]
 

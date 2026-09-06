@@ -1,8 +1,8 @@
-import { Box, Database, FolderOpen, History, Server, Shield, SquareTerminal, Waypoints, type LucideIcon } from 'lucide-react'
+import { Box, Database, FolderOpen, History, ScrollText, Server, Shield, SquareTerminal, Waypoints, type LucideIcon } from 'lucide-react'
 import type { ModuleKey } from './features'
 import type { TranslationKey } from './i18n'
 
-// Shared metadata for the 8 togglable/reorderable modules — Nav and the
+// Shared metadata for the 9 togglable/reorderable modules — Nav and the
 // "enable modules" dialog both render off this, so a module's route,
 // label, and icon live in exactly one place. Order here doubles as the
 // default order (matches the backend's moduleOrder) before the admin
@@ -17,6 +17,7 @@ export const MODULE_ORDER: ModuleKey[] = [
   'firewall',
   'proxy',
   'database',
+  'auditlog',
 ]
 
 export const MODULE_META: Record<ModuleKey, { to: string; labelKey: TranslationKey; icon: LucideIcon }> = {
@@ -28,6 +29,7 @@ export const MODULE_META: Record<ModuleKey, { to: string; labelKey: TranslationK
   firewall: { to: '/firewall', labelKey: 'nav.firewall', icon: Shield },
   proxy: { to: '/proxy', labelKey: 'nav.proxy', icon: Waypoints },
   database: { to: '/database', labelKey: 'nav.database', icon: Database },
+  auditlog: { to: '/auditlog', labelKey: 'nav.auditlog', icon: ScrollText },
 }
 
 // The 5 optional extensions that can have a checkable local dependency

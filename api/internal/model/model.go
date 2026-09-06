@@ -42,4 +42,5 @@ type AuditLog struct {
 	Method     string    `json:"method"`
 	Path       string    `json:"path"`
 	Status     int       `json:"status"`
+	IP         string    `json:"ip"`
 }

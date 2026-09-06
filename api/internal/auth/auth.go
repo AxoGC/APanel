@@ -277,14 +277,14 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 
 	s.setCookie(w, token, session.ExpiresAt)
-	s.audit.Record(user.Remark, "POST /api/login", r.Method, r.URL.Path, http.StatusOK)
+	s.audit.Record(user.Remark, "POST /api/login", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
 	response.WriteOK(w, nil)
 }
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(cookieName); err == nil {
 		if session, ok := s.check(r); ok {
-			s.audit.Record(s.users.Remark(session.UserID), "POST /api/logout", r.Method, r.URL.Path, http.StatusOK)
+			s.audit.Record(s.users.Remark(session.UserID), "POST /api/logout", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
 		}
 		s.db.Delete(&model.Session{}, "token = ?", cookie.Value)
 		s.mu.Lock()
@@ -346,7 +346,7 @@ func (s *Service) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.audit.Record(s.users.Remark(session.UserID), "POST /api/change-password", r.Method, r.URL.Path, http.StatusOK)
+	s.audit.Record(s.users.Remark(session.UserID), "POST /api/change-password", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
 	response.WriteOK(w, nil)
 }
 

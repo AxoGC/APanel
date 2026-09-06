@@ -8,6 +8,7 @@ export interface AuditLogEntry {
   method: string
   path: string
   status: number
+  ip: string
 }
 
 export function getAuditLog(params: { limit?: number; beforeId?: number } = {}) {

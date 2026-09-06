@@ -35,6 +35,18 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+function statusTagClasses(status: number): string {
+  if (status >= 500) return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+  if (status >= 400) return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+  return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+}
+
+function StatusTag({ status }: { status: number }) {
+  return (
+    <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', statusTagClasses(status))}>{status}</span>
+  )
+}
+
 export default function AuditLogPage() {
   const { t, locale } = useI18n()
   const [entries, setEntries] = useState<AuditLogEntry[]>([])
@@ -83,12 +95,12 @@ export default function AuditLogPage() {
 
       {entries.length > 0 && (
         <>
-          <div className="mt-4 hidden items-center gap-3 border-b border-gray-200 px-4 pb-1.5 text-xs text-gray-500 sm:px-6 md:flex">
-            <div className="w-24 shrink-0">{t('auditlog.time')}</div>
-            <div className="w-28 shrink-0">{t('auditlog.user')}</div>
+          <div className="mt-4 flex items-center gap-1 border-b border-gray-200 px-4 pb-1.5 text-xs text-gray-500 sm:px-6 md:gap-3">
+            <div className="w-18 shrink-0 md:w-24">{t('auditlog.time')}</div>
+            <div className="w-22 shrink-0 md:w-28">{t('auditlog.user')}</div>
             <div className="min-w-0 flex-1">{t('auditlog.action')}</div>
-            <div className="w-14 shrink-0">{t('auditlog.status')}</div>
-            <div className="hidden w-20 shrink-0 lg:block">{t('auditlog.method')}</div>
+            <div className="hidden w-14 shrink-0 md:block">{t('auditlog.status')}</div>
+            <div className="hidden w-32 shrink-0 lg:block">{t('auditlog.ip')}</div>
           </div>
 
           <ScrollArea className="mt-2 min-h-0 grow px-4 sm:px-6">
@@ -98,19 +110,19 @@ export default function AuditLogPage() {
                   key={entry.id}
                   type="button"
                   onClick={() => setDetail(entry)}
-                  className="flex cursor-pointer items-center gap-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex cursor-pointer items-center gap-1 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-800 md:gap-3"
                 >
-                  <div className="w-16 shrink-0 text-xs text-gray-500 md:w-24">{formatShortTime(entry.at)}</div>
-                  <div className="w-16 shrink-0 truncate text-xs text-gray-700 md:w-28 dark:text-gray-300">
+                  <div className="w-18 shrink-0 text-xs text-gray-500 md:w-24">{formatShortTime(entry.at)}</div>
+                  <div className="w-22 shrink-0 truncate text-xs text-gray-700 md:w-28 dark:text-gray-300">
                     {entry.userRemark || t('auditlog.unknownUser')}
                   </div>
                   <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">
                     {actionLabel(entry, t)}
                   </div>
-                  <div className={cn('hidden w-14 shrink-0 text-xs md:block', entry.status >= 400 ? 'text-red-600' : 'text-gray-500')}>
-                    {entry.status}
+                  <div className="hidden w-14 shrink-0 md:block">
+                    <StatusTag status={entry.status} />
                   </div>
-                  <div className="hidden w-20 shrink-0 text-xs text-gray-500 lg:block">{entry.method}</div>
+                  <div className="hidden w-32 shrink-0 truncate text-xs text-gray-500 lg:block">{entry.ip}</div>
                 </button>
               ))}
             </div>
@@ -140,7 +152,11 @@ export default function AuditLogPage() {
             <DetailRow label={t('auditlog.action')} value={actionLabel(detail, t)} />
             <DetailRow label={t('auditlog.method')} value={detail.method} />
             <DetailRow label={t('auditlog.path')} value={detail.path} />
-            <DetailRow label={t('auditlog.status')} value={String(detail.status)} />
+            <DetailRow label={t('auditlog.ip')} value={detail.ip} />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-gray-500">{t('auditlog.status')}</span>
+              <div><StatusTag status={detail.status} /></div>
+            </div>
           </div>
         )}
       </SectionedDialog>

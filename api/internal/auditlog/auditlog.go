@@ -14,6 +14,9 @@ package auditlog
 
 import (
 	"log"
+	"net"
+	"net/http"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -40,7 +43,7 @@ func New(db *gorm.DB) *Manager {
 // verbatim regardless so the entry is still meaningful even for a pattern
 // with no label yet. Failures are only logged, not surfaced: a broken audit
 // write should never take down the request it's trying to record.
-func (m *Manager) Record(remark, pattern, method, path string, status int) {
+func (m *Manager) Record(remark, pattern, method, path string, status int, ip string) {
 	entry := model.AuditLog{
 		At:         time.Now(),
 		UserRemark: remark,
@@ -48,10 +51,35 @@ func (m *Manager) Record(remark, pattern, method, path string, status int) {
 		Method:     method,
 		Path:       path,
 		Status:     status,
+		IP:         ip,
 	}
 	if err := m.db.Create(&entry).Error; err != nil {
 		log.Printf("auditlog: record failed: %v", err)
 	}
+}
+
+// ClientIP reports the address an audit entry should attribute a request
+// to. It trusts X-Forwarded-For/X-Real-IP (set by the Nginx reverse-proxy
+// setup documented in the install guide) ahead of the raw TCP peer, since
+// apanel has no configured set of trusted proxies to check those headers
+// against; that's an acceptable tradeoff for an accountability trail among
+// a small set of already-trusted admin accounts, not a security boundary.
+func ClientIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		if i := strings.IndexByte(fwd, ','); i >= 0 {
+			fwd = fwd[:i]
+		}
+		if ip := strings.TrimSpace(fwd); ip != "" {
+			return ip
+		}
+	}
+	if real := strings.TrimSpace(r.Header.Get("X-Real-IP")); real != "" {
+		return real
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
 }
 
 // List returns entries newest-first, at most limit of them, starting just
