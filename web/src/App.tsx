@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
+import AuditLogPage from '@/modules/auditlog/Page'
 import ContainersPage from '@/modules/containers/Page'
 import DashboardPage from '@/modules/dashboard/Page'
 import DatabasePage from '@/modules/database/Page'
@@ -50,6 +51,7 @@ function Shell() {
               <Route path="/firewall" element={<FirewallPage />} />
               <Route path="/proxy" element={<ProxyPage />} />
               <Route path="/database" element={<DatabasePage />} />
+              <Route path="/auditlog" element={<AuditLogPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
             {terminalStarted && (

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"apanel/internal/auditlog"
 	"apanel/internal/auth"
 	"apanel/internal/response"
 	"apanel/internal/settings"
@@ -23,6 +24,7 @@ type Server struct {
 	auth               *auth.Service
 	stats              *stats.Collector
 	settings           *settings.Manager
+	auditLog           *auditlog.Manager
 	registrars         []RouteRegistrar
 	dependencyCheckers map[string]DependencyChecker
 	mux                *http.ServeMux
@@ -32,11 +34,12 @@ type Server struct {
 // dashboard, terminal, status/system, the embedded SPA), plus one
 // RegisterRoutes call per registrar for everything business-specific —
 // httpserver itself never imports container/service/firewall/history/files.
-func New(authSvc *auth.Service, statsCollector *stats.Collector, settingsMgr *settings.Manager, registrars ...RouteRegistrar) *Server {
+func New(authSvc *auth.Service, statsCollector *stats.Collector, settingsMgr *settings.Manager, auditLogMgr *auditlog.Manager, registrars ...RouteRegistrar) *Server {
 	s := &Server{
 		auth:               authSvc,
 		stats:              statsCollector,
 		settings:           settingsMgr,
+		auditLog:           auditLogMgr,
 		registrars:         registrars,
 		dependencyCheckers: make(map[string]DependencyChecker),
 		mux:                http.NewServeMux(),
@@ -50,8 +53,55 @@ func New(authSvc *auth.Service, statsCollector *stats.Collector, settingsMgr *se
 	return s
 }
 
+// mutatingMethods are the HTTP methods ServeHTTP records to the audit log —
+// see instrumentedServeHTTP.
+var mutatingMethods = map[string]bool{
+	http.MethodPost:   true,
+	http.MethodPut:    true,
+	http.MethodPatch:  true,
+	http.MethodDelete: true,
+}
+
+// auditExemptPaths are handled by internal/auth itself, which calls
+// auditLog.Record directly: login only resolves an acting identity mid-
+// handler (on a successful password match), which the generic
+// instrumentation below — keyed off the request's already-established
+// session — can't see, and change-password/logout read that identity from
+// the session before it changes. Everything else goes through the generic
+// path.
+var auditExemptPaths = map[string]bool{
+	"/api/login":           true,
+	"/api/logout":          true,
+	"/api/change-password": true,
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	if !mutatingMethods[r.Method] || auditExemptPaths[r.URL.Path] {
+		s.mux.ServeHTTP(w, r)
+		return
+	}
+
+	_, pattern := s.mux.Handler(r)
+	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+	s.mux.ServeHTTP(rec, r)
+
+	if remark, ok := s.auth.CurrentUserRemark(r); ok {
+		s.auditLog.Record(remark, pattern, r.Method, r.URL.Path, rec.status)
+	}
+}
+
+// statusRecorder captures the status code a handler writes, defaulting to
+// 200 (net/http's own default when a handler calls Write without ever
+// calling WriteHeader) so a successful response that never sets one
+// explicitly is still recorded correctly.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rec *statusRecorder) WriteHeader(status int) {
+	rec.status = status
+	rec.ResponseWriter.WriteHeader(status)
 }
 
 func (s *Server) routes() {
@@ -60,6 +110,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/logout", s.auth.Logout)
 	s.mux.HandleFunc("GET /api/session", s.auth.Session)
 	s.mux.Handle("POST /api/change-password", s.auth.Middleware(http.HandlerFunc(s.auth.ChangePassword)))
+	s.auditLog.RegisterRoutes(s.mux, s.auth.Middleware)
 
 	s.mux.Handle("GET /api/dashboard/stream", s.auth.Middleware(http.HandlerFunc(s.dashboardStream)))
 	s.mux.Handle("GET /api/dashboard/processes/{pid}", s.auth.Middleware(http.HandlerFunc(s.processDetail)))

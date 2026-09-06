@@ -1,6 +1,6 @@
-// Package auth implements apanel's single-operator login: one shared
-// password (bcrypt-hashed, stored in the config table), a 7-day cookie
-// session backed by a DB table.
+// Package auth implements apanel's login: a per-user password (see
+// internal/users; there's no permission system, just per-user
+// attribution), a 7-day cookie session backed by a DB table.
 package auth
 
 import (
@@ -12,28 +12,23 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"apanel/internal/auditlog"
 	"apanel/internal/model"
 	"apanel/internal/response"
-	"apanel/internal/settings"
+	"apanel/internal/users"
 )
 
 const (
 	cookieName = "apanel_session"
 	sessionTTL = 7 * 24 * time.Hour
-
-	// passwordHashKey is the settings key the bcrypt-hashed login password
-	// is stored under. There is no env var for the password any more: on
-	// first run apanel generates one, hashes it, and stores it here.
-	passwordHashKey = "auth.password_hash"
 
 	// INVALID_TOKEN is returned when the session cookie is missing, unknown,
 	// or expired, and also when a login attempt uses the wrong password.
@@ -59,14 +54,12 @@ const (
 )
 
 type Service struct {
-	db       *gorm.DB
-	settings *settings.Manager
+	db    *gorm.DB
+	users *users.Manager
+	audit *auditlog.Manager
 
-	// passwordHash is read on every login and change-password request, and
-	// written by ChangePassword, so it's guarded by mu alongside sessions.
-	mu           sync.RWMutex
-	passwordHash []byte
-	sessions     map[string]model.Session
+	mu       sync.RWMutex
+	sessions map[string]model.Session
 
 	// challenges holds one ephemeral ECDH keypair per in-flight login
 	// attempt, keyed by challenge ID. See Challenge and decryptLoginPassword.
@@ -79,7 +72,7 @@ type loginChallenge struct {
 	expiresAt  time.Time
 }
 
-func New(db *gorm.DB, settingsMgr *settings.Manager) (*Service, error) {
+func New(db *gorm.DB, usersMgr *users.Manager, auditMgr *auditlog.Manager) (*Service, error) {
 	var sessions []model.Session
 	if err := db.Where("expires_at > ?", time.Now()).Find(&sessions).Error; err != nil {
 		return nil, err
@@ -90,59 +83,17 @@ func New(db *gorm.DB, settingsMgr *settings.Manager) (*Service, error) {
 		byToken[session.Token] = session
 	}
 
-	hash, err := bootstrapPasswordHash(settingsMgr)
-	if err != nil {
+	if err := usersMgr.Bootstrap(); err != nil {
 		return nil, err
 	}
 
 	return &Service{
-		db:           db,
-		settings:     settingsMgr,
-		passwordHash: hash,
-		sessions:     byToken,
-		challenges:   make(map[string]loginChallenge),
+		db:         db,
+		users:      usersMgr,
+		audit:      auditMgr,
+		sessions:   byToken,
+		challenges: make(map[string]loginChallenge),
 	}, nil
-}
-
-// bootstrapPasswordHash loads the stored password hash, or — on a fresh
-// install where none exists yet — generates a random password, hashes it,
-// stores the hash, and prints the plaintext once so the operator can log in
-// and change it to one of their own choosing.
-func bootstrapPasswordHash(settingsMgr *settings.Manager) ([]byte, error) {
-	if stored, ok, err := settingsMgr.Get(passwordHashKey); err != nil {
-		return nil, err
-	} else if ok {
-		return []byte(stored), nil
-	}
-
-	plain, err := generatePassword()
-	if err != nil {
-		return nil, err
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-	if err := settingsMgr.Set(passwordHashKey, string(hash)); err != nil {
-		return nil, err
-	}
-
-	log.Printf("apanel: no login password set yet, generated one: %s", plain)
-	log.Printf("apanel: log in with it and change it to one of your own choosing as soon as possible")
-	return hash, nil
-}
-
-// generatePassword returns a random 16-character alphanumeric password.
-func generatePassword() (string, error) {
-	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	buf := make([]byte, 16)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
-	for i, b := range buf {
-		buf[i] = alphabet[int(b)%len(alphabet)]
-	}
-	return string(buf), nil
 }
 
 func newToken() (string, error) {
@@ -296,11 +247,12 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.mu.RLock()
-	hash := s.passwordHash
-	s.mu.RUnlock()
-
-	if bcrypt.CompareHashAndPassword(hash, []byte(password)) != nil {
+	user, matched, err := s.users.FindByPassword(password)
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	if !matched {
 		response.WriteCode(w, http.StatusUnauthorized, INVALID_TOKEN)
 		return
 	}
@@ -312,6 +264,7 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	session := model.Session{
 		Token:     token,
+		UserID:    user.ID,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(sessionTTL),
 	}
@@ -324,11 +277,15 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 
 	s.setCookie(w, token, session.ExpiresAt)
+	s.audit.Record(user.Remark, "POST /api/login", r.Method, r.URL.Path, http.StatusOK)
 	response.WriteOK(w, nil)
 }
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(cookieName); err == nil {
+		if session, ok := s.check(r); ok {
+			s.audit.Record(s.users.Remark(session.UserID), "POST /api/logout", r.Method, r.URL.Path, http.StatusOK)
+		}
 		s.db.Delete(&model.Session{}, "token = ?", cookie.Value)
 		s.mu.Lock()
 		delete(s.sessions, cookie.Value)
@@ -348,10 +305,16 @@ func (s *Service) Session(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, nil)
 }
 
-// ChangePassword updates the login password. It requires the current
-// password, and is only reachable by a caller who already holds a valid
-// session (see Middleware).
+// ChangePassword updates the caller's own login password. It requires the
+// current password, and is only reachable by a caller who already holds a
+// valid session (see Middleware).
 func (s *Service) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.check(r)
+	if !ok {
+		response.WriteCode(w, http.StatusUnauthorized, INVALID_TOKEN)
+		return
+	}
+
 	var req struct {
 		CurrentPassword string `json:"currentPassword"`
 		NewPassword     string `json:"newPassword"`
@@ -360,33 +323,44 @@ func (s *Service) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		response.WriteInternalError(w, err)
 		return
 	}
-	if len(req.NewPassword) < 8 {
-		response.WriteCode(w, http.StatusBadRequest, PASSWORD_TOO_SHORT)
-		return
-	}
 
-	s.mu.RLock()
-	hash := s.passwordHash
-	s.mu.RUnlock()
-	if bcrypt.CompareHashAndPassword(hash, []byte(req.CurrentPassword)) != nil {
-		response.WriteCode(w, http.StatusUnauthorized, WRONG_PASSWORD)
-		return
-	}
-
-	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	verified, err := s.users.VerifyPassword(session.UserID, req.CurrentPassword)
 	if err != nil {
 		response.WriteInternalError(w, err)
 		return
 	}
-	if err := s.settings.Set(passwordHashKey, string(newHash)); err != nil {
-		response.WriteInternalError(w, fmt.Errorf("store new password: %w", err))
+	if !verified {
+		response.WriteCode(w, http.StatusUnauthorized, WRONG_PASSWORD)
 		return
 	}
 
-	s.mu.Lock()
-	s.passwordHash = newHash
-	s.mu.Unlock()
+	if err := s.users.SetPassword(session.UserID, req.NewPassword); err != nil {
+		switch {
+		case errors.Is(err, users.ErrPasswordTooShort):
+			response.WriteCode(w, http.StatusBadRequest, PASSWORD_TOO_SHORT)
+		case errors.Is(err, users.ErrPasswordDuplicate):
+			response.WriteCode(w, http.StatusBadRequest, users.PASSWORD_DUPLICATE)
+		default:
+			response.WriteInternalError(w, err)
+		}
+		return
+	}
+
+	s.audit.Record(s.users.Remark(session.UserID), "POST /api/change-password", r.Method, r.URL.Path, http.StatusOK)
 	response.WriteOK(w, nil)
+}
+
+// CurrentUserRemark resolves the request's session to its user's audit-log
+// display name, for httpserver's global request-logging instrumentation
+// (see internal/auditlog and httpserver.Server.ServeHTTP) — unauthenticated
+// requests never reach a mutating handler in the first place, so this is
+// only ever called for requests Middleware has already approved.
+func (s *Service) CurrentUserRemark(r *http.Request) (string, bool) {
+	session, ok := s.check(r)
+	if !ok {
+		return "", false
+	}
+	return s.users.Remark(session.UserID), true
 }
 
 func (s *Service) check(r *http.Request) (model.Session, bool) {
@@ -405,6 +379,17 @@ func (s *Service) check(r *http.Request) (model.Session, bool) {
 		s.mu.Lock()
 		delete(s.sessions, cookie.Value)
 		s.mu.Unlock()
+		return model.Session{}, false
+	}
+	// The user behind this session may have since been deleted (see
+	// internal/users) — without this, a deleted user's session would stay
+	// valid until it naturally expires, up to sessionTTL later, defeating
+	// the point of being able to remove someone's access.
+	if !s.users.Exists(session.UserID) {
+		s.mu.Lock()
+		delete(s.sessions, cookie.Value)
+		s.mu.Unlock()
+		s.db.Delete(&model.Session{}, "token = ?", cookie.Value)
 		return model.Session{}, false
 	}
 	return session, true

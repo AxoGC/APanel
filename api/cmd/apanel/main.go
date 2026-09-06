@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"apanel/internal/auditlog"
 	"apanel/internal/auth"
 	"apanel/internal/config"
 	"apanel/internal/container"
@@ -19,6 +20,7 @@ import (
 	"apanel/internal/settings"
 	"apanel/internal/stats"
 	"apanel/internal/update"
+	"apanel/internal/users"
 )
 
 func main() {
@@ -50,13 +52,15 @@ func main() {
 	databaseMgr := database.New(settingsMgr)
 	updateMgr := update.New(settingsMgr)
 	updateMgr.Start(context.Background())
+	usersMgr := users.New(gormDB)
+	auditMgr := auditlog.New(gormDB)
 
-	authSvc, err := auth.New(gormDB, settingsMgr)
+	authSvc, err := auth.New(gormDB, usersMgr, auditMgr)
 	if err != nil {
 		log.Fatalf("auth: %v", err)
 	}
 	statsCollector := stats.NewCollector()
-	server := httpserver.New(authSvc, statsCollector, settingsMgr, services, containers, historyMgr, firewallMgr, filesMgr, proxyMgr, databaseMgr, updateMgr)
+	server := httpserver.New(authSvc, statsCollector, settingsMgr, auditMgr, services, containers, historyMgr, firewallMgr, filesMgr, proxyMgr, databaseMgr, updateMgr, usersMgr)
 
 	if cfg.TLSCert != "" {
 		log.Printf("apanel listening on %s (https)", cfg.ListenAddr)

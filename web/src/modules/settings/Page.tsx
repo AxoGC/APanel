@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
-import { BookOpen, Database, KeyRound, ListChecks, LogOut, RefreshCw } from 'lucide-react'
+import { BookOpen, Database, KeyRound, ListChecks, LogOut, RefreshCw, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ToggleButton } from '@/components/ToggleButton'
@@ -30,6 +30,7 @@ import { ChangePasswordDialog } from './ChangePasswordDialog'
 import { EnableModulesDialog } from './EnableModulesDialog'
 import { SiteDataDialog } from './SiteDataDialog'
 import { UpdateDialog } from './UpdateDialog'
+import { UsersDialog } from './UsersDialog'
 
 const SCHEMES: ColorScheme[] = ['light', 'dark', 'system']
 const LOCALES: Locale[] = ['en', 'zh']
@@ -89,6 +90,7 @@ export default function SettingsPage() {
   const [siteDataDialogOpen, setSiteDataDialogOpen] = useState(false)
   const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false)
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
+  const [usersDialogOpen, setUsersDialogOpen] = useState(false)
 
   useEffect(() => {
     getSystemInfo()
@@ -199,6 +201,10 @@ export default function SettingsPage() {
           <RefreshCw />
           {t('settings.update')}
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setUsersDialogOpen(true)}>
+          <Users />
+          {t('settings.users')}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => void logout()}>
           <LogOut />
           {t('settings.signOut')}
@@ -209,6 +215,7 @@ export default function SettingsPage() {
       <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
       <SiteDataDialog open={siteDataDialogOpen} onOpenChange={setSiteDataDialogOpen} />
       <UpdateDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} />
+      <UsersDialog open={usersDialogOpen} onOpenChange={setUsersDialogOpen} />
 
       <div className="grid grid-cols-2 gap-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
           <a

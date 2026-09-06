@@ -37,7 +37,7 @@ func Open() (*gorm.DB, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	if err := db.AutoMigrate(&model.ConfigEntry{}, &model.Session{}); err != nil {
+	if err := db.AutoMigrate(&model.ConfigEntry{}, &model.User{}, &model.Session{}, &model.AuditLog{}); err != nil {
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}
 	return db, nil

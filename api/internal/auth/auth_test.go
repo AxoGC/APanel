@@ -14,20 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/crypto/bcrypt"
-
+	"apanel/internal/auditlog"
 	"apanel/internal/db"
-	"apanel/internal/settings"
+	"apanel/internal/users"
 )
-
-func bcryptHash(t *testing.T, password string) []byte {
-	t.Helper()
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return hash
-}
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
@@ -36,11 +26,29 @@ func newTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := New(gormDB, settings.New(gormDB))
+	svc, err := New(gormDB, users.New(gormDB), auditlog.New(gormDB))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return svc
+}
+
+// setPassword replaces the bootstrapped user's password with a known one,
+// so the rest of a test can log in with it directly instead of trying to
+// recover the randomly generated bootstrap plaintext (which can't be — only
+// its hash is ever stored).
+func setPassword(t *testing.T, svc *Service, password string) {
+	t.Helper()
+	infos, err := svc.users.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(infos) != 1 {
+		t.Fatalf("expected exactly one bootstrapped user, got %d", len(infos))
+	}
+	if err := svc.users.SetPassword(infos[0].ID, password); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // encryptedLoginBody plays the browser's half of the exchange using the
@@ -126,16 +134,7 @@ func doLogin(svc *Service, body []byte) *httptest.ResponseRecorder {
 
 func TestLoginWithCorrectPasswordSucceeds(t *testing.T) {
 	svc := newTestService(t)
-
-	if _, ok, err := svc.settings.Get(passwordHashKey); err != nil || !ok {
-		t.Fatalf("expected a bootstrapped password hash, ok=%v err=%v", ok, err)
-	}
-
-	// The generated plaintext can't be recovered from the hash, so swap in a
-	// known password directly for the rest of the test.
-	svc.mu.Lock()
-	svc.passwordHash = bcryptHash(t, "correct horse battery staple")
-	svc.mu.Unlock()
+	setPassword(t, svc, "correct horse battery staple")
 
 	challengeID, publicKey := getChallenge(t, svc)
 	body := encryptedLoginBody(t, challengeID, publicKey, "correct horse battery staple")
@@ -151,9 +150,7 @@ func TestLoginWithCorrectPasswordSucceeds(t *testing.T) {
 
 func TestLoginWithWrongPasswordFails(t *testing.T) {
 	svc := newTestService(t)
-	svc.mu.Lock()
-	svc.passwordHash = bcryptHash(t, "the-real-password")
-	svc.mu.Unlock()
+	setPassword(t, svc, "the-real-password")
 
 	challengeID, publicKey := getChallenge(t, svc)
 	body := encryptedLoginBody(t, challengeID, publicKey, "a-guess")
@@ -166,9 +163,7 @@ func TestLoginWithWrongPasswordFails(t *testing.T) {
 
 func TestLoginChallengeIsSingleUse(t *testing.T) {
 	svc := newTestService(t)
-	svc.mu.Lock()
-	svc.passwordHash = bcryptHash(t, "the-real-password")
-	svc.mu.Unlock()
+	setPassword(t, svc, "the-real-password")
 
 	challengeID, publicKey := getChallenge(t, svc)
 	body := encryptedLoginBody(t, challengeID, publicKey, "the-real-password")
