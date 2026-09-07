@@ -61,7 +61,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
     <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.networks.title')} className="max-w-3xl" height="85vh">
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t('containers.networks.filter')}</span>
+          <span className="hidden text-xs text-gray-500 sm:inline">{t('containers.networks.filter')}</span>
           <Select value={filter} onValueChange={(value) => setFilter(value as NetworkFilter)}>
             <SelectTrigger>
               <SelectValue />

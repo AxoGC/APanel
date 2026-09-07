@@ -109,7 +109,7 @@ export function VolumeManagerDialog({ open, onOpenChange }: { open: boolean; onO
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">{t('containers.volumes.filter')}</span>
+            <span className="hidden text-xs text-gray-500 sm:inline">{t('containers.volumes.filter')}</span>
             <Select value={filter} onValueChange={(value) => setFilter(value as VolumeFilter)}>
               <SelectTrigger>
                 <SelectValue />
@@ -125,14 +125,14 @@ export function VolumeManagerDialog({ open, onOpenChange }: { open: boolean; onO
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus />
-              {t('containers.volumes.create')}
+              <span className="hidden sm:inline">{t('containers.volumes.create')}</span>
             </Button>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" disabled={selected.size === 0 || deleting}>
                   <Trash2 />
-                  {t('containers.volumes.delete')}
+                  <span className="hidden sm:inline">{t('containers.volumes.delete')}</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
