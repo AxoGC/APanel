@@ -330,6 +330,37 @@ func (m *Manager) ListImageTags(ctx context.Context) ([]string, error) {
 	return tags, nil
 }
 
+// ImageVolumes returns the container filesystem paths an image's Dockerfile
+// declared with VOLUME — the image author's signal for "this holds data
+// that should survive container removal, mount something here" — so the
+// create-container UI can pre-fill mount rows for them instead of leaving
+// the admin to dig through the Dockerfile themselves. Returns an empty
+// (never nil) slice for an image with no declared volumes.
+func (m *Manager) ImageVolumes(ctx context.Context, ref string) ([]string, error) {
+	inspect, err := m.cli.ImageInspect(ctx, ref)
+	if err != nil {
+		if cerrdefs.IsNotFound(err) {
+			return nil, ErrInvalidImage
+		}
+		return nil, err
+	}
+
+	var declared map[string]struct{}
+	switch {
+	case inspect.Config != nil:
+		declared = inspect.Config.Volumes
+	case inspect.ContainerConfig != nil:
+		declared = inspect.ContainerConfig.Volumes
+	}
+
+	paths := make([]string, 0, len(declared))
+	for path := range declared {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths, nil
+}
+
 // ListNetworks returns Docker networks together with the containers
 // attached to each one.
 func (m *Manager) ListNetworks(ctx context.Context) ([]Network, error) {

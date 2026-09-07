@@ -31,6 +31,7 @@ func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handl
 	mux.Handle("GET /api/containers/images", requireAuth(http.HandlerFunc(m.listContainerImages)))
 	mux.Handle("POST /api/containers/images/delete", requireAuth(http.HandlerFunc(m.deleteContainerImages)))
 	mux.Handle("GET /api/containers/images/tags", requireAuth(http.HandlerFunc(m.listContainerImageTags)))
+	mux.Handle("GET /api/containers/images/volumes", requireAuth(http.HandlerFunc(m.listImageVolumes)))
 	mux.Handle("GET /api/containers/networks", requireAuth(http.HandlerFunc(m.listContainerNetworks)))
 	mux.Handle("POST /api/containers/networks/{id}/delete", requireAuth(http.HandlerFunc(m.deleteContainerNetwork)))
 	mux.Handle("GET /api/containers/volumes", requireAuth(http.HandlerFunc(m.listContainerVolumes)))
@@ -160,6 +161,23 @@ func (m *Manager) listContainerImageTags(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	response.WriteOK(w, tags)
+}
+
+// listImageVolumes is a best-effort convenience for the create-container
+// form: an empty/unrecognized ref just means "nothing to suggest yet" (the
+// admin may still be typing it), not an error worth surfacing.
+func (m *Manager) listImageVolumes(w http.ResponseWriter, r *http.Request) {
+	ref := strings.TrimSpace(r.URL.Query().Get("ref"))
+	if ref == "" {
+		response.WriteOK(w, []string{})
+		return
+	}
+	paths, err := m.ImageVolumes(r.Context(), ref)
+	if err != nil {
+		response.WriteOK(w, []string{})
+		return
+	}
+	response.WriteOK(w, paths)
 }
 
 func (m *Manager) listContainerNetworks(w http.ResponseWriter, r *http.Request) {

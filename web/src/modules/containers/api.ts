@@ -56,6 +56,13 @@ export function listContainerImageTags() {
   return apiFetch<string[]>('/containers/images/tags')
 }
 
+// The container paths an image's Dockerfile declared with VOLUME — used to
+// pre-fill the create-container form's mount rows. Best-effort: an
+// unrecognized/still-being-typed ref just comes back empty, not an error.
+export function listImageVolumes(ref: string) {
+  return apiFetch<string[]>(`/containers/images/volumes?ref=${encodeURIComponent(ref)}`)
+}
+
 export function deleteContainerImages(ids: string[]) {
   return apiFetch<null>('/containers/images/delete', {
     method: 'POST',

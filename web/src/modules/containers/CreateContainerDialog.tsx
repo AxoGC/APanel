@@ -1,13 +1,21 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Combobox } from '@/components/Combobox'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { ToggleButton } from '@/components/ToggleButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
-import { createContainer, listContainerImageTags, listContainerNetworks, type ContainerNetwork } from './api'
+import {
+  createContainer,
+  listContainerImageTags,
+  listContainerNetworks,
+  listImageVolumes,
+  type ContainerNetwork,
+} from './api'
 
 // Lets the footer's submit button (rendered as a sibling of the form, not a
 // descendant — see SectionedDialog) still submit this form via the HTML
@@ -43,6 +51,24 @@ function linesOf(text: string): string[] {
     .filter(Boolean)
 }
 
+type MountType = 'volume' | 'bind'
+
+interface MountRow {
+  key: number
+  type: MountType
+  source: string
+  target: string
+}
+
+// Docker's Binds syntax is identical for a named volume and a bind mount —
+// "source:target" — so the type toggle is purely a UI affordance (guides
+// the source placeholder / autocomplete); both encode the same way here.
+function mountsToVolumeStrings(rows: MountRow[]): string[] {
+  return rows
+    .filter((row) => row.source.trim() !== '' && row.target.trim() !== '')
+    .map((row) => `${row.source.trim()}:${row.target.trim()}`)
+}
+
 export function CreateContainerDialog({
   open,
   onOpenChange,
@@ -61,11 +87,27 @@ export function CreateContainerDialog({
   const [networkMode, setNetworkMode] = useState('bridge')
   const [restartPolicy, setRestartPolicy] = useState<RestartPolicy>('no')
   const [env, setEnv] = useState('')
-  const [volumes, setVolumes] = useState('')
+  const [mounts, setMounts] = useState<MountRow[]>([])
 
   const [imageTags, setImageTags] = useState<string[]>([])
   const [networks, setNetworks] = useState<ContainerNetwork[]>([])
   const [creating, setCreating] = useState(false)
+  const nextMountKey = useRef(0)
+
+  function addMountRow(row?: Partial<Omit<MountRow, 'key'>>) {
+    setMounts((current) => [
+      ...current,
+      { key: nextMountKey.current++, type: 'volume', source: '', target: '', ...row },
+    ])
+  }
+
+  function updateMountRow(key: number, patch: Partial<Omit<MountRow, 'key'>>) {
+    setMounts((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)))
+  }
+
+  function removeMountRow(key: number) {
+    setMounts((current) => current.filter((row) => row.key !== key))
+  }
 
   useEffect(() => {
     if (!open) return
@@ -76,7 +118,7 @@ export function CreateContainerDialog({
     setNetworkMode('bridge')
     setRestartPolicy('no')
     setEnv('')
-    setVolumes('')
+    setMounts([])
     Promise.all([listContainerImageTags(), listContainerNetworks()])
       .then(([tags, nets]) => {
         setImageTags(tags)
@@ -84,6 +126,35 @@ export function CreateContainerDialog({
       })
       .catch(() => {})
   }, [open])
+
+  // Pre-fills a mount row (defaulting to a named volume) for every path the
+  // image's Dockerfile declared with VOLUME — the image author's own signal
+  // for what needs to survive container removal — so switching to a bind
+  // mount is an explicit opt-in click on the row's type control instead of
+  // the admin having to already know the image's Dockerfile by heart.
+  useEffect(() => {
+    const ref = image.trim()
+    if (!open || !ref) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      listImageVolumes(ref)
+        .then((paths) => {
+          if (cancelled || paths.length === 0) return
+          setMounts((current) => {
+            const existingTargets = new Set(current.map((row) => row.target))
+            const additions = paths
+              .filter((path) => !existingTargets.has(path))
+              .map((path) => ({ key: nextMountKey.current++, type: 'volume' as const, source: '', target: path }))
+            return additions.length > 0 ? [...current, ...additions] : current
+          })
+        })
+        .catch(() => {})
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [open, image])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -97,7 +168,7 @@ export function CreateContainerDialog({
         networkMode,
         restartPolicy,
         env: linesOf(env),
-        volumes: linesOf(volumes),
+        volumes: mountsToVolumeStrings(mounts),
       })
       onCreated(created.id)
       onOpenChange(false)
@@ -193,14 +264,74 @@ export function CreateContainerDialog({
           />
         </FormRow>
 
-        <FormRow label={t('containers.create.volumes')}>
-          <Textarea
-            value={volumes}
-            onChange={(e) => setVolumes(e.target.value)}
-            placeholder={t('containers.create.volumes.placeholder')}
-            rows={3}
-          />
-        </FormRow>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-gray-500">{t('containers.create.volumes')}</span>
+          <div className="flex flex-col">
+            <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-1.5 dark:border-gray-800">
+              <div className="w-[4.5rem] shrink-0 text-xs text-gray-500">{t('containers.create.volumes.type')}</div>
+              <div className="min-w-32 flex-1 text-xs text-gray-500">{t('containers.create.volumes.source')}</div>
+              <div className="min-w-32 flex-1 text-xs text-gray-500">{t('containers.create.volumes.target')}</div>
+              <div className="flex w-8 shrink-0 justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('containers.create.volumes.add')}
+                  onClick={() => addMountRow()}
+                >
+                  <Plus />
+                </Button>
+              </div>
+            </div>
+
+            {mounts.length === 0 && <p className="py-3 text-xs text-gray-500">{t('containers.create.volumes.empty')}</p>}
+
+            {mounts.map((row) => (
+              <div
+                key={row.key}
+                className="flex flex-wrap items-center gap-2 border-b border-gray-100 py-2 last:border-b-0 dark:border-gray-900"
+              >
+                <div className="w-[4.5rem] shrink-0">
+                  <SegmentedControl
+                    options={[
+                      { value: 'volume', label: t('containers.create.volumes.type.volume') },
+                      { value: 'bind', label: t('containers.create.volumes.type.bind') },
+                    ]}
+                    value={row.type}
+                    onChange={(type) => updateMountRow(row.key, { type })}
+                  />
+                </div>
+                <Input
+                  className="min-w-32 flex-1"
+                  value={row.source}
+                  onChange={(e) => updateMountRow(row.key, { source: e.target.value })}
+                  placeholder={
+                    row.type === 'volume'
+                      ? t('containers.create.volumes.source.volumePlaceholder')
+                      : t('containers.create.volumes.source.bindPlaceholder')
+                  }
+                />
+                <Input
+                  className="min-w-32 flex-1"
+                  value={row.target}
+                  onChange={(e) => updateMountRow(row.key, { target: e.target.value })}
+                  placeholder={t('containers.create.volumes.target.placeholder')}
+                />
+                <div className="flex w-8 shrink-0 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t('containers.create.volumes.remove')}
+                    onClick={() => removeMountRow(row.key)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </form>
     </SectionedDialog>
   )
