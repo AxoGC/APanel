@@ -141,55 +141,38 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
 curl -fsSL https://raw.githubusercontent.com/axogc/apanel/main/install.sh | sudo bash
 ```
 
-如果你的服务器因网络问题无法访问GitHub，可以尝试下面的命令：
+如果你的服务器网络无法访问GitHub，可以尝试下面的命令：
 
 ```bash
 curl -fsSL https://apanel.axogc.net/install.sh | sudo bash
 ```
-这个脚本将会下载并解压最新版本程序，删除并替换旧的可执行文件，如果有旧的数据和`.service`文件，则保留，如果没有，则创建最小化的`.service`文件，然后重启apanel服务。
+这个脚本将会：
+
+- 下载最新版APanel，并解压到`/usr/local/bin/apanel`（如果有旧版，将替换）；
+- 创建最小化`/etc/systemd/system/apanel.service`文件（如果有旧版，就保留）；
+- 启动APanel服务；
 
 如果你想手动逐步安装，不想用一键脚本，请参阅[apanel.axogc.net/install.html](https://apanel.axogc.net/install.html)
 
 如果你想自己编译程序，请参阅[apanel.axogc.net/build.html](https://apanel.axogc.net/build.html)
 
-APanel 没有配置文件的概念：默认端口是`8123`，数据（包括登录密码）都存放在自己的 sqlite 数据库里，不需要单独部署或配置数据库。首次启动时，如果数据库里还没有任何用户，APanel 会自动创建一个、生成一个随机密码并打印到日志中：
-
-```bash
-sudo journalctl -u apanel | grep "generated one"
-```
-
-用这个密码登录后，请尽快到「设置」里改成自己的密码。如果想更换监听端口或直接用 APanel 终止 HTTPS，请编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分内联声明环境变量（见下一节示例），而不是去找一个配置文件。
-
 ### 3.3 启用 HTTPS：二选一
 
-APanel 强烈建议通过 HTTPS 使用：登录密码本身在传输时已加密保护，但登录后的会话与所有后续操作（文件内容、终端输入输出等）在明文 HTTP 下都会被暴露，详见[安全使用](https://apanel.axogc.net/secure.html)。请选择以下一种方式启用 HTTPS；不需要同时配置两者。
+APanel强烈建议启用HTTPS，以保护你的服务器的密码等隐私，可以直接APanel配置证书，也可以用已经配置证书的Nginx对APanel反向代理。详见[安全使用](https://apanel.axogc.net/secure.html)。
 
 #### 方式 A：由 APanel 直接终止 TLS
 
-适合不需要反向代理、愿意让 APanel 直接监听 HTTPS 端口的部署。
-
-此方式下，普通 HTTP API 与 Web 终端 WebSocket 都由 APanel 的同一个 HTTPS 监听器直接提供，无需额外的 WebSocket 配置。
-
-编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分内联声明证书、私钥和 HTTPS 监听地址：
+编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分声明证书、私钥和：
 
 ```ini
 [Service]
 ExecStart=/usr/local/bin/apanel
-Environment=APANEL_LISTEN_ADDR=:443
-Environment=APANEL_TLS_CERT=/etc/letsencrypt/live/panel.example.com/fullchain.pem
-Environment=APANEL_TLS_KEY=/etc/letsencrypt/live/panel.example.com/privkey.pem
+Environment=APANEL_TLS_CERT=/path/to/fullchain.pem
+Environment=APANEL_TLS_KEY=/path/to/privkey.pem
 Restart=on-failure
 ```
 
-重新加载并重启服务后，直接访问 `https://panel.example.com`：
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart apanel
-sudo systemctl status apanel
-```
-
-证书续期后，同样重新加载并重启 APanel 以应用新证书：
+重新加载并重启服务：
 
 ```bash
 sudo systemctl daemon-reload
@@ -225,27 +208,12 @@ server {
 
 ### 3.4 升级
 
-升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体步骤（含一键脚本和手动升级）请参阅[apanel.axogc.net/upgrade.html](https://apanel.axogc.net/upgrade.html)。
+升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体请参阅[apanel.axogc.net/upgrade.html](https://apanel.axogc.net/upgrade.html)。
 
-## 4. 安全说明
-
-APanel 是高权限管理工具，不是普通网站。
-
-- 当前阶段服务默认以 root 身份运行。
-- 登录用户可以操作 systemd 服务、Docker、文件、防火墙和本机终端。
-- Web 终端实际执行的是服务器命令，权限与 APanel 进程相同。
-- 强烈建议通过 HTTPS 部署。明文 HTTP 下登录密码本身受保护，但会话和登录后的所有操作都以明文传输，存在被窃取或篡改的风险；APanel 会在明文 HTTP 下显示风险提示，但不会阻止使用。
-- 首次启动自动生成的密码请尽快在「设置」中改成自己的密码；密码经 bcrypt 哈希后存放在 APanel 自己的 sqlite 数据库里，不会以明文形式出现在任何配置文件中。
-- 建议通过 VPN、访问控制列表或可信反向代理限制访问来源。
-- 不建议将未采取额外安全措施的实例直接暴露到公网。
-- 执行升级、删除文件、删除镜像或修改防火墙前，请先做好备份并确认影响范围。
-
-APanel 支持多个登录账号（在「设置 → 用户管理」中添加，登录时仍然只需要输入密码，系统会自动匹配到对应账号），但目前所有账号权限完全相同，不提供角色或细粒度权限系统——多账号的作用仅仅是配合「审计日志」区分"是谁做的"，不能用来限制某个账号能做什么。
-
-### 4.1 忘记密码
+### 3.5 忘记密码
 
 忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.html](https://apanel.axogc.net/install.html)的「5. 忘记密码」一节。
 
-## 5. 许可证
+## 4. 许可证
 
 APanel 使用 [GPLv3](./LICENSE) 许可证开源。
