@@ -11,7 +11,7 @@ APanel 是一个移动端优先、Linux原生、轻量级的Web运维面板，�
 
 ### 名称由来
 
-`APanel` 的命名灵感借鉴 1Panel：`1` 是第一个阿拉伯数字，`A` 是第一个英文字母。
+`APanel`的命名借鉴 1Panel：`1` 是第一个数字，`A` 是第一个字母。
 
 `A` 也代表作者创立的 [Axolotland Gaming Club（AxoGC）](https://www.axogc.net)，一个致力于开源软件、独立游戏、Minecraft服务器的非盈利圈子。
 
@@ -120,6 +120,15 @@ APanel 受到 [1Panel](https://github.com/1Panel-dev/1Panel) 的启发。我曾�
   <img src="docs/docs/public/assets/screenshots/proxy-desktop.webp" height="420" alt="代理设置 - 桌面端">
 </p>
 
+### 日志审计
+
+- 存储面板的历史操作记录，便于追溯。包括操作用户、源IP、操作时间等，默认保留7天。
+
+<p align="center">
+  <img src="docs/docs/public/assets/screenshots/auditlog.webp" height="420" alt="日志审计 - 移动端">
+  <img src="docs/docs/public/assets/screenshots/auditlog-desktop.webp" height="420" alt="日志审计 - 桌面端">
+</p>
+
 ### Web 终端
 
 - 支持`sh`/`bash`/`zsh`/`fish`，连接状态持久化，切换页面后连接不断开。
@@ -162,7 +171,7 @@ APanel强烈建议启用HTTPS，以保护你的服务器的密码等隐私，可
 
 #### 方式 A：由 APanel 直接终止 TLS
 
-编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分声明证书、私钥和：
+编辑`/etc/systemd/system/apanel.service`，在`[Service]`部分声明证书、私钥：
 
 ```ini
 [Service]
@@ -212,7 +221,7 @@ server {
 
 ### 3.5 忘记密码
 
-忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.html](https://apanel.axogc.net/install.html)的「5. 忘记密码」一节。
+忘记登录密码时，可以直接删除`/var/lib/apanel/apanel.db`数据库，也可以只重置密码、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.html](https://apanel.axogc.net/install.html)的「5. 忘记密码」一节。
 
 ## 4. 许可证
 
