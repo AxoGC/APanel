@@ -1,13 +1,13 @@
-import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, Settings, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Gauge, PanelRightClose, PanelRightOpen, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useFeatures } from '@/lib/features'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
-import { MODULE_META } from '@/lib/modules'
+import { MODULE_META, type ModuleIcon } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 
-type NavItem = { to: string; labelKey: TranslationKey; icon: LucideIcon }
+type NavItem = { to: string; labelKey: TranslationKey; icon: ModuleIcon }
 
 // Dashboard and Settings aren't part of the enable/reorder system — they're
 // mandatory, pinned first and last. The audit log is just another

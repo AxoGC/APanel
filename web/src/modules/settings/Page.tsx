@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import colors from 'tailwindcss/colors'
+import { SiBilibili, SiGithub, SiQq } from '@icons-pack/react-simple-icons'
 import { BookOpen, Database, ListChecks, LogOut, RefreshCw, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
@@ -22,10 +23,7 @@ import {
   type ThemeHue,
 } from '@/lib/theme'
 import { cn } from '@/lib/utils'
-import bilibiliIcon from '@/assets/bilibili.svg'
-import githubIcon from '@/assets/github.svg'
 import logo from '@/assets/logo.svg'
-import qqIcon from '@/assets/qq.svg'
 import { getDiskUsage, getSystemInfo, type DiskPartition, type SystemInfo } from './api'
 import { EnableModulesDialog } from './EnableModulesDialog'
 import { SiteDataDialog } from './SiteDataDialog'
@@ -270,7 +268,7 @@ export default function SettingsPage() {
             rel="noreferrer"
             className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
           >
-            <img src={githubIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
+            <SiGithub className="size-4" />
             GitHub
           </a>
           <a
@@ -279,7 +277,7 @@ export default function SettingsPage() {
             rel="noreferrer"
             className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
           >
-            <img src={qqIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
+            <SiQq className="size-4" />
             {t('settings.about.qqGroup')} 704280441
           </a>
           <a
@@ -288,7 +286,7 @@ export default function SettingsPage() {
             rel="noreferrer"
             className="flex w-fit cursor-pointer items-center gap-1.5 text-theme-700 hover:underline dark:text-theme-300"
           >
-            <img src={bilibiliIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
+            <SiBilibili className="size-4" />
             Bilibili
           </a>
         </div>

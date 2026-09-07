@@ -1,6 +1,12 @@
-import { Box, Database, FolderOpen, History, ScrollText, Server, Shield, SquareTerminal, Waypoints, type LucideIcon } from 'lucide-react'
+import { SiDocker } from '@icons-pack/react-simple-icons'
+import { Database, FolderOpen, History, ScrollText, Server, Shield, SquareTerminal, Waypoints } from 'lucide-react'
+import type { ComponentType } from 'react'
 import type { ModuleKey } from './features'
 import type { TranslationKey } from './i18n'
+
+// Covers both lucide-react icons and @icons-pack/react-simple-icons brand
+// icons — MODULE_META mixes the two (Docker uses its real product mark).
+export type ModuleIcon = ComponentType<{ className?: string }>
 
 // Shared metadata for the 9 togglable/reorderable modules — Nav and the
 // "enable modules" dialog both render off this, so a module's route,
@@ -20,11 +26,11 @@ export const MODULE_ORDER: ModuleKey[] = [
   'auditlog',
 ]
 
-export const MODULE_META: Record<ModuleKey, { to: string; labelKey: TranslationKey; icon: LucideIcon }> = {
+export const MODULE_META: Record<ModuleKey, { to: string; labelKey: TranslationKey; icon: ModuleIcon }> = {
   terminal: { to: '/terminal', labelKey: 'nav.terminal', icon: SquareTerminal },
   services: { to: '/services', labelKey: 'nav.services', icon: Server },
   files: { to: '/files', labelKey: 'nav.files', icon: FolderOpen },
-  containers: { to: '/containers', labelKey: 'nav.containers', icon: Box },
+  containers: { to: '/containers', labelKey: 'nav.containers', icon: SiDocker },
   history: { to: '/history', labelKey: 'nav.history', icon: History },
   firewall: { to: '/firewall', labelKey: 'nav.firewall', icon: Shield },
   proxy: { to: '/proxy', labelKey: 'nav.proxy', icon: Waypoints },
