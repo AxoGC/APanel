@@ -1,6 +1,5 @@
 import { ArrowLeft, Plug } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useDependencyGate } from '@/lib/useDependencyGate'
@@ -14,6 +13,7 @@ import {
   type TableInfo,
 } from './api'
 import { ColumnsDialog } from './ColumnsDialog'
+import { DatabaseConnectionDialog } from './ConnectionDialog'
 import { DatabaseTable, DatabaseTableHeader } from './DatabaseTable'
 import { TableList, TableListHeader } from './TableList'
 
@@ -162,7 +162,7 @@ export default function DatabasePage() {
         </>
       )}
 
-      <DependencyDialog moduleKey="database" open={dialogOpen} onOpenChange={setDialogOpen} />
+      <DatabaseConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       {selectedDatabase !== null && (
         <ColumnsDialog
           database={selectedDatabase}

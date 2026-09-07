@@ -12,6 +12,7 @@ export function SectionedDialog({
   open,
   onOpenChange,
   title,
+  headerButton,
   footer,
   children,
   className,
@@ -22,6 +23,9 @@ export function SectionedDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
+  // An extra icon button in the title row, to the left of the close (X)
+  // button — e.g. a link to documentation. Caller owns its styling.
+  headerButton?: ReactNode
   footer?: ReactNode
   children: ReactNode
   className?: string
@@ -41,10 +45,13 @@ export function SectionedDialog({
       >
         <div className="flex items-center justify-between gap-3 border-b border-gray-100 p-4 dark:border-gray-800">
           <DialogTitle className="min-w-0 truncate">{title}</DialogTitle>
-          <DialogClose className="shrink-0 cursor-pointer rounded-sm text-gray-500 outline-none hover:text-gray-700 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:text-gray-300">
-            <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
-          </DialogClose>
+          <div className="flex shrink-0 items-center gap-1">
+            {headerButton}
+            <DialogClose className="cursor-pointer rounded-sm text-gray-500 outline-none hover:text-gray-700 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:text-gray-300">
+              <XIcon className="size-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </div>
         </div>
 
         <div className={cn('scrollbar-shadcn min-h-0 flex-1 overflow-y-auto overscroll-contain p-4', bodyClassName)}>
