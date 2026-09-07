@@ -86,7 +86,7 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
   }
 
   return (
-    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.images.title')} className="max-w-3xl" height="85vh">
+    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.images.title')} className="max-w-3xl" height="85vh" drawer>
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">

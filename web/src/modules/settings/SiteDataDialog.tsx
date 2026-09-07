@@ -75,6 +75,7 @@ export function SiteDataDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         onOpenChange={onOpenChange}
         title={t('settings.siteData.title')}
         className="max-w-lg"
+        drawer
         footer={
           <div className="flex justify-end">
             <Button

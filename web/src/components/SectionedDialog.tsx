@@ -19,6 +19,7 @@ export function SectionedDialog({
   bodyClassName,
   onOpenAutoFocus,
   height,
+  drawer,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -34,6 +35,10 @@ export function SectionedDialog({
   // Explicit dialog height (e.g. "85vh"). Omit to size the dialog to its
   // content instead, up to DialogContent's own max-height cap.
   height?: string
+  // On narrow screens (below Tailwind's sm breakpoint), render as a
+  // bottom sheet that slides up instead of a centered modal. At sm and
+  // above this has no effect — the dialog looks exactly as it always did.
+  drawer?: boolean
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,9 +46,15 @@ export function SectionedDialog({
         showCloseButton={false}
         onOpenAutoFocus={onOpenAutoFocus}
         height={height}
+        drawer={drawer}
         className={cn('flex flex-col gap-0 p-0', className)}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-gray-100 p-4 dark:border-gray-800">
+        <div
+          className={cn(
+            'flex items-center justify-between gap-3 border-b border-gray-100 p-4 dark:border-gray-800',
+            drawer && 'pt-6 sm:pt-4',
+          )}
+        >
           <DialogTitle className="min-w-0 truncate">{title}</DialogTitle>
           <div className="flex shrink-0 items-center gap-1">
             {headerButton}

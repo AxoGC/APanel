@@ -48,6 +48,7 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
       onOpenChange={onOpenChange}
       title={detail ? displayName(detail.name) : t('services.detail.title')}
       className="max-w-lg"
+      drawer
     >
       {detail && (
         <div className="grid grid-cols-2 gap-4">

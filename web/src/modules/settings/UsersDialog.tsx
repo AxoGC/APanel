@@ -251,6 +251,7 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       onOpenChange={onOpenChange}
       title={t('settings.users.title')}
       className="max-w-sm"
+      drawer
       footer={
         <Button size="sm" className="w-full" onClick={() => setAddOpen(true)}>
           <UserPlus />

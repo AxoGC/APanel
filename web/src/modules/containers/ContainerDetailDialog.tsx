@@ -48,6 +48,7 @@ export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null;
       onOpenChange={onOpenChange}
       title={detail ? detail.name : t('containers.detail.title')}
       className="max-w-lg"
+      drawer
     >
       {detail && (
         <div className="grid grid-cols-2 gap-4">

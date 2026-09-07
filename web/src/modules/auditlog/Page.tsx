@@ -147,6 +147,7 @@ export default function AuditLogPage() {
         onOpenChange={(nextOpen) => !nextOpen && setDetail(null)}
         title={t('auditlog.detail.title')}
         className="max-w-sm"
+        drawer
       >
         {detail && (
           <div className="flex flex-col gap-3">
