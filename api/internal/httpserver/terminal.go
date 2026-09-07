@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/creack/pty"
@@ -35,26 +36,40 @@ type terminalDirectories struct {
 	Directories []terminalDirectory `json:"directories"`
 }
 
-var terminalShells = map[string]string{
-	"bash": "bash",
-	"sh":   "sh",
-	"zsh":  "zsh",
-	"fish": "fish",
-}
+// terminalShellOrder is both the set of shells apanel knows how to offer and
+// the order they're presented in — preferred/most common first — since a
+// Go map wouldn't give a stable iteration order for either purpose.
+var terminalShellOrder = []string{"bash", "zsh", "fish", "sh"}
 
 func terminalShell(name string) (string, error) {
 	if name == "" {
 		name = "bash"
 	}
-	binary, ok := terminalShells[name]
-	if !ok {
+	if !slices.Contains(terminalShellOrder, name) {
 		return "", fmt.Errorf("unsupported shell")
 	}
-	path, err := exec.LookPath(binary)
+	path, err := exec.LookPath(name)
 	if err != nil {
 		return "", fmt.Errorf("%s is unavailable", name)
 	}
 	return path, nil
+}
+
+// availableTerminalShells probes PATH for each shell apanel knows how to
+// offer, returning only the ones actually installed on this system — so the
+// frontend's shell picker never lists an option that would fail to connect.
+func availableTerminalShells() []string {
+	shells := make([]string, 0, len(terminalShellOrder))
+	for _, name := range terminalShellOrder {
+		if _, err := exec.LookPath(name); err == nil {
+			shells = append(shells, name)
+		}
+	}
+	return shells
+}
+
+func (s *Server) listTerminalShells(w http.ResponseWriter, r *http.Request) {
+	response.WriteOK(w, availableTerminalShells())
 }
 
 func (s *Server) listTerminalDirectories(w http.ResponseWriter, r *http.Request) {

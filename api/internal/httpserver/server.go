@@ -117,6 +117,7 @@ func (s *Server) routes() {
 	s.mux.Handle("PUT /api/dashboard/network-settings", s.auth.Middleware(http.HandlerFunc(s.putDashboardNetworkSettings)))
 	s.mux.Handle("GET /api/terminal", s.auth.Middleware(http.HandlerFunc(s.terminal)))
 	s.mux.Handle("GET /api/terminal/directories", s.auth.Middleware(http.HandlerFunc(s.listTerminalDirectories)))
+	s.mux.Handle("GET /api/terminal/shells", s.auth.Middleware(http.HandlerFunc(s.listTerminalShells)))
 
 	for _, r := range s.registrars {
 		r.RegisterRoutes(s.mux, s.auth.Middleware)

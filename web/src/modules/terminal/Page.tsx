@@ -8,10 +8,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { apiFetch } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 
-type Shell = 'bash' | 'sh' | 'zsh' | 'fish'
+type Shell = string
 type ThemeMode = 'light' | 'dark' | 'app'
-
-const SHELLS: Shell[] = ['bash', 'sh', 'zsh', 'fish']
 
 interface TerminalDirectory {
   name: string
@@ -58,15 +56,39 @@ export default function TerminalPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const [terminalInstance, setTerminalInstance] = useState<Terminal | null>(null)
-  const [shell, setShell] = useState<Shell>('bash')
+  const [shells, setShells] = useState<Shell[] | null>(null)
+  const [shell, setShell] = useState<Shell>('')
   const [themeMode, setThemeMode] = useState<ThemeMode>('app')
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
   const [cwd, setCwd] = useState('')
   const [directories, setDirectories] = useState<TerminalDirectory[] | null>(null)
 
+  // Probe once on entry for which shells are actually installed on this
+  // system, then default to whichever one it lists first — the terminal
+  // connection effect below waits for that before opening its socket, so
+  // it never tries to spawn a shell the backend won't find.
+  useEffect(() => {
+    let cancelled = false
+    void apiFetch<Shell[]>('/terminal/shells')
+      .then((available) => {
+        if (cancelled) return
+        setShells(available)
+        setShell((current) => current || available[0] || 'bash')
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setShells([])
+          setShell((current) => current || 'bash')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container || !shell) return
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -167,17 +189,18 @@ export default function TerminalPage() {
             <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.shell')}</span>
             <Select
               value={shell}
+              disabled={!shell}
               onValueChange={(value) => {
                 setCwd('')
                 setDirectories(null)
-                setShell(value as Shell)
+                setShell(value)
               }}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {SHELLS.map((value) => (
+                {shells?.map((value) => (
                   <SelectItem key={value} value={value}>
                     {value}
                   </SelectItem>
