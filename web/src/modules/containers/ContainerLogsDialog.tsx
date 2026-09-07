@@ -13,7 +13,7 @@ import {
   containerLogsStreamUrl,
   getContainerDetail,
   getContainerLogs,
-  type ContainerInfo,
+  type ContainerLogsTarget,
 } from './api'
 
 const LINE_OPTIONS = [100, 500, 1000, 2000]
@@ -44,7 +44,7 @@ export function ContainerLogsDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  container: ContainerInfo | null
+  container: ContainerLogsTarget | null
 }) {
   const { t } = useI18n()
   const [mode, setMode] = useState<ViewMode>('logs')
@@ -220,8 +220,8 @@ export function ContainerLogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-w-2xl flex-col gap-0 p-0" height="85vh" showCloseButton={false}>
-        <div className="flex items-center justify-between gap-2 p-4 pb-3">
+      <DialogContent className="flex max-w-2xl flex-col gap-0 p-0" height="85vh" showCloseButton={false} drawer>
+        <div className="flex items-center justify-between gap-2 p-4 pt-6 pb-3 sm:pt-4">
           <DialogTitle className="truncate">
             {container ? `${container.name} — ${t('containers.logs')}` : ''}
           </DialogTitle>

@@ -50,7 +50,7 @@ export function CreateContainerDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreated: () => void
+  onCreated: (id: string) => void
 }) {
   const { t } = useI18n()
 
@@ -89,7 +89,7 @@ export function CreateContainerDialog({
     e.preventDefault()
     setCreating(true)
     try {
-      await createContainer({
+      const created = await createContainer({
         name,
         image,
         tty,
@@ -99,7 +99,7 @@ export function CreateContainerDialog({
         env: linesOf(env),
         volumes: linesOf(volumes),
       })
-      onCreated()
+      onCreated(created.id)
       onOpenChange(false)
     } catch {
       // surfaced by the global error dialog

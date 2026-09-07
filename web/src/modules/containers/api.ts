@@ -14,6 +14,12 @@ export interface ContainerRef {
   name: string
 }
 
+// What ContainerLogsDialog actually needs to identify and describe its
+// target — satisfied by both the list's ContainerInfo rows and the fuller
+// ContainerDetail returned right after creation, so the dialog can be
+// opened from either without reshaping one into the other.
+export type ContainerLogsTarget = Pick<ContainerInfo, 'id' | 'name' | 'state'>
+
 export interface ContainerImage {
   id: string
   name: string

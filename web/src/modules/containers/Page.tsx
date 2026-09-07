@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
+  getContainerDetail,
   listContainers,
   runContainerAction,
   type ContainerActionName,
   type ContainerInfo,
+  type ContainerLogsTarget,
   type StatusFilter,
 } from './api'
 import { ContainerDetailDialog } from './ContainerDetailDialog'
@@ -27,7 +29,7 @@ export default function ContainersPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ContainerActionName | undefined>>({})
-  const [logsFor, setLogsFor] = useState<ContainerInfo | null>(null)
+  const [logsFor, setLogsFor] = useState<ContainerLogsTarget | null>(null)
   const [detailFor, setDetailFor] = useState<string | null>(null)
   const [imagesOpen, setImagesOpen] = useState(false)
   const [networksOpen, setNetworksOpen] = useState(false)
@@ -64,6 +66,18 @@ export default function ContainersPage() {
   useEffect(() => {
     if (mobileSearchOpen) searchInputRef.current?.focus()
   }, [mobileSearchOpen])
+
+  // Jumps straight to the new container's logs so its startup output is
+  // immediately visible, rather than leaving the admin to find and click it
+  // in the list themselves right after creating it.
+  async function handleCreated(id: string) {
+    await refresh().catch(() => {})
+    try {
+      setLogsFor(await getContainerDetail(id))
+    } catch {
+      // surfaced by the global error dialog
+    }
+  }
 
   async function handleAction(id: string, action: ContainerActionName) {
     setPending((p) => ({ ...p, [id]: action }))
@@ -170,7 +184,7 @@ export default function ContainersPage() {
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
       <VolumeManagerDialog open={volumesOpen} onOpenChange={setVolumesOpen} />
-      <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
+      <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={(id) => void handleCreated(id)} />
     </div>
   )
 }
