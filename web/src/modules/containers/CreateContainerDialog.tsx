@@ -268,7 +268,7 @@ export function CreateContainerDialog({
           <span className="text-xs text-gray-500">{t('containers.create.volumes')}</span>
           <div className="flex flex-col">
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-1.5 dark:border-gray-800">
-              <div className="w-[4.5rem] shrink-0 text-xs text-gray-500">{t('containers.create.volumes.type')}</div>
+              <div className="shrink-0 text-xs whitespace-nowrap text-gray-500">{t('containers.create.volumes.type')}</div>
               <div className="min-w-32 flex-1 text-xs text-gray-500">{t('containers.create.volumes.source')}</div>
               <div className="min-w-32 flex-1 text-xs text-gray-500">{t('containers.create.volumes.target')}</div>
               <div className="flex w-8 shrink-0 justify-end">
@@ -291,7 +291,7 @@ export function CreateContainerDialog({
                 key={row.key}
                 className="flex flex-wrap items-center gap-2 border-b border-gray-100 py-2 last:border-b-0 dark:border-gray-900"
               >
-                <div className="w-[4.5rem] shrink-0">
+                <div className="shrink-0">
                   <SegmentedControl
                     options={[
                       { value: 'volume', label: t('containers.create.volumes.type.volume') },
