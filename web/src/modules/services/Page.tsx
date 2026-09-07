@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -38,7 +38,17 @@ export default function ServicesPage() {
   // filter change, debounced so typing doesn't fire one per keystroke. This
   // list is fast because it never reads unit files — see the enablement
   // stream below for that.
+  //
+  // The very first run (mount) skips the debounce — there's no keystroke to
+  // coalesce yet, so waiting 250ms here only delayed the initial load for no
+  // reason.
+  const mounted = useRef(false)
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      refresh().catch(() => {})
+      return
+    }
     const timer = setTimeout(() => {
       refresh().catch(() => {})
     }, 250)
