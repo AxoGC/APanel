@@ -61,20 +61,16 @@ export default function ServicesPage() {
   // typing doesn't restart it. ListUnitFiles (which this is built from) took
   // ~550ms for a few hundred units in testing since it walks and parses
   // every unit file on disk, so it runs once in the background rather than
-  // blocking every list request the way it used to.
-  //
-  // Held back until the first list response lands (sseReady), rather than
-  // opened on mount: firing it immediately competed with the page's own
-  // first paint for a connection, so the fast list ended up waiting behind
-  // it in the network waterfall — exactly what splitting the request into
-  // two was meant to avoid.
-  const [sseReady, setSseReady] = useState(false)
+  // blocking every list request the way it used to. Opened on mount, in
+  // parallel with the list request: with only two requests in flight, well
+  // under the browser's per-origin connection limit, there's no contention
+  // to stagger them for — an EventSource is a background resource and
+  // doesn't block rendering either way. (An earlier version of this effect
+  // waited for the list to load first, on the theory that it was competing
+  // with the list request for a connection; that wasn't actually the
+  // mechanism — the list's delay was the debounce below, since fixed — so
+  // staggering them only made this stream finish later for no benefit.)
   useEffect(() => {
-    if (units !== null) setSseReady(true)
-  }, [units])
-
-  useEffect(() => {
-    if (!sseReady) return
     const source = new EventSource(serviceEnablementStreamUrl())
     source.onmessage = (event) => {
       const data = JSON.parse(event.data as string) as { name: string; state: string }
@@ -84,7 +80,7 @@ export default function ServicesPage() {
     source.addEventListener('failed', () => source.close())
     source.onerror = () => source.close()
     return () => source.close()
-  }, [sseReady])
+  }, [])
 
   // Merges the enablement stream into whatever List returned. Under the
   // "all" filter this also adds rows for services List() couldn't see at
