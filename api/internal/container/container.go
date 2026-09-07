@@ -105,6 +105,10 @@ type Detail struct {
 	StartedAt     *time.Time `json:"startedAt"`
 	RestartPolicy string     `json:"restartPolicy"`
 	Platform      string     `json:"platform"`
+	// OpenStdin reports whether the container was created with stdin kept
+	// open — the logs dialog uses it to decide whether Attach mode is worth
+	// offering at all, before ever opening the attach WebSocket.
+	OpenStdin bool `json:"openStdin"`
 	// Networks holds one entry per attached network, formatted as "name"
 	// or "name (ip)" when the endpoint has an address.
 	Networks []string `json:"networks"`
@@ -675,9 +679,11 @@ func (m *Manager) Detail(ctx context.Context, id string) (Detail, error) {
 
 	var env []string
 	var image string
+	var openStdin bool
 	if insp.Config != nil {
 		env = insp.Config.Env
 		image = insp.Config.Image
+		openStdin = insp.Config.OpenStdin
 	}
 
 	name := strings.TrimPrefix(insp.Name, "/")
@@ -697,6 +703,7 @@ func (m *Manager) Detail(ctx context.Context, id string) (Detail, error) {
 		Ports:         ports,
 		Mounts:        mounts,
 		Env:           env,
+		OpenStdin:     openStdin,
 	}, nil
 }
 

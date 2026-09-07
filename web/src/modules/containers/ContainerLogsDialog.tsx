@@ -11,6 +11,7 @@ import { useI18n } from '@/lib/i18n'
 import {
   containerAttachSocketUrl,
   containerLogsStreamUrl,
+  getContainerDetail,
   getContainerLogs,
   type ContainerInfo,
 } from './api'
@@ -53,12 +54,25 @@ export function ContainerLogsDialog({
   const [error, setError] = useState<string | null>(null)
   const [attachState, setAttachState] = useState<AttachState>('disconnected')
   const [attachInfo, setAttachInfo] = useState<AttachInfo | null>(null)
+  const [openStdin, setOpenStdin] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef(content)
 
   const id = container?.id ?? ''
   const canAttach = container?.state === 'running'
+
+  // Whether to offer Attach mode at all depends on stdin being open on the
+  // container, which the list view doesn't carry — fetched once per open so
+  // the logs/attach segmented control can be hidden up front instead of
+  // only after a failed or read-only attach.
+  useEffect(() => {
+    if (!open || !container) return
+    setOpenStdin(false)
+    getContainerDetail(container.id)
+      .then((detail) => setOpenStdin(detail.openStdin))
+      .catch(() => {})
+  }, [open, container])
 
   useEffect(() => {
     contentRef.current = content
@@ -218,7 +232,7 @@ export function ContainerLogsDialog({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-          {canAttach && (
+          {canAttach && openStdin && (
             <SegmentedControl
               options={[
                 { value: 'logs', label: t('logs.mode.logs') },
@@ -248,7 +262,7 @@ export function ContainerLogsDialog({
 
         {mode === 'attach' && attachInfo && (
           <p className="px-4 pb-3 text-xs text-gray-500">
-            {attachInfo.stdin ? t('logs.attach.stdin') : t('logs.attach.readOnly')}
+            {t('logs.attach.stdin')}
             {attachInfo.stdinOnce && ` ${t('logs.attach.stdinOnce')}`}
           </p>
         )}

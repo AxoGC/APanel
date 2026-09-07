@@ -100,6 +100,7 @@ export interface ContainerDetail {
   ports: string[] | null
   mounts: string[] | null
   env: string[] | null
+  openStdin: boolean
 }
 
 export function getContainerDetail(id: string) {
