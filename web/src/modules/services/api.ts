@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import { apiLinkUrl } from '@/lib/apiBase'
 
 export interface ServiceUnit {
   name: string
@@ -18,7 +19,7 @@ export function listServices(params: { status: StatusFilter; q: string }) {
 }
 
 export function serviceEnablementStreamUrl() {
-  return '/api/services/enablement/stream'
+  return apiLinkUrl('/services/enablement/stream')
 }
 
 export type ServiceActionName = 'start' | 'stop' | 'restart' | 'enable' | 'disable'
@@ -55,5 +56,5 @@ export function getServiceLogs(name: string, lines: number) {
 }
 
 export function serviceLogsStreamUrl(name: string, lines: number) {
-  return `/api/services/${encodeURIComponent(name)}/logs/stream?lines=${lines}`
+  return apiLinkUrl(`/services/${encodeURIComponent(name)}/logs/stream?lines=${lines}`)
 }

@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import { apiLinkUrl } from '@/lib/apiBase'
 
 export interface DatabaseInfo {
   name: string
@@ -36,9 +37,9 @@ export function listColumns(database: string, schema: string, table: string) {
 }
 
 export function databaseSizeStreamUrl() {
-  return '/api/database/databases/stream'
+  return apiLinkUrl('/database/databases/stream')
 }
 
 export function tableStatsStreamUrl(database: string) {
-  return `/api/database/databases/${encodeURIComponent(database)}/tables/stream`
+  return apiLinkUrl(`/database/databases/${encodeURIComponent(database)}/tables/stream`)
 }

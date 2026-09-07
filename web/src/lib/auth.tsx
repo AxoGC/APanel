@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { apiFetch, ApiError } from './api'
+import { clearStoredToken, isStandalone, setStoredToken } from './apiBase'
 import { encryptLoginPassword } from './loginCrypto'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated'
@@ -30,7 +31,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const payload = await encryptLoginPassword(password)
         // silent: the login form renders its own dedicated invalid-password message.
-        await apiFetch('/login', { method: 'POST', body: JSON.stringify(payload) }, { silent: true })
+        const result = await apiFetch<{ token: string }>(
+          '/login',
+          { method: 'POST', body: JSON.stringify(payload) },
+          { silent: true },
+        )
+        // The integrated build authenticates via the session cookie the
+        // backend also sets and never reads this back; only the standalone
+        // build (cross-origin, no cookie) needs the token — see apiBase.ts.
+        if (isStandalone) setStoredToken(result.token)
         setState('authenticated')
         return
       } catch (err) {
@@ -42,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     await apiFetch('/logout', { method: 'POST' })
+    if (isStandalone) clearStoredToken()
     setState('unauthenticated')
   }
 

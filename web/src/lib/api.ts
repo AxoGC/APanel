@@ -1,5 +1,7 @@
 // Thin client for the backend's { code, error, data } response envelope.
 
+import { apiOrigin, getStoredToken, isStandalone } from './apiBase'
+
 export class ApiError extends Error {
   code: string
   // The envelope's optional free-text `error` field — extra, non-enum detail
@@ -39,10 +41,15 @@ export async function apiFetch<T = unknown>(
   init?: RequestInit,
   opts?: { silent?: boolean },
 ): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const token = getStoredToken()
+  const res = await fetch(`${apiOrigin()}/api${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
+    credentials: isStandalone ? 'omit' : 'same-origin',
   })
   const body = (await res.json()) as Envelope<T>
   if (body.code !== 'OK') {

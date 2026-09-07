@@ -1,4 +1,5 @@
 import { apiFetch, ApiError } from '@/lib/api'
+import { apiLinkUrl, apiOrigin, getStoredToken, isStandalone } from '@/lib/apiBase'
 
 export interface FileEntry {
   name: string
@@ -33,7 +34,7 @@ export function writeFileContent(path: string, content: string) {
 }
 
 export function downloadUrl(path: string) {
-  return `/api/files/download?${new URLSearchParams({ path })}`
+  return apiLinkUrl(`/files/download?${new URLSearchParams({ path })}`)
 }
 
 // Uses fetch directly rather than apiFetch: uploads are multipart/form-data,
@@ -41,9 +42,11 @@ export function downloadUrl(path: string) {
 export async function uploadFiles(dir: string, fileList: FileList) {
   const form = new FormData()
   for (const file of Array.from(fileList)) form.append('files', file)
-  const res = await fetch(`/api/files/upload?${new URLSearchParams({ path: dir })}`, {
+  const token = getStoredToken()
+  const res = await fetch(`${apiOrigin()}/api/files/upload?${new URLSearchParams({ path: dir })}`, {
     method: 'POST',
-    credentials: 'same-origin',
+    credentials: isStandalone ? 'omit' : 'same-origin',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: form,
   })
   const body = (await res.json()) as { code: string; error?: string }

@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import { apiLinkUrl } from '@/lib/apiBase'
 
 export type ProxyMode = 'global' | 'rule' | 'direct'
 
@@ -47,5 +48,5 @@ export function selectProxyOption(group: string, name: string) {
 }
 
 export function proxyDelayStreamUrl(group: string) {
-  return `/api/proxy/groups/${encodeURIComponent(group)}/test/stream`
+  return apiLinkUrl(`/proxy/groups/${encodeURIComponent(group)}/test/stream`)
 }

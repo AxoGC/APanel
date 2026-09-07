@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import { apiLinkUrl, apiWsUrl } from '@/lib/apiBase'
 
 export interface ContainerInfo {
   id: string
@@ -69,7 +70,7 @@ export function listContainerVolumes() {
 }
 
 export function containerVolumeSizeStreamUrl() {
-  return '/api/containers/volumes/stream'
+  return apiLinkUrl('/containers/volumes/stream')
 }
 
 export function deleteContainerVolumes(names: string[]) {
@@ -130,10 +131,9 @@ export function getContainerLogs(id: string, lines: number) {
 }
 
 export function containerLogsStreamUrl(id: string, lines: number) {
-  return `/api/containers/${encodeURIComponent(id)}/logs/stream?lines=${lines}`
+  return apiLinkUrl(`/containers/${encodeURIComponent(id)}/logs/stream?lines=${lines}`)
 }
 
 export function containerAttachSocketUrl(id: string) {
-  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${scheme}//${window.location.host}/api/containers/${encodeURIComponent(id)}/attach`
+  return apiWsUrl(`/containers/${encodeURIComponent(id)}/attach`)
 }

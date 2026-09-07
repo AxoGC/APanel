@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { apiFetch } from '@/lib/api'
+import { apiWsUrl } from '@/lib/apiBase'
 import { useI18n } from '@/lib/i18n'
 
 type Shell = string
@@ -22,8 +23,7 @@ interface TerminalDirectoriesResponse {
 }
 
 function terminalSocketURL(shell: Shell) {
-  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${scheme}//${window.location.host}/api/terminal?shell=${shell}`
+  return apiWsUrl(`/terminal?shell=${shell}`)
 }
 
 function terminalTheme(mode: ThemeMode) {
