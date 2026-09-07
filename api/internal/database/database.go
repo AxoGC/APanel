@@ -463,3 +463,93 @@ func (s *TableStatsStream) Run(ctx context.Context, emit func(TableStats)) error
 func quoteIdent(ident string) string {
 	return `"` + strings.ReplaceAll(ident, `"`, `""`) + `"`
 }
+
+// ColumnInfo is one row of a table's schema — everything the columns dialog
+// shows about a single column.
+type ColumnInfo struct {
+	Name         string `json:"name"`
+	DataType     string `json:"dataType"`
+	Nullable     bool   `json:"nullable"`
+	Comment      string `json:"comment"`
+	IsPrimaryKey bool   `json:"isPrimaryKey"`
+	IsUnique     bool   `json:"isUnique"`
+	HasIndex     bool   `json:"hasIndex"`
+}
+
+// typeAbbreviations shortens format_type's verbose SQL-standard spellings
+// down to the names admins actually write in DDL (varchar, not "character
+// varying"), matched longest-prefix-first so "character varying" is caught
+// before the plain "character" it also starts with.
+var typeAbbreviations = [...][2]string{
+	{"character varying", "varchar"},
+	{"character", "char"},
+	{"timestamp without time zone", "timestamp"},
+	{"timestamp with time zone", "timestamptz"},
+	{"time without time zone", "time"},
+	{"time with time zone", "timetz"},
+	{"double precision", "float8"},
+}
+
+func abbreviateType(formatted string) string {
+	for _, pair := range typeAbbreviations {
+		if strings.HasPrefix(formatted, pair[0]) {
+			return pair[1] + formatted[len(pair[0]):]
+		}
+	}
+	return formatted
+}
+
+const columnsQuery = `
+	SELECT
+		a.attname,
+		format_type(a.atttypid, a.atttypmod),
+		NOT a.attnotnull,
+		col_description(a.attrelid, a.attnum),
+		EXISTS (
+			SELECT 1 FROM pg_index i
+			WHERE i.indrelid = a.attrelid AND i.indisprimary AND a.attnum = ANY(i.indkey)
+		),
+		EXISTS (
+			SELECT 1 FROM pg_index i
+			WHERE i.indrelid = a.attrelid AND i.indisunique
+			  AND array_length(i.indkey, 1) = 1 AND i.indkey[0] = a.attnum
+		),
+		EXISTS (
+			SELECT 1 FROM pg_index i
+			WHERE i.indrelid = a.attrelid AND a.attnum = ANY(i.indkey)
+		)
+	FROM pg_attribute a
+	JOIN pg_class c ON c.oid = a.attrelid
+	JOIN pg_namespace n ON n.oid = c.relnamespace
+	WHERE n.nspname = $1 AND c.relname = $2 AND a.attnum > 0 AND NOT a.attisdropped
+	ORDER BY a.attnum`
+
+// ListColumns fetches the full schema — type, nullability, comment, and
+// primary-key/unique/index membership — of every column in one table.
+func (m *Manager) ListColumns(ctx context.Context, dbname, schema, table string) ([]ColumnInfo, error) {
+	db, err := m.open(ctx, dbname)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	rows, err := db.QueryContext(ctx, columnsQuery, schema, table)
+	if err != nil {
+		return nil, classifyErr(err)
+	}
+	defer rows.Close()
+
+	var infos []ColumnInfo
+	for rows.Next() {
+		var info ColumnInfo
+		var dataType string
+		var comment sql.NullString
+		if err := rows.Scan(&info.Name, &dataType, &info.Nullable, &comment, &info.IsPrimaryKey, &info.IsUnique, &info.HasIndex); err != nil {
+			return nil, err
+		}
+		info.DataType = abbreviateType(dataType)
+		info.Comment = comment.String
+		infos = append(infos, info)
+	}
+	return infos, rows.Err()
+}

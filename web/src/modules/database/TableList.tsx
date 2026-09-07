@@ -1,16 +1,14 @@
-import { MoreHorizontal } from 'lucide-react'
+import { Columns3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import type { TableInfo } from './api'
 
-function TableActions() {
+function TableActions({ onViewSchema }: { onViewSchema: () => void }) {
   const { t } = useI18n()
-  // Placeholder only — real per-table actions (browse rows, truncate, ...)
-  // come later; this stage is view-only.
   return (
-    <Button variant="ghost" size="icon-sm" aria-label={t('database.actions')} disabled>
-      <MoreHorizontal />
+    <Button variant="ghost" size="icon-sm" aria-label={t('database.columns.action')} title={t('database.columns.action')} onClick={onViewSchema}>
+      <Columns3 />
     </Button>
   )
 }
@@ -35,9 +33,11 @@ export function TableListHeader() {
 export function TableList({
   tables,
   stats,
+  onViewSchema,
 }: {
   tables: TableInfo[]
   stats: Record<string, { rows: number; bytes: number }>
+  onViewSchema: (table: TableInfo) => void
 }) {
   const { t } = useI18n()
   return (
@@ -59,7 +59,7 @@ export function TableList({
             <div className="hidden w-20 shrink-0 text-right text-xs text-gray-500 md:block">{rowsLabel}</div>
             <div className="hidden w-24 shrink-0 text-right text-xs text-gray-500 md:block">{sizeLabel}</div>
             <div className="hidden w-9 shrink-0 items-center justify-end md:flex">
-              <TableActions />
+              <TableActions onViewSchema={() => onViewSchema(table)} />
             </div>
 
             <div className="flex flex-col gap-2 md:hidden">
@@ -81,7 +81,7 @@ export function TableList({
                     <span className="truncate text-xs text-gray-500">{sizeLabel}</span>
                   </div>
                 </div>
-                <TableActions />
+                <TableActions onViewSchema={() => onViewSchema(table)} />
               </div>
             </div>
           </div>

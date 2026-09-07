@@ -22,6 +22,7 @@ func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handl
 	mux.Handle("GET /api/database/databases/stream", requireAuth(http.HandlerFunc(m.streamDatabaseSizes)))
 	mux.Handle("GET /api/database/databases/{name}/tables", requireAuth(http.HandlerFunc(m.getTables)))
 	mux.Handle("GET /api/database/databases/{name}/tables/stream", requireAuth(http.HandlerFunc(m.streamTableStats)))
+	mux.Handle("GET /api/database/databases/{name}/tables/{schema}/{table}/columns", requireAuth(http.HandlerFunc(m.getColumns)))
 }
 
 // writeDatabaseError maps the connection-facing errors from database.go onto
@@ -50,6 +51,15 @@ func (m *Manager) getDatabases(w http.ResponseWriter, r *http.Request) {
 
 func (m *Manager) getTables(w http.ResponseWriter, r *http.Request) {
 	infos, err := m.ListTables(r.Context(), r.PathValue("name"))
+	if err != nil {
+		writeDatabaseError(w, err)
+		return
+	}
+	response.WriteOK(w, infos)
+}
+
+func (m *Manager) getColumns(w http.ResponseWriter, r *http.Request) {
+	infos, err := m.ListColumns(r.Context(), r.PathValue("name"), r.PathValue("schema"), r.PathValue("table"))
 	if err != nil {
 		writeDatabaseError(w, err)
 		return

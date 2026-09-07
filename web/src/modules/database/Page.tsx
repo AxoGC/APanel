@@ -13,6 +13,7 @@ import {
   type DatabaseInfo,
   type TableInfo,
 } from './api'
+import { ColumnsDialog } from './ColumnsDialog'
 import { DatabaseTable, DatabaseTableHeader } from './DatabaseTable'
 import { TableList, TableListHeader } from './TableList'
 
@@ -31,6 +32,7 @@ export default function DatabasePage() {
   const [tables, setTables] = useState<TableInfo[] | null>(null)
   const [tableStats, setTableStats] = useState<Record<string, TableStat>>({})
   const [error, setError] = useState<string | null>(null)
+  const [schemaTable, setSchemaTable] = useState<TableInfo | null>(null)
 
   // Step 1: the database list itself (name + table count), a plain request.
   useEffect(() => {
@@ -153,7 +155,7 @@ export default function DatabasePage() {
                 <TableListHeader />
               </div>
               <ScrollArea className="min-h-0 grow px-4 sm:px-6">
-                <TableList tables={tables} stats={tableStats} />
+                <TableList tables={tables} stats={tableStats} onViewSchema={setSchemaTable} />
               </ScrollArea>
             </>
           )}
@@ -161,6 +163,13 @@ export default function DatabasePage() {
       )}
 
       <DependencyDialog moduleKey="database" open={dialogOpen} onOpenChange={setDialogOpen} />
+      {selectedDatabase !== null && (
+        <ColumnsDialog
+          database={selectedDatabase}
+          table={schemaTable}
+          onOpenChange={(open) => !open && setSchemaTable(null)}
+        />
+      )}
     </div>
   )
 }
