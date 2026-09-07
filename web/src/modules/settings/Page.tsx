@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils'
 import bilibiliIcon from '@/assets/bilibili.svg'
 import githubIcon from '@/assets/github.svg'
+import logo from '@/assets/logo.svg'
 import qqIcon from '@/assets/qq.svg'
 import { getDiskUsage, getSystemInfo, type DiskPartition, type SystemInfo } from './api'
 import { EnableModulesDialog } from './EnableModulesDialog'
@@ -129,7 +130,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6 md:max-w-2xl">
-      <div className="border-b border-gray-200 pt-2 pb-6 dark:border-gray-800">
+      <div className="border-b border-gray-200 pt-2 pb-4 dark:border-gray-800">
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3">
           <Field label={t('settings.systemInfo.hostname')} value={systemInfo?.hostname ?? '–'} />
           <Field label={t('settings.systemInfo.distro')} value={systemInfo?.distro || '–'} />
@@ -149,7 +150,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="py-4">
+      <div className="py-2">
         <Section label={t('settings.language')}>
           <SegmentedControl
             value={locale}
@@ -244,7 +245,16 @@ export default function SettingsPage() {
       <UpdateDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} />
       <UsersDialog open={usersDialogOpen} onOpenChange={setUsersDialogOpen} />
 
-      <div className="grid grid-cols-2 gap-2 border-t border-gray-200 p-6 text-sm dark:border-gray-800 md:grid-cols-3">
+      <div className="flex flex-col gap-4 border-t border-gray-200 p-4 dark:border-gray-800">
+        <div className="flex items-center justify-center gap-4 sm:gap-6">
+          <img src={logo} alt="" className="size-16 shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">APanel</span>
+            <span className="text-sm text-gray-500">{t('settings.about.tagline')}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
           <a
             href="https://apanel.axogc.net"
             target="_blank"
@@ -281,6 +291,7 @@ export default function SettingsPage() {
             <img src={bilibiliIcon} alt="" aria-hidden="true" className="size-4 dark:invert" />
             Bilibili
           </a>
+        </div>
       </div>
     </div>
   )

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>apanel logo</title>
+  <polygon points="456,256 356,429.28 156,429.28 56,256 156,82.72 356,82.72" fill="#14b8a6"/>
+  <g fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <!-- A: right leg vertical (parallel to P's stem), left leg diagonal -->
+    <path d="M221,175 L221,337 M221,175 L146,337 M168,290 L221,290"/>
+    <!-- P: vertical stem + bowl -->
+    <path d="M286,337 L286,175 C367,175 367,256 286,256"/>
+  </g>
+</svg>
