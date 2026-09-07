@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertDialog,
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { containerVolumeSizeStreamUrl, deleteContainerVolumes, listContainerVolumes, type ContainerVolume } from './api'
+import { CreateVolumeDialog } from './CreateVolumeDialog'
 import { UsageCell } from './UsageCell'
 
 type VolumeFilter = 'all' | 'unused' | 'used'
@@ -29,6 +30,7 @@ export function VolumeManagerDialog({ open, onOpenChange }: { open: boolean; onO
   const [filter, setFilter] = useState<VolumeFilter>('all')
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
   const [deleting, setDeleting] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const loadVolumes = async () => {
     try {
@@ -120,24 +122,31 @@ export function VolumeManagerDialog({ open, onOpenChange }: { open: boolean; onO
             </Select>
           </div>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={selected.size === 0 || deleting}>
-                <Trash2 />
-                {t('containers.volumes.delete')}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('containers.volumes.confirmDelete.title')}</AlertDialogTitle>
-                <AlertDialogDescription>{t('containers.volumes.confirmDelete.description')}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => void deleteSelected()}>{t('containers.volumes.delete')}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus />
+              {t('containers.volumes.create')}
+            </Button>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={selected.size === 0 || deleting}>
+                  <Trash2 />
+                  {t('containers.volumes.delete')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('containers.volumes.confirmDelete.title')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('containers.volumes.confirmDelete.description')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void deleteSelected()}>{t('containers.volumes.delete')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
 
         <div className="flex min-h-0 grow flex-col">
@@ -188,6 +197,8 @@ export function VolumeManagerDialog({ open, onOpenChange }: { open: boolean; onO
           </div>
         </div>
       </div>
+
+      <CreateVolumeDialog open={createOpen} onOpenChange={setCreateOpen} />
     </SectionedDialog>
   )
 }

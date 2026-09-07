@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertDialog,
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatBytes } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { deleteContainerImages, listContainerImages, type ContainerImage } from './api'
+import { CreateImageDialog } from './CreateImageDialog'
 import { UsageCell } from './UsageCell'
 
 type ImageFilter = 'all' | 'unused' | 'used'
@@ -28,6 +29,7 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
   const [filter, setFilter] = useState<ImageFilter>('all')
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set())
   const [deleting, setDeleting] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const loadImages = async () => {
     try {
@@ -101,24 +103,31 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
             </Select>
           </div>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={selected.size === 0 || deleting}>
-                <Trash2 />
-                {t('containers.images.delete')}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('containers.images.confirmDelete.title')}</AlertDialogTitle>
-                <AlertDialogDescription>{t('containers.images.confirmDelete.description')}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => void deleteSelected()}>{t('containers.images.delete')}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus />
+              {t('containers.images.create')}
+            </Button>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={selected.size === 0 || deleting}>
+                  <Trash2 />
+                  {t('containers.images.delete')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('containers.images.confirmDelete.title')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('containers.images.confirmDelete.description')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('confirm.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void deleteSelected()}>{t('containers.images.delete')}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
 
         <div className="flex min-h-0 grow flex-col">
@@ -164,6 +173,8 @@ export function ImageManagerDialog({ open, onOpenChange }: { open: boolean; onOp
           </div>
         </div>
       </div>
+
+      <CreateImageDialog open={createOpen} onOpenChange={setCreateOpen} />
     </SectionedDialog>
   )
 }
