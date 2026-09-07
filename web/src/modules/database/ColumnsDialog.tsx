@@ -67,7 +67,7 @@ export function ColumnsDialog({
         )}
         {columns?.map((col) => (
           <div key={col.name} className="flex items-center gap-1 py-2 md:gap-3">
-            <div className="flex w-26 shrink-0 items-center gap-1 md:w-32">
+            <div className="flex w-26 shrink-0 items-center gap-0.5 md:w-32 md:gap-1">
               <span className="truncate text-sm text-gray-900 dark:text-gray-100">{col.name}</span>
               {col.isPrimaryKey && (
                 <KeyRound className="size-3.5 shrink-0 text-amber-500" aria-label={t('database.columns.primaryKey')} />
@@ -76,7 +76,7 @@ export function ColumnsDialog({
                 <ListTree className="size-3.5 shrink-0 text-gray-400" aria-label={t('database.columns.indexed')} />
               )}
             </div>
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-0.5 md:gap-1.5">
               <span className="truncate text-sm text-gray-700 dark:text-gray-300">{col.dataType}</span>
               {col.nullable && <Tag tone="nullable">{t('database.columns.nullable')}</Tag>}
               {col.isUnique && <Tag tone="unique">{t('database.columns.unique')}</Tag>}
