@@ -52,7 +52,19 @@ export default function ServicesPage() {
   // ~550ms for a few hundred units in testing since it walks and parses
   // every unit file on disk, so it runs once in the background rather than
   // blocking every list request the way it used to.
+  //
+  // Held back until the first list response lands (sseReady), rather than
+  // opened on mount: firing it immediately competed with the page's own
+  // first paint for a connection, so the fast list ended up waiting behind
+  // it in the network waterfall — exactly what splitting the request into
+  // two was meant to avoid.
+  const [sseReady, setSseReady] = useState(false)
   useEffect(() => {
+    if (units !== null) setSseReady(true)
+  }, [units])
+
+  useEffect(() => {
+    if (!sseReady) return
     const source = new EventSource(serviceEnablementStreamUrl())
     source.onmessage = (event) => {
       const data = JSON.parse(event.data as string) as { name: string; state: string }
@@ -62,7 +74,7 @@ export default function ServicesPage() {
     source.addEventListener('failed', () => source.close())
     source.onerror = () => source.close()
     return () => source.close()
-  }, [])
+  }, [sseReady])
 
   // Merges the enablement stream into whatever List returned. Under the
   // "all" filter this also adds rows for services List() couldn't see at
