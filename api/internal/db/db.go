@@ -8,12 +8,15 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"apanel/internal/model"
 )
@@ -32,7 +35,16 @@ func Open() (*gorm.DB, error) {
 		return nil, fmt.Errorf("prepare sqlite database directory: %w", err)
 	}
 
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+	// IgnoreRecordNotFoundError: internal/settings.Manager.Get uses "record
+	// not found" as its normal signal for "this key was never set" — without
+	// this, GORM's default logger would warn-log every single lookup of an
+	// unset setting as if it were an error.
+	gormLogger := logger.New(log.New(os.Stderr, "", log.LstdFlags), logger.Config{
+		SlowThreshold:             200 * time.Millisecond,
+		LogLevel:                  logger.Warn,
+		IgnoreRecordNotFoundError: true,
+	})
+	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{Logger: gormLogger})
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
