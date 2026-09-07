@@ -55,7 +55,7 @@ export function ColumnsDialog({
       className="max-w-2xl"
     >
       <div className="flex items-center gap-1 border-b border-gray-200 pb-1.5 md:gap-3 dark:border-gray-800">
-        <div className="w-18 shrink-0 text-xs text-gray-500 md:w-32">{t('database.columns.name')}</div>
+        <div className="w-26 shrink-0 text-xs text-gray-500 md:w-32">{t('database.columns.name')}</div>
         <div className="min-w-0 flex-1 text-xs text-gray-500">{t('database.columns.type')}</div>
         <div className="w-18 shrink-0 text-xs text-gray-500 md:w-40">{t('database.columns.comment')}</div>
       </div>
@@ -67,7 +67,7 @@ export function ColumnsDialog({
         )}
         {columns?.map((col) => (
           <div key={col.name} className="flex items-center gap-1 py-2 md:gap-3">
-            <div className="flex w-18 shrink-0 items-center gap-1 md:w-32">
+            <div className="flex w-26 shrink-0 items-center gap-1 md:w-32">
               <span className="truncate text-sm text-gray-900 dark:text-gray-100">{col.name}</span>
               {col.isPrimaryKey && (
                 <KeyRound className="size-3.5 shrink-0 text-amber-500" aria-label={t('database.columns.primaryKey')} />
