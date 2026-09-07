@@ -36,7 +36,7 @@ const LOCALES: Locale[] = ['en', 'zh']
 
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 py-2 first:pt-0">
+    <div className="flex items-center gap-4 py-2">
       <p className="w-18 shrink-0 text-xs text-gray-500">{label}</p>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
@@ -45,7 +45,7 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
 
 // The form's final row: no left-side label, actions right-aligned.
 function ButtonRow({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center justify-end gap-2 py-2 first:pt-0">{children}</div>
+  return <div className="flex flex-wrap items-center justify-end gap-2 py-2">{children}</div>
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -128,9 +128,9 @@ export default function SettingsPage() {
   }, [])
 
   return (
-    <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6">
-      <div className="border-b border-gray-200 py-2 first:pt-0 dark:border-gray-800">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+    <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6 md:max-w-2xl">
+      <div className="border-b border-gray-200 pt-2 pb-6 dark:border-gray-800">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3">
           <Field label={t('settings.systemInfo.hostname')} value={systemInfo?.hostname ?? '–'} />
           <Field label={t('settings.systemInfo.distro')} value={systemInfo?.distro || '–'} />
           <Field label={t('settings.systemInfo.kernel')} value={systemInfo?.kernel ?? '–'} />
@@ -149,100 +149,102 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Section label={t('settings.language')}>
-        <SegmentedControl
-          value={locale}
-          onChange={setLocale}
-          options={LOCALES.map((l) => ({ value: l, label: l === 'en' ? 'English' : '中文' }))}
-        />
-      </Section>
+      <div className="py-4">
+        <Section label={t('settings.language')}>
+          <SegmentedControl
+            value={locale}
+            onChange={setLocale}
+            options={LOCALES.map((l) => ({ value: l, label: l === 'en' ? 'English' : '中文' }))}
+          />
+        </Section>
 
-      <Section label={t('settings.appearance')}>
-        <SegmentedControl
-          value={scheme}
-          onChange={(value) => {
-            setStoredScheme(value)
-            setScheme(value)
-          }}
-          options={SCHEMES.map((s) => ({ value: s, label: t(`settings.appearance.${s}` as const) }))}
-        />
-      </Section>
+        <Section label={t('settings.appearance')}>
+          <SegmentedControl
+            value={scheme}
+            onChange={(value) => {
+              setStoredScheme(value)
+              setScheme(value)
+            }}
+            options={SCHEMES.map((s) => ({ value: s, label: t(`settings.appearance.${s}` as const) }))}
+          />
+        </Section>
 
-      <Section label={t('settings.themeColor')}>
-        <div className="flex flex-wrap gap-3">
-          {THEME_HUES.map((h) => (
-            <button
-              key={h}
-              type="button"
-              aria-label={h}
+        <Section label={t('settings.themeColor')}>
+          <div className="flex flex-wrap gap-3">
+            {THEME_HUES.map((h) => (
+              <button
+                key={h}
+                type="button"
+                aria-label={h}
+                onClick={() => {
+                  setStoredThemeHue(h)
+                  setHue(h)
+                }}
+                className={cn(
+                  'size-6 cursor-pointer rounded-full',
+                  hue === h && 'ring-2 ring-gray-400 ring-offset-2 dark:ring-gray-500',
+                )}
+                style={{ backgroundColor: colors[h][500] }}
+              />
+            ))}
+          </div>
+        </Section>
+
+        <Section label={t('settings.reader')}>
+          <div className="flex items-center gap-2">
+            <ToggleButton
+              active={readerLineNumbers}
               onClick={() => {
-                setStoredThemeHue(h)
-                setHue(h)
+                const next = !readerLineNumbers
+                setStoredReaderLineNumbers(next)
+                setReaderLineNumbers(next)
               }}
-              className={cn(
-                'size-6 cursor-pointer rounded-full',
-                hue === h && 'ring-2 ring-gray-400 ring-offset-2 dark:ring-gray-500',
-              )}
-              style={{ backgroundColor: colors[h][500] }}
-            />
-          ))}
-        </div>
-      </Section>
+            >
+              {t('settings.reader.lineNumbers')}
+            </ToggleButton>
+            <ToggleButton
+              active={readerTextWrap}
+              onClick={() => {
+                const next = !readerTextWrap
+                setStoredReaderTextWrap(next)
+                setReaderTextWrap(next)
+              }}
+            >
+              {t('settings.reader.textWrap')}
+            </ToggleButton>
+          </div>
+        </Section>
 
-      <Section label={t('settings.reader')}>
-        <div className="flex items-center gap-2">
-          <ToggleButton
-            active={readerLineNumbers}
-            onClick={() => {
-              const next = !readerLineNumbers
-              setStoredReaderLineNumbers(next)
-              setReaderLineNumbers(next)
-            }}
-          >
-            {t('settings.reader.lineNumbers')}
-          </ToggleButton>
-          <ToggleButton
-            active={readerTextWrap}
-            onClick={() => {
-              const next = !readerTextWrap
-              setStoredReaderTextWrap(next)
-              setReaderTextWrap(next)
-            }}
-          >
-            {t('settings.reader.textWrap')}
-          </ToggleButton>
-        </div>
-      </Section>
-
-      <ButtonRow>
-        <Button variant="outline" size="sm" onClick={() => setSiteDataDialogOpen(true)}>
-          <Database />
-          {t('settings.siteData')}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setModulesDialogOpen(true)}>
-          <ListChecks />
-          {t('settings.enableModules')}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setUpdateDialogOpen(true)}>
-          <RefreshCw />
-          {t('settings.update')}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setUsersDialogOpen(true)}>
-          <Users />
-          {t('settings.users')}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => void logout()}>
-          <LogOut />
-          {t('settings.signOut')}
-        </Button>
-      </ButtonRow>
+        <ButtonRow>
+          <Button variant="outline" size="sm" onClick={() => setSiteDataDialogOpen(true)}>
+            <Database />
+            {t('settings.siteData')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setModulesDialogOpen(true)}>
+            <ListChecks />
+            {t('settings.enableModules')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setUpdateDialogOpen(true)}>
+            <RefreshCw />
+            {t('settings.update')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setUsersDialogOpen(true)}>
+            <Users />
+            {t('settings.users')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void logout()}>
+            <LogOut />
+            {t('settings.signOut')}
+          </Button>
+        </ButtonRow>
+      </div>
 
       <EnableModulesDialog open={modulesDialogOpen} onOpenChange={setModulesDialogOpen} />
       <SiteDataDialog open={siteDataDialogOpen} onOpenChange={setSiteDataDialogOpen} />
       <UpdateDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} />
       <UsersDialog open={usersDialogOpen} onOpenChange={setUsersDialogOpen} />
 
-      <div className="grid grid-cols-2 gap-2 border-t border-gray-200 p-4 text-sm dark:border-gray-800">
+      <div className="grid grid-cols-2 gap-2 border-t border-gray-200 p-6 text-sm dark:border-gray-800 md:grid-cols-3">
           <a
             href="https://apanel.axogc.net"
             target="_blank"
