@@ -58,15 +58,41 @@ interface MountRow {
   type: MountType
   source: string
   target: string
+  readOnly: boolean
 }
 
 // Docker's Binds syntax is identical for a named volume and a bind mount —
-// "source:target" — so the type toggle is purely a UI affordance (guides
+// "source:target[:ro]" — so the type toggle is purely a UI affordance (guides
 // the source placeholder / autocomplete); both encode the same way here.
 function mountsToVolumeStrings(rows: MountRow[]): string[] {
   return rows
     .filter((row) => row.source.trim() !== '' && row.target.trim() !== '')
-    .map((row) => `${row.source.trim()}:${row.target.trim()}`)
+    .map((row) => `${row.source.trim()}:${row.target.trim()}${row.readOnly ? ':ro' : ''}`)
+}
+
+type PortProtocol = 'tcp' | 'udp'
+
+interface PortRow {
+  key: number
+  hostPort: string
+  containerPort: string
+  protocol: PortProtocol
+}
+
+// Docker's own "hostPort:containerPort/proto" syntax — passed straight
+// through to the backend, which parses it with the same nat.Port helpers
+// the daemon itself uses.
+function portsToStrings(rows: PortRow[]): string[] {
+  return rows
+    .filter((row) => row.hostPort.trim() !== '' && row.containerPort.trim() !== '')
+    .map((row) => `${row.hostPort.trim()}:${row.containerPort.trim()}/${row.protocol}`)
+}
+
+// "none" has no network to publish ports on; "host" already shares the
+// host's ports directly. Every other mode (bridge, custom networks, ...)
+// benefits from explicit publish rules.
+function networkModeHasPorts(mode: string): boolean {
+  return mode !== 'none' && mode !== 'host'
 }
 
 export function CreateContainerDialog({
@@ -88,16 +114,18 @@ export function CreateContainerDialog({
   const [restartPolicy, setRestartPolicy] = useState<RestartPolicy>('no')
   const [env, setEnv] = useState('')
   const [mounts, setMounts] = useState<MountRow[]>([])
+  const [ports, setPorts] = useState<PortRow[]>([])
 
   const [imageTags, setImageTags] = useState<string[]>([])
   const [networks, setNetworks] = useState<ContainerNetwork[]>([])
   const [creating, setCreating] = useState(false)
   const nextMountKey = useRef(0)
+  const nextPortKey = useRef(0)
 
   function addMountRow(row?: Partial<Omit<MountRow, 'key'>>) {
     setMounts((current) => [
       ...current,
-      { key: nextMountKey.current++, type: 'volume', source: '', target: '', ...row },
+      { key: nextMountKey.current++, type: 'volume', source: '', target: '', readOnly: false, ...row },
     ])
   }
 
@@ -107,6 +135,18 @@ export function CreateContainerDialog({
 
   function removeMountRow(key: number) {
     setMounts((current) => current.filter((row) => row.key !== key))
+  }
+
+  function addPortRow() {
+    setPorts((current) => [...current, { key: nextPortKey.current++, hostPort: '', containerPort: '', protocol: 'tcp' }])
+  }
+
+  function updatePortRow(key: number, patch: Partial<Omit<PortRow, 'key'>>) {
+    setPorts((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)))
+  }
+
+  function removePortRow(key: number) {
+    setPorts((current) => current.filter((row) => row.key !== key))
   }
 
   useEffect(() => {
@@ -119,6 +159,7 @@ export function CreateContainerDialog({
     setRestartPolicy('no')
     setEnv('')
     setMounts([])
+    setPorts([])
     Promise.all([listContainerImageTags(), listContainerNetworks()])
       .then(([tags, nets]) => {
         setImageTags(tags)
@@ -127,26 +168,26 @@ export function CreateContainerDialog({
       .catch(() => {})
   }, [open])
 
-  // Pre-fills a mount row (defaulting to a named volume) for every path the
-  // image's Dockerfile declared with VOLUME — the image author's own signal
-  // for what needs to survive container removal — so switching to a bind
-  // mount is an explicit opt-in click on the row's type control instead of
-  // the admin having to already know the image's Dockerfile by heart.
+  // Resets the mount list to the newly-selected image's own defaults rather
+  // than merging into whatever the admin had set up for the previous image —
+  // mounts tuned for one image (e.g. a database's data dir) rarely make
+  // sense once the image underneath changes, so switching images clears the
+  // form immediately and repopulates it with the new image's declared
+  // VOLUME paths (as named volumes; switching to a bind mount is an
+  // explicit opt-in click on the row's type control).
   useEffect(() => {
+    if (!open) return
     const ref = image.trim()
-    if (!open || !ref) return
+    setMounts([])
+    if (!ref) return
     let cancelled = false
     const timer = setTimeout(() => {
       listImageVolumes(ref)
         .then((paths) => {
-          if (cancelled || paths.length === 0) return
-          setMounts((current) => {
-            const existingTargets = new Set(current.map((row) => row.target))
-            const additions = paths
-              .filter((path) => !existingTargets.has(path))
-              .map((path) => ({ key: nextMountKey.current++, type: 'volume' as const, source: '', target: path }))
-            return additions.length > 0 ? [...current, ...additions] : current
-          })
+          if (cancelled) return
+          setMounts(
+            paths.map((path) => ({ key: nextMountKey.current++, type: 'volume' as const, source: '', target: path, readOnly: false })),
+          )
         })
         .catch(() => {})
     }, 300)
@@ -155,6 +196,13 @@ export function CreateContainerDialog({
       clearTimeout(timer)
     }
   }, [open, image])
+
+  // The port table is hidden for network modes that can't publish ports —
+  // drop any rows the admin entered before switching to one, so a stale
+  // mapping can't silently ride along in the submit payload.
+  useEffect(() => {
+    if (!networkModeHasPorts(networkMode)) setPorts([])
+  }, [networkMode])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -169,6 +217,7 @@ export function CreateContainerDialog({
         restartPolicy,
         env: linesOf(env),
         volumes: mountsToVolumeStrings(mounts),
+        ports: portsToStrings(ports),
       })
       onCreated(created.id)
       onOpenChange(false)
@@ -317,6 +366,13 @@ export function CreateContainerDialog({
                   onChange={(e) => updateMountRow(row.key, { target: e.target.value })}
                   placeholder={t('containers.create.volumes.target.placeholder')}
                 />
+                <ToggleButton
+                  active={row.readOnly}
+                  onClick={() => updateMountRow(row.key, { readOnly: !row.readOnly })}
+                  className="shrink-0"
+                >
+                  {t('containers.create.volumes.readOnly')}
+                </ToggleButton>
                 <div className="flex w-8 shrink-0 justify-end">
                   <Button
                     type="button"
@@ -332,6 +388,73 @@ export function CreateContainerDialog({
             ))}
           </div>
         </div>
+
+        {networkModeHasPorts(networkMode) && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-gray-500">{t('containers.create.ports')}</span>
+            <div className="flex flex-col">
+              <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-1.5 dark:border-gray-800">
+                <div className="min-w-24 flex-1 text-xs text-gray-500">{t('containers.create.ports.host')}</div>
+                <div className="min-w-24 flex-1 text-xs text-gray-500">{t('containers.create.ports.container')}</div>
+                <div className="shrink-0 text-xs whitespace-nowrap text-gray-500">{t('containers.create.ports.protocol')}</div>
+                <div className="flex w-8 shrink-0 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t('containers.create.ports.add')}
+                    onClick={() => addPortRow()}
+                  >
+                    <Plus />
+                  </Button>
+                </div>
+              </div>
+
+              {ports.length === 0 && <p className="py-3 text-xs text-gray-500">{t('containers.create.ports.empty')}</p>}
+
+              {ports.map((row) => (
+                <div
+                  key={row.key}
+                  className="flex flex-wrap items-center gap-2 border-b border-gray-100 py-2 last:border-b-0 dark:border-gray-900"
+                >
+                  <Input
+                    className="min-w-24 flex-1"
+                    value={row.hostPort}
+                    onChange={(e) => updatePortRow(row.key, { hostPort: e.target.value })}
+                    placeholder={t('containers.create.ports.host.placeholder')}
+                  />
+                  <Input
+                    className="min-w-24 flex-1"
+                    value={row.containerPort}
+                    onChange={(e) => updatePortRow(row.key, { containerPort: e.target.value })}
+                    placeholder={t('containers.create.ports.container.placeholder')}
+                  />
+                  <div className="shrink-0">
+                    <SegmentedControl
+                      options={[
+                        { value: 'tcp', label: 'TCP' },
+                        { value: 'udp', label: 'UDP' },
+                      ]}
+                      value={row.protocol}
+                      onChange={(protocol) => updatePortRow(row.key, { protocol })}
+                    />
+                  </div>
+                  <div className="flex w-8 shrink-0 justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('containers.create.ports.remove')}
+                      onClick={() => removePortRow(row.key)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </SectionedDialog>
   )

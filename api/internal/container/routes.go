@@ -94,6 +94,7 @@ func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 		RestartPolicy string   `json:"restartPolicy"`
 		Env           []string `json:"env"`
 		Volumes       []string `json:"volumes"`
+		Ports         []string `json:"ports"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
@@ -109,6 +110,7 @@ func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 		RestartPolicy: body.RestartPolicy,
 		Env:           body.Env,
 		Binds:         body.Volumes,
+		Ports:         body.Ports,
 	})
 	if err != nil {
 		if errors.Is(err, ErrInvalidCreate) {

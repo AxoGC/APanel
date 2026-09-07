@@ -130,6 +130,7 @@ export interface NewContainer {
   restartPolicy: string
   env: string[]
   volumes: string[]
+  ports: string[]
 }
 
 export function createContainer(payload: NewContainer) {
