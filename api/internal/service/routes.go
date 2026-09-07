@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -17,6 +19,7 @@ const SERVICE_NOT_FOUND response.Code = "SERVICE_NOT_FOUND"
 // calls this method on whatever it was given at construction time.
 func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler) {
 	mux.Handle("GET /api/services", requireAuth(http.HandlerFunc(m.listServices)))
+	mux.Handle("GET /api/services/enablement/stream", requireAuth(http.HandlerFunc(m.streamServiceEnablement)))
 	mux.Handle("GET /api/services/{name}", requireAuth(http.HandlerFunc(m.serviceDetail)))
 	mux.Handle("POST /api/services/{name}/start", requireAuth(m.serviceAction(m.Start)))
 	mux.Handle("POST /api/services/{name}/stop", requireAuth(m.serviceAction(m.Stop)))
@@ -71,6 +74,49 @@ func (m *Manager) listServices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteOK(w, units)
+}
+
+// streamServiceEnablement streams each service's on-disk enablement state
+// one message at a time — see UnitFileStream: it's the slow call listServices
+// no longer waits on.
+func (m *Manager) streamServiceEnablement(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := response.RequireFlusher(w)
+	if !ok {
+		return
+	}
+
+	stream, err := m.OpenUnitFileStream(r.Context())
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	defer stream.Close()
+
+	response.WriteLogStreamHeaders(w, flusher)
+	err = stream.Run(r.Context(), func(e UnitEnablement) { writeSSEEvent(w, flusher, e) })
+	writeSSEStreamEnd(w, flusher, err)
+}
+
+// writeSSEEvent and writeSSEStreamEnd duplicate the identically-named
+// helpers in container/routes.go — see there for why this project doesn't
+// factor them into the shared response package.
+func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, v any) {
+	payload, err := json.Marshal(v)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(w, "data: %s\n\n", payload)
+	flusher.Flush()
+}
+
+func writeSSEStreamEnd(w http.ResponseWriter, flusher http.Flusher, err error) {
+	if err != nil {
+		payload, _ := json.Marshal(map[string]string{"message": err.Error()})
+		fmt.Fprintf(w, "event: failed\ndata: %s\n\n", payload)
+	} else {
+		fmt.Fprint(w, "event: done\ndata: {}\n\n")
+	}
+	flusher.Flush()
 }
 
 func (m *Manager) serviceDetail(w http.ResponseWriter, r *http.Request) {

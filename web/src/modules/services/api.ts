@@ -17,6 +17,10 @@ export function listServices(params: { status: StatusFilter; q: string }) {
   return apiFetch<ServiceUnit[]>(`/services?${search}`)
 }
 
+export function serviceEnablementStreamUrl() {
+  return '/api/services/enablement/stream'
+}
+
 export type ServiceActionName = 'start' | 'stop' | 'restart' | 'enable' | 'disable'
 
 export function runServiceAction(name: string, action: ServiceActionName) {

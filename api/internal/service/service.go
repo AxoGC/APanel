@@ -15,7 +15,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -32,20 +31,8 @@ type Unit struct {
 	UnitFileState string `json:"unitFileState"`
 }
 
-// unitFilesTTL bounds how stale the cached unit-file catalog (see
-// unitFiles below) can get. ListUnitFilesContext measured at ~550ms for a
-// few hundred units — it walks and parses every unit file on disk, unlike
-// the live-state D-Bus calls (sub-2ms) — so List() would otherwise pay that
-// cost on every request, including every debounced keystroke in the
-// frontend's search box.
-const unitFilesTTL = 5 * time.Second
-
 type Manager struct {
 	conn *systemdDbus.Conn
-
-	mu      sync.Mutex
-	files   []systemdDbus.UnitFile
-	filesAt time.Time
 }
 
 func New(ctx context.Context) (*Manager, error) {
@@ -54,37 +41,6 @@ func New(ctx context.Context) (*Manager, error) {
 		return nil, err
 	}
 	return &Manager{conn: conn}, nil
-}
-
-// unitFiles returns the installed unit-file catalog, cached for unitFilesTTL.
-// invalidateUnitFiles drops the cache immediately after our own Enable/
-// Disable calls; a short TTL otherwise covers changes made outside apanel
-// (e.g. a package install symlinking a new unit).
-func (m *Manager) unitFiles(ctx context.Context) ([]systemdDbus.UnitFile, error) {
-	m.mu.Lock()
-	if m.files != nil && time.Since(m.filesAt) < unitFilesTTL {
-		files := m.files
-		m.mu.Unlock()
-		return files, nil
-	}
-	m.mu.Unlock()
-
-	files, err := m.conn.ListUnitFilesContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	m.mu.Lock()
-	m.files = files
-	m.filesAt = time.Now()
-	m.mu.Unlock()
-	return files, nil
-}
-
-func (m *Manager) invalidateUnitFiles() {
-	m.mu.Lock()
-	m.files = nil
-	m.mu.Unlock()
 }
 
 // templateUnitFileName maps a template instance's unit name (e.g.
@@ -99,83 +55,119 @@ func templateUnitFileName(name string) string {
 	return name[:at+1] + filepath.Ext(name)
 }
 
-// List returns .service units. With states set, it filters at the D-Bus
-// level via systemd's own ListUnitsFiltered (e.g. []string{"running"}) — this
-// only sees units systemd currently has loaded. With states empty, it falls
-// back to the full installed catalog (ListUnitFiles merged with live state),
-// so services that are installed but were never started still show up.
-// Template units (name@.service) are skipped: they have no single state.
+// List returns .service units without their enablement state — that comes
+// from a separate, much slower call (see UnitFileStream below) and is left
+// blank here so a request never has to wait on it. With states set, it
+// filters at the D-Bus level via systemd's own ListUnitsFiltered (e.g.
+// []string{"running"}); with states empty, it lists every unit systemd
+// currently has loaded. Either way this only sees loaded units — a service
+// that's installed but was never started won't appear until
+// UnitFileStream's Run reports it, which the frontend adds as a new row.
+// Template units (name@.service) are only included when states is set,
+// since a bare template has no state of its own to report in the
+// no-filter view.
 func (m *Manager) List(ctx context.Context, states []string) ([]Unit, error) {
-	files, err := m.unitFiles(ctx)
-	if err != nil {
-		return nil, err
-	}
-	enablement := make(map[string]string, len(files))
-	for _, f := range files {
-		enablement[filepath.Base(f.Path)] = f.Type
-	}
-
+	var loaded []systemdDbus.UnitStatus
+	var err error
 	if len(states) > 0 {
-		loaded, err := m.conn.ListUnitsFilteredContext(ctx, states)
-		if err != nil {
-			return nil, err
-		}
-		var units []Unit
-		for _, st := range loaded {
-			if !strings.HasSuffix(st.Name, ".service") {
-				continue
-			}
-			state := enablement[st.Name]
-			if state == "" {
-				// Template instances (e.g. postgres@18-main.service) have no
-				// unit file of their own — only the template
-				// (postgresql@.service) is on disk, so fall back to its
-				// enablement.
-				state = enablement[templateUnitFileName(st.Name)]
-			}
-			units = append(units, Unit{
-				Name:          st.Name,
-				Description:   st.Description,
-				LoadState:     st.LoadState,
-				ActiveState:   st.ActiveState,
-				SubState:      st.SubState,
-				UnitFileState: state,
-			})
-		}
-		sort.Slice(units, func(i, j int) bool { return units[i].Name < units[j].Name })
-		return units, nil
+		loaded, err = m.conn.ListUnitsFilteredContext(ctx, states)
+	} else {
+		loaded, err = m.conn.ListUnitsContext(ctx)
 	}
-
-	loaded, err := m.conn.ListUnitsContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	live := make(map[string]systemdDbus.UnitStatus, len(loaded))
-	for _, u := range loaded {
-		live[u.Name] = u
-	}
 
-	seen := make(map[string]bool, len(files))
-	var units []Unit
-	for _, f := range files {
-		name := filepath.Base(f.Path)
-		if !strings.HasSuffix(name, ".service") || strings.Contains(name, "@") || seen[name] {
+	units := make([]Unit, 0, len(loaded))
+	for _, st := range loaded {
+		if !strings.HasSuffix(st.Name, ".service") {
 			continue
 		}
-		seen[name] = true
-
-		u := Unit{Name: name, UnitFileState: f.Type, ActiveState: "inactive", SubState: "dead"}
-		if st, ok := live[name]; ok {
-			u.Description = st.Description
-			u.LoadState = st.LoadState
-			u.ActiveState = st.ActiveState
-			u.SubState = st.SubState
+		if len(states) == 0 && strings.Contains(st.Name, "@") {
+			continue
 		}
-		units = append(units, u)
+		units = append(units, Unit{
+			Name:        st.Name,
+			Description: st.Description,
+			LoadState:   st.LoadState,
+			ActiveState: st.ActiveState,
+			SubState:    st.SubState,
+		})
 	}
-
 	sort.Slice(units, func(i, j int) bool { return units[i].Name < units[j].Name })
 	return units, nil
+}
+
+// UnitEnablement is one message of the unit-file enablement stream: a
+// single service's on-disk enabled/disabled/static/masked state.
+type UnitEnablement struct {
+	Name  string `json:"name"`
+	State string `json:"state"`
+}
+
+// UnitFileStream reports every service's enablement state, one message at
+// a time, so the frontend can fill in List's fast response (and add rows
+// for installed-but-never-loaded services List couldn't see) as results
+// arrive instead of every request blocking on the same slow call.
+type UnitFileStream struct {
+	m *Manager
+}
+
+// OpenUnitFileStream does no work itself — there's no cheap step to do
+// upfront here, unlike e.g. the container volume-size stream, since
+// ListUnitFilesContext is the whole cost and can't be split. It exists so
+// the route handler has a place to fail before committing to the SSE
+// response, mirroring the rest of the codebase's stream constructors.
+func (m *Manager) OpenUnitFileStream(ctx context.Context) (*UnitFileStream, error) {
+	return &UnitFileStream{m: m}, nil
+}
+
+func (s *UnitFileStream) Close() {}
+
+// Run does the actual work: one ListUnitFiles call — measured at ~550ms for
+// a few hundred units, since it walks and parses every unit file on disk,
+// unlike the sub-2ms live-state calls List() uses — plus one ListUnits call
+// to resolve any loaded template instances (e.g. postgres@18-main.service)
+// to their template's enablement, since an instance has no unit file of its
+// own. This mirrors what List() used to do inline on every request.
+func (s *UnitFileStream) Run(ctx context.Context, emit func(UnitEnablement)) error {
+	files, err := s.m.conn.ListUnitFilesContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	templates := make(map[string]string, len(files))
+	entries := make(map[string]string, len(files))
+	for _, f := range files {
+		name := filepath.Base(f.Path)
+		if !strings.HasSuffix(name, ".service") {
+			continue
+		}
+		if strings.Contains(name, "@") {
+			templates[name] = f.Type
+			continue
+		}
+		entries[name] = f.Type
+	}
+
+	if loaded, err := s.m.conn.ListUnitsContext(ctx); err == nil {
+		for _, u := range loaded {
+			if !strings.HasSuffix(u.Name, ".service") || !strings.Contains(u.Name, "@") {
+				continue
+			}
+			if _, ok := entries[u.Name]; ok {
+				continue
+			}
+			if state, ok := templates[templateUnitFileName(u.Name)]; ok {
+				entries[u.Name] = state
+			}
+		}
+	}
+
+	for name, state := range entries {
+		emit(UnitEnablement{Name: name, State: state})
+	}
+	return nil
 }
 
 // Detail describes everything the service detail dialog shows, gathered
@@ -329,11 +321,7 @@ func (m *Manager) Enable(ctx context.Context, name string) error {
 		return err
 	}
 	_, _, err := m.conn.EnableUnitFilesContext(ctx, []string{name}, false, false)
-	if err != nil {
-		return err
-	}
-	m.invalidateUnitFiles()
-	return nil
+	return err
 }
 
 func (m *Manager) Disable(ctx context.Context, name string) error {
@@ -341,11 +329,7 @@ func (m *Manager) Disable(ctx context.Context, name string) error {
 		return err
 	}
 	_, err := m.conn.DisableUnitFilesContext(ctx, []string{name}, false)
-	if err != nil {
-		return err
-	}
-	m.invalidateUnitFiles()
-	return nil
+	return err
 }
 
 // Logs returns the unit's last n journal lines, oldest first. Shelling out

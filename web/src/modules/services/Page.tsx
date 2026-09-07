@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { LogsDialog } from '@/components/LogsDialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -9,6 +9,7 @@ import {
   getServiceLogs,
   listServices,
   runServiceAction,
+  serviceEnablementStreamUrl,
   serviceLogsStreamUrl,
   type ServiceActionName,
   type ServiceUnit,
@@ -21,6 +22,7 @@ import { ServiceTable, ServiceTableHeader } from './ServiceTable'
 export default function ServicesPage() {
   const { t } = useI18n()
   const [units, setUnits] = useState<ServiceUnit[] | null>(null)
+  const [enablement, setEnablement] = useState<Record<string, string>>({})
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('running')
   const [pending, setPending] = useState<Record<string, ServiceActionName | undefined>>({})
@@ -33,7 +35,9 @@ export default function ServicesPage() {
 
   // The backend owns filtering (status maps straight to systemd's own
   // ListUnitsFiltered where possible); a fresh request goes out on every
-  // filter change, debounced so typing doesn't fire one per keystroke.
+  // filter change, debounced so typing doesn't fire one per keystroke. This
+  // list is fast because it never reads unit files — see the enablement
+  // stream below for that.
   useEffect(() => {
     const timer = setTimeout(() => {
       refresh().catch(() => {})
@@ -41,6 +45,44 @@ export default function ServicesPage() {
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, query])
+
+  // Every service's on-disk enabled/disabled state, filled in as it arrives
+  // — one SSE message per service, independent of the filter/search above so
+  // typing doesn't restart it. ListUnitFiles (which this is built from) took
+  // ~550ms for a few hundred units in testing since it walks and parses
+  // every unit file on disk, so it runs once in the background rather than
+  // blocking every list request the way it used to.
+  useEffect(() => {
+    const source = new EventSource(serviceEnablementStreamUrl())
+    source.onmessage = (event) => {
+      const data = JSON.parse(event.data as string) as { name: string; state: string }
+      setEnablement((prev) => ({ ...prev, [data.name]: data.state }))
+    }
+    source.addEventListener('done', () => source.close())
+    source.addEventListener('failed', () => source.close())
+    source.onerror = () => source.close()
+    return () => source.close()
+  }, [])
+
+  // Merges the enablement stream into whatever List returned. Under the
+  // "all" filter this also adds rows for services List() couldn't see at
+  // all — installed but never started, so never loaded by systemd — as
+  // their enablement arrives; every other filter only sees loaded units to
+  // begin with, so there's nothing to add there.
+  const displayedUnits = useMemo(() => {
+    if (!units) return null
+    const known = new Set(units.map((u) => u.name))
+    const merged = units.map((u) => ({ ...u, unitFileState: enablement[u.name] ?? u.unitFileState }))
+    if (status === 'all') {
+      const q = query.trim().toLowerCase()
+      for (const [name, state] of Object.entries(enablement)) {
+        if (known.has(name) || (q && !name.toLowerCase().includes(q))) continue
+        merged.push({ name, description: '', loadState: '', activeState: 'inactive', subState: 'dead', unitFileState: state })
+      }
+      merged.sort((a, b) => a.name.localeCompare(b.name))
+    }
+    return merged
+  }, [units, enablement, status, query])
 
   async function handleAction(name: string, action: ServiceActionName) {
     setPending((p) => ({ ...p, [name]: action }))
@@ -84,15 +126,17 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      {units && units.length === 0 && <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('services.empty')}</p>}
-      {units && units.length > 0 && (
+      {displayedUnits && displayedUnits.length === 0 && (
+        <p className="mt-4 px-4 text-sm text-gray-500 sm:px-6">{t('services.empty')}</p>
+      )}
+      {displayedUnits && displayedUnits.length > 0 && (
         <>
           <div className="mt-4 px-4 sm:px-6">
             <ServiceTableHeader />
           </div>
           <ScrollArea className="min-h-0 grow px-4 sm:px-6">
             <ServiceTable
-              units={units}
+              units={displayedUnits}
               pending={pending}
               onAction={handleAction}
               onShowLogs={setLogsFor}

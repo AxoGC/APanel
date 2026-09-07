@@ -69,7 +69,9 @@ export function ServiceTable({ units, pending, onAction, onShowLogs, onShowDetai
           const [dot, text] = statusClasses(unit.subState)
           const [enableDot, enableText] = enablementClasses(unit.unitFileState)
           const togglable = unit.unitFileState === 'enabled' || unit.unitFileState === 'disabled'
-          const enablement = UNIT_FILE_STATE_LABELS[unit.unitFileState] ? t(UNIT_FILE_STATE_LABELS[unit.unitFileState]) : unit.unitFileState
+          const enablement = unit.unitFileState === ''
+            ? '…'
+            : (UNIT_FILE_STATE_LABELS[unit.unitFileState] ? t(UNIT_FILE_STATE_LABELS[unit.unitFileState]) : unit.unitFileState)
           const state = SUBSTATE_LABELS[unit.subState] ? t(SUBSTATE_LABELS[unit.subState]) : unit.subState
 
           return (
