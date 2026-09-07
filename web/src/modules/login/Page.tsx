@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -63,13 +65,24 @@ export default function LoginPage() {
           <Label htmlFor="password" className="text-xs font-normal text-gray-500">
             {t('login.password')}
           </Label>
-          <Input
-            id="password"
-            type="password"
-            autoFocus={!isStandalone}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoFocus={!isStandalone}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={t(showPassword ? 'dependency.hidePassword' : 'dependency.showPassword')}
+              className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
         </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
         <Button type="submit" disabled={submitting || password === '' || (isStandalone && server === '')}>

@@ -26,5 +26,9 @@ tauri-plugin-log = "2"
 
 # Strips Rust debug symbols from release builds (desktop and Android alike)
 # so a "release" APK/binary doesn't ship an unstripped .so full of debuginfo.
+# lto/codegen-units=1 trade longer release builds for a smaller .so, worth
+# it since this profile is only ever built for distribution, not iterated on.
 [profile.release]
 strip = true
+lto = true
+codegen-units = 1
