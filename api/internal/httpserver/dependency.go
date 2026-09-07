@@ -16,25 +16,27 @@ const (
 
 // dependencyModules is the subset of moduleOrder that can have a checkable
 // local dependency at all — dashboard/terminal/services/files are core,
-// always-local features with nothing to configure or detect.
+// always-local features with nothing to configure or detect. containers is
+// deliberately excluded too: it only ever talks to the local Docker
+// runtime (see container.New), so it has no connection dialog to offer —
+// its local-only health is still probed directly via dependencyCheckers
+// for initial-feature detection, just not exposed through this endpoint.
 var dependencyModules = map[string]struct{}{
-	"containers": {},
-	"history":    {},
-	"firewall":   {},
-	"proxy":      {},
-	"database":   {},
+	"history":  {},
+	"firewall": {},
+	"proxy":    {},
+	"database": {},
 }
 
 // moduleFields lists which connection fields a module's dependency dialog
 // should collect — any subset of host/port/url/username/password, chosen
-// per what that dependency actually authenticates with. containers,
-// firewall, and history are checked locally and have nothing to configure.
-// proxy takes a full URL rather than a host/port pair since a plain
-// host:port can't express http vs. https.
+// per what that dependency actually authenticates with. firewall and
+// history are checked locally and have nothing to configure. proxy takes a
+// full URL rather than a host/port pair since a plain host:port can't
+// express http vs. https.
 var moduleFields = map[string][]string{
-	"containers": {"host", "port"},
-	"proxy":      {"url", "password"},
-	"database":   {"host", "port", "username", "password"},
+	"proxy":    {"url", "password"},
+	"database": {"host", "port", "username", "password"},
 }
 
 // requiredFields lists which of a module's fields (see moduleFields) can't

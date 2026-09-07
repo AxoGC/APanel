@@ -32,9 +32,11 @@ export const MODULE_META: Record<ModuleKey, { to: string; labelKey: TranslationK
   auditlog: { to: '/auditlog', labelKey: 'nav.auditlog', icon: ScrollText },
 }
 
-// The 5 optional extensions that can have a checkable local dependency
+// The 4 optional extensions that can have a checkable local dependency
 // (see DependencyDialog) — dashboard/terminal/services/files are core,
-// always-local features with nothing to configure or detect.
-export type DependencyModuleKey = 'containers' | 'history' | 'firewall' | 'proxy' | 'database'
+// always-local features with nothing to configure or detect. containers
+// isn't here either: it only ever talks to the local Docker runtime, so
+// there's no connection to configure.
+export type DependencyModuleKey = 'history' | 'firewall' | 'proxy' | 'database'
 
-export const DEPENDENCY_MODULES: DependencyModuleKey[] = ['containers', 'history', 'firewall', 'proxy', 'database']
+export const DEPENDENCY_MODULES: DependencyModuleKey[] = ['history', 'firewall', 'proxy', 'database']
