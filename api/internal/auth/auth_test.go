@@ -16,6 +16,7 @@ import (
 
 	"apanel/internal/auditlog"
 	"apanel/internal/db"
+	"apanel/internal/settings"
 	"apanel/internal/users"
 )
 
@@ -26,7 +27,7 @@ func newTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := New(gormDB, users.New(gormDB), auditlog.New(gormDB))
+	svc, err := New(gormDB, users.New(gormDB), auditlog.New(gormDB, settings.New(gormDB)))
 	if err != nil {
 		t.Fatal(err)
 	}

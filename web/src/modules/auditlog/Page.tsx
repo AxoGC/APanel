@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react'
+import { Loader2, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -6,6 +6,7 @@ import { SectionedDialog } from '@/components/SectionedDialog'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { getAuditLog, type AuditLogEntry } from './api'
+import { AuditLogSettingsDialog } from './AuditLogSettingsDialog'
 
 const PAGE_SIZE = 50
 
@@ -54,6 +55,7 @@ export default function AuditLogPage() {
   const [exhausted, setExhausted] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
   const [detail, setDetail] = useState<AuditLogEntry | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -83,8 +85,11 @@ export default function AuditLogPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-6">
         <h1 className="text-base text-gray-900 dark:text-gray-100">{t('nav.auditlog')}</h1>
+        <Button variant="outline" size="icon-sm" aria-label={t('auditlog.settings.title')} onClick={() => setSettingsOpen(true)}>
+          <Settings />
+        </Button>
       </div>
 
       {!loading && entries.length === 0 && !loadFailed && (
@@ -158,6 +163,8 @@ export default function AuditLogPage() {
           </div>
         )}
       </SectionedDialog>
+
+      <AuditLogSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

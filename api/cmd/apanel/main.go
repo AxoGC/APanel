@@ -53,7 +53,7 @@ func main() {
 	updateMgr := update.New(settingsMgr)
 	updateMgr.Start(context.Background())
 	usersMgr := users.New(gormDB)
-	auditMgr := auditlog.New(gormDB)
+	auditMgr := auditlog.New(gormDB, settingsMgr)
 
 	authSvc, err := auth.New(gormDB, usersMgr, auditMgr)
 	if err != nil {

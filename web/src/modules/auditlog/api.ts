@@ -18,3 +18,18 @@ export function getAuditLog(params: { limit?: number; beforeId?: number } = {}) 
   const qs = query.toString()
   return apiFetch<AuditLogEntry[]>(`/auditlog${qs ? `?${qs}` : ''}`)
 }
+
+export interface AuditLogSettings {
+  retentionDays: number
+}
+
+export function getAuditLogSettings() {
+  return apiFetch<AuditLogSettings>('/auditlog/settings')
+}
+
+export function putAuditLogSettings(settings: AuditLogSettings) {
+  return apiFetch<AuditLogSettings>('/auditlog/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  })
+}
