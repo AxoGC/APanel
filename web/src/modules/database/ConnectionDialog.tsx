@@ -40,10 +40,10 @@ type DatabaseType = 'mysql' | 'postgresql'
 // Database's own connection dialog: unlike the generic DependencyDialog
 // (still used by history/proxy), this drops the status blurb and install-
 // guide link in favor of a header icon linking to the same docs, and adds
-// a database-type selector ahead of the connection fields. The type
-// selector is frontend-only for now — PostgreSQL is the only backend the
-// API actually supports (see internal/database), MySQL doesn't submit
-// anywhere yet.
+// a database-type selector ahead of the connection fields. The selected
+// type is submitted alongside the connection fields as config.type — the
+// backend (see internal/database) picks its SQL dialect from that same
+// key, auto-detecting a default when nothing's been saved yet.
 export function DatabaseConnectionDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { t } = useI18n()
   const [status, setStatus] = useState<DependencyStatus | null>(null)
@@ -60,6 +60,9 @@ export function DatabaseConnectionDialog({ open, onOpenChange }: { open: boolean
       .then((res) => {
         setStatus(res)
         setForm(res.config)
+        if (res.config.type === 'mysql' || res.config.type === 'postgresql') {
+          setDbType(res.config.type)
+        }
       })
       .catch(() => {})
   }, [open])
@@ -67,7 +70,7 @@ export function DatabaseConnectionDialog({ open, onOpenChange }: { open: boolean
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await putModuleDependency('database', form)
+      const res = await putModuleDependency('database', { ...form, type: dbType })
       setStatus(res)
       setForm(res.config)
     } catch {

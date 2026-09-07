@@ -49,6 +49,16 @@ var requiredFields = map[string][]string{
 	"database": {"password"},
 }
 
+// extraConfigFields lists per-module config keys the PUT handler accepts
+// alongside moduleFields but that aren't part of the generic field-list the
+// frontend renders automatically (see moduleFields' doc comment) — database
+// has its own hand-built type selector (see DatabaseConnectionDialog)
+// rather than a generic Input, so "type" lives here instead of in
+// moduleFields.
+var extraConfigFields = map[string][]string{
+	"database": {"type"},
+}
+
 type dependencyStatus struct {
 	Key            string            `json:"key"`
 	Healthy        bool              `json:"healthy"`
@@ -151,8 +161,11 @@ func (s *Server) putModuleDependency(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed := make(map[string]bool, len(moduleFields[key]))
+	allowed := make(map[string]bool, len(moduleFields[key])+len(extraConfigFields[key]))
 	for _, f := range moduleFields[key] {
+		allowed[f] = true
+	}
+	for _, f := range extraConfigFields[key] {
 		allowed[f] = true
 	}
 	config := make(map[string]string, len(body.Config))
