@@ -1,6 +1,7 @@
 import { SiDocker } from '@icons-pack/react-simple-icons'
-import { Database, FolderOpen, History, ScrollText, Server, Shield, SquareTerminal, Waypoints } from 'lucide-react'
+import { Database, FolderOpen, History, ScrollText, Server, Shield, SquareTerminal } from 'lucide-react'
 import type { ComponentType } from 'react'
+import { ClashIcon } from '@/components/icons/ClashIcon'
 import type { ModuleKey } from './features'
 import type { TranslationKey } from './i18n'
 
@@ -33,7 +34,7 @@ export const MODULE_META: Record<ModuleKey, { to: string; labelKey: TranslationK
   containers: { to: '/containers', labelKey: 'nav.containers', icon: SiDocker },
   history: { to: '/history', labelKey: 'nav.history', icon: History },
   firewall: { to: '/firewall', labelKey: 'nav.firewall', icon: Shield },
-  proxy: { to: '/proxy', labelKey: 'nav.proxy', icon: Waypoints },
+  proxy: { to: '/proxy', labelKey: 'nav.proxy', icon: ClashIcon },
   database: { to: '/database', labelKey: 'nav.database', icon: Database },
   auditlog: { to: '/auditlog', labelKey: 'nav.auditlog', icon: ScrollText },
 }
