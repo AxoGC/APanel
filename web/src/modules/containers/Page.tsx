@@ -43,7 +43,17 @@ export default function ContainersPage() {
   // The backend owns filtering (status maps straight onto Docker's own
   // container state filter); a fresh request goes out on every filter
   // change, debounced so typing doesn't fire one per keystroke.
+  //
+  // The very first run (mount) skips the debounce — there's no keystroke to
+  // coalesce yet, so waiting 250ms here only delayed the initial load for no
+  // reason.
+  const mounted = useRef(false)
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true
+      refresh().catch(() => {})
+      return
+    }
     const timer = setTimeout(() => {
       refresh().catch(() => {})
     }, 250)
