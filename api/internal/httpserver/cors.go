@@ -13,13 +13,19 @@ import (
 // fixed webview origin rather than being served by that instance. The
 // integrated web build is always same-origin and never triggers this path.
 //
-// The two defaults are Tauri v2's fixed webview origins (tauri://localhost
-// on Linux/macOS, https://tauri.localhost on Windows) — not user data, so
-// safe to allow unconditionally. APANEL_CORS_ORIGINS extends the list, for
-// anyone running a custom or dev build under a different origin.
+// The defaults are Tauri v2's fixed webview origins — not user data, so
+// safe to allow unconditionally: tauri://localhost on Linux/macOS, and on
+// Windows/Android the custom-protocol origin is http://tauri.localhost
+// unless the app opts into useHttpsScheme (which this app deliberately
+// doesn't — that flag also blocks mixed content, breaking requests to the
+// plain-HTTP LAN servers apanel supports), so https://tauri.localhost is
+// kept too only in case a build ever does turn that on.
+// APANEL_CORS_ORIGINS extends the list, for anyone running a custom or dev
+// build under a different origin.
 func corsAllowedOrigins() map[string]bool {
 	allowed := map[string]bool{
 		"tauri://localhost":       true,
+		"http://tauri.localhost":  true,
 		"https://tauri.localhost": true,
 	}
 	for _, origin := range strings.Split(os.Getenv("APANEL_CORS_ORIGINS"), ",") {

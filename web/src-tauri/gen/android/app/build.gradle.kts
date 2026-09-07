@@ -28,7 +28,14 @@ android {
         manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "net.axogc.apanel"
         minSdk = 24
-        targetSdk = 36
+        // Kept at Android 14 (not compileSdk's 36) deliberately: target API
+        // 35+ makes Android 15 force edge-to-edge regardless of whether
+        // MainActivity calls enableEdgeToEdge() itself, which pushes the
+        // WebView's content back up under the status bar. Neither the
+        // frontend nor Tauri's WebView fully handles window insets, so
+        // 34 keeps the system drawing content below the status bar as
+        // normal instead (see /root/TAURI_ANDROID_STATUS_BAR_INSETS.md).
+        targetSdk = 34
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
