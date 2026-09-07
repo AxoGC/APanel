@@ -1,4 +1,4 @@
-import { Images, Network, Plus, Search } from 'lucide-react'
+import { HardDrive, Images, Network, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,7 @@ import { ContainerLogsDialog } from './ContainerLogsDialog'
 import { CreateContainerDialog } from './CreateContainerDialog'
 import { ImageManagerDialog } from './ImageManagerDialog'
 import { NetworkManagerDialog } from './NetworkManagerDialog'
+import { VolumeManagerDialog } from './VolumeManagerDialog'
 import { ContainerTable, ContainerTableHeader } from './ContainerTable'
 
 export default function ContainersPage() {
@@ -30,6 +31,7 @@ export default function ContainersPage() {
   const [detailFor, setDetailFor] = useState<string | null>(null)
   const [imagesOpen, setImagesOpen] = useState(false)
   const [networksOpen, setNetworksOpen] = useState(false)
+  const [volumesOpen, setVolumesOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -112,6 +114,10 @@ export default function ContainersPage() {
             <Network />
             <span className="hidden md:inline">{t('containers.networks')}</span>
           </Button>
+          <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
+            <HardDrive />
+            <span className="hidden md:inline">{t('containers.volumes')}</span>
+          </Button>
           <Button
             size="sm"
             aria-label={t('containers.create')}
@@ -153,6 +159,7 @@ export default function ContainersPage() {
       <ContainerDetailDialog id={detailFor} onOpenChange={(open) => !open && setDetailFor(null)} />
       <ImageManagerDialog open={imagesOpen} onOpenChange={setImagesOpen} />
       <NetworkManagerDialog open={networksOpen} onOpenChange={setNetworksOpen} />
+      <VolumeManagerDialog open={volumesOpen} onOpenChange={setVolumesOpen} />
       <CreateContainerDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
     </div>
   )

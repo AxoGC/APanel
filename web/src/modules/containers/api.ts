@@ -28,6 +28,11 @@ export interface ContainerNetwork {
   usedBy: ContainerRef[]
 }
 
+export interface ContainerVolume {
+  name: string
+  usedBy: ContainerRef[]
+}
+
 export type StatusFilter = 'running' | 'exited' | 'all'
 
 export function listContainers(params: { status: StatusFilter; q: string }) {
@@ -57,6 +62,21 @@ export function listContainerNetworks() {
 
 export function deleteContainerNetwork(id: string) {
   return apiFetch<null>(`/containers/networks/${encodeURIComponent(id)}/delete`, { method: 'POST' })
+}
+
+export function listContainerVolumes() {
+  return apiFetch<ContainerVolume[]>('/containers/volumes')
+}
+
+export function containerVolumeSizeStreamUrl() {
+  return '/api/containers/volumes/stream'
+}
+
+export function deleteContainerVolumes(names: string[]) {
+  return apiFetch<null>('/containers/volumes/delete', {
+    method: 'POST',
+    body: JSON.stringify({ names }),
+  })
 }
 
 export type ContainerActionName = 'start' | 'stop' | 'restart' | 'delete'

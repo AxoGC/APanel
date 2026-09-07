@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 const CONTAINER_NOT_FOUND response.Code = "CONTAINER_NOT_FOUND"
 const CONTAINER_NOT_RUNNING response.Code = "CONTAINER_NOT_RUNNING"
 const INVALID_IMAGE_DELETE response.Code = "INVALID_IMAGE_DELETE"
+const INVALID_VOLUME_DELETE response.Code = "INVALID_VOLUME_DELETE"
 const NETWORK_NOT_FOUND response.Code = "NETWORK_NOT_FOUND"
 const CONTAINER_CREATE_INVALID response.Code = "CONTAINER_CREATE_INVALID"
 const CONTAINER_NAME_CONFLICT response.Code = "CONTAINER_NAME_CONFLICT"
@@ -31,6 +33,9 @@ func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handl
 	mux.Handle("GET /api/containers/images/tags", requireAuth(http.HandlerFunc(m.listContainerImageTags)))
 	mux.Handle("GET /api/containers/networks", requireAuth(http.HandlerFunc(m.listContainerNetworks)))
 	mux.Handle("POST /api/containers/networks/{id}/delete", requireAuth(http.HandlerFunc(m.deleteContainerNetwork)))
+	mux.Handle("GET /api/containers/volumes", requireAuth(http.HandlerFunc(m.listContainerVolumes)))
+	mux.Handle("GET /api/containers/volumes/stream", requireAuth(http.HandlerFunc(m.streamContainerVolumeSizes)))
+	mux.Handle("POST /api/containers/volumes/delete", requireAuth(http.HandlerFunc(m.deleteContainerVolumes)))
 	mux.Handle("POST /api/containers/{id}/start", requireAuth(m.containerAction(m.Start)))
 	mux.Handle("POST /api/containers/{id}/stop", requireAuth(m.containerAction(m.Stop)))
 	mux.Handle("POST /api/containers/{id}/restart", requireAuth(m.containerAction(m.Restart)))
@@ -171,6 +176,82 @@ func (m *Manager) deleteContainerNetwork(w http.ResponseWriter, r *http.Request)
 	if err := m.DeleteNetwork(r.Context(), id); err != nil {
 		if errors.Is(err, ErrNetworkNotFound) {
 			response.WriteCode(w, http.StatusNotFound, NETWORK_NOT_FOUND)
+			return
+		}
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, nil)
+}
+
+func (m *Manager) listContainerVolumes(w http.ResponseWriter, r *http.Request) {
+	volumes, err := m.ListVolumes(r.Context())
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, volumes)
+}
+
+func (m *Manager) streamContainerVolumeSizes(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := response.RequireFlusher(w)
+	if !ok {
+		return
+	}
+
+	stream, err := m.OpenVolumeSizeStream(r.Context())
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	defer stream.Close()
+
+	response.WriteLogStreamHeaders(w, flusher)
+	err = stream.Run(r.Context(), func(size VolumeSize) { writeSSEEvent(w, flusher, size) })
+	writeSSEStreamEnd(w, flusher, err)
+}
+
+// writeSSEEvent sends one unnamed ("message") SSE event carrying v as JSON.
+func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, v any) {
+	payload, err := json.Marshal(v)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(w, "data: %s\n\n", payload)
+	flusher.Flush()
+}
+
+// writeSSEStreamEnd closes out a stream with a named "done" event so the
+// client can tell "every item finished" apart from a dropped connection —
+// EventSource can't otherwise distinguish those from a plain close, and
+// would keep auto-retrying a stream that already finished on purpose. A
+// failure partway through is reported as a named "failed" event instead —
+// deliberately not "error", which EventSource itself already dispatches for
+// transport-level failures and would make the two impossible to tell apart
+// client-side. A normal JSON error envelope can't be sent this far into an
+// SSE response either way — the 200 and headers are already committed.
+func writeSSEStreamEnd(w http.ResponseWriter, flusher http.Flusher, err error) {
+	if err != nil {
+		payload, _ := json.Marshal(map[string]string{"message": err.Error()})
+		fmt.Fprintf(w, "event: failed\ndata: %s\n\n", payload)
+	} else {
+		fmt.Fprint(w, "event: done\ndata: {}\n\n")
+	}
+	flusher.Flush()
+}
+
+func (m *Manager) deleteContainerVolumes(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Names []string `json:"names"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || len(body.Names) == 0 {
+		response.WriteCode(w, http.StatusBadRequest, INVALID_VOLUME_DELETE)
+		return
+	}
+
+	if err := m.DeleteVolumes(r.Context(), body.Names); err != nil {
+		if errors.Is(err, ErrInvalidVolume) {
+			response.WriteCode(w, http.StatusBadRequest, INVALID_VOLUME_DELETE)
 			return
 		}
 		response.WriteInternalError(w, err)

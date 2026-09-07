@@ -25,6 +25,7 @@ var actionLabels = map[string]string{
 	"POST /api/containers":                      "container.create",
 	"POST /api/containers/images/delete":        "containerImage.delete",
 	"POST /api/containers/networks/{id}/delete": "containerNetwork.delete",
+	"POST /api/containers/volumes/delete":       "containerVolume.delete",
 	"POST /api/containers/{id}/start":           "container.start",
 	"POST /api/containers/{id}/stop":            "container.stop",
 	"POST /api/containers/{id}/restart":         "container.restart",

@@ -21,7 +21,9 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 
@@ -32,6 +34,7 @@ var (
 	ErrNotFound        = errors.New("container not found")
 	ErrNotRunning      = errors.New("container is not running")
 	ErrInvalidImage    = errors.New("invalid image")
+	ErrInvalidVolume   = errors.New("invalid volume")
 	ErrNetworkNotFound = errors.New("network not found")
 	ErrInvalidCreate   = errors.New("invalid container configuration")
 	ErrNameConflict    = errors.New("container name already in use")
@@ -72,6 +75,20 @@ type Network struct {
 	Driver string         `json:"driver"`
 	Scope  string         `json:"scope"`
 	UsedBy []ContainerRef `json:"usedBy"`
+}
+
+// Volume is a Docker volume without its on-disk size — computing that
+// requires a slow system-wide disk-usage scan, so it's reported separately
+// by VolumeSizeStream (see ListVolumes/OpenVolumeSizeStream).
+type Volume struct {
+	Name   string         `json:"name"`
+	UsedBy []ContainerRef `json:"usedBy"`
+}
+
+// VolumeSize is one volume-size event of the volume size stream.
+type VolumeSize struct {
+	Name  string `json:"name"`
+	Bytes int64  `json:"bytes"`
 }
 
 // Detail describes everything the container detail dialog shows, gathered
@@ -209,17 +226,18 @@ func (m *Manager) List(ctx context.Context, states []string) ([]Container, error
 
 // containerUsage lists every container (running and stopped, since a
 // stopped container still pins its image and stays attached to its
-// networks) and groups them by the image ID and network IDs they use, so
-// ListImages/ListNetworks can report which containers are using each entry
-// without a per-entry inspect call.
-func (m *Manager) containerUsage(ctx context.Context) (byImage, byNetwork map[string][]ContainerRef, err error) {
+// networks/volumes) and groups them by the image ID, network IDs, and
+// volume names they use, so ListImages/ListNetworks/ListVolumes can report
+// which containers are using each entry without a per-entry inspect call.
+func (m *Manager) containerUsage(ctx context.Context) (byImage, byNetwork, byVolume map[string][]ContainerRef, err error) {
 	raw, err := m.cli.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	byImage = make(map[string][]ContainerRef)
 	byNetwork = make(map[string][]ContainerRef)
+	byVolume = make(map[string][]ContainerRef)
 	for _, c := range raw {
 		name := c.ID
 		if len(c.Names) > 0 {
@@ -237,8 +255,14 @@ func (m *Manager) containerUsage(ctx context.Context) (byImage, byNetwork map[st
 				byNetwork[ep.NetworkID] = append(byNetwork[ep.NetworkID], ref)
 			}
 		}
+
+		for _, mnt := range c.Mounts {
+			if mnt.Type == mount.TypeVolume && mnt.Name != "" {
+				byVolume[mnt.Name] = append(byVolume[mnt.Name], ref)
+			}
+		}
 	}
-	return byImage, byNetwork, nil
+	return byImage, byNetwork, byVolume, nil
 }
 
 // usedByRefs looks up id in m, returning an empty (never nil) slice when
@@ -260,7 +284,7 @@ func (m *Manager) ListImages(ctx context.Context) ([]Image, error) {
 		return nil, err
 	}
 
-	byImage, _, err := m.containerUsage(ctx)
+	byImage, _, _, err := m.containerUsage(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +334,7 @@ func (m *Manager) ListNetworks(ctx context.Context) ([]Network, error) {
 		return nil, err
 	}
 
-	_, byNetwork, err := m.containerUsage(ctx)
+	_, byNetwork, _, err := m.containerUsage(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -328,6 +352,94 @@ func (m *Manager) ListNetworks(ctx context.Context) ([]Network, error) {
 
 	sort.Slice(networks, func(i, j int) bool { return networks[i].Name < networks[j].Name })
 	return networks, nil
+}
+
+// ListVolumes returns local volumes, together with the containers that
+// mount each one, but not their on-disk size — see OpenVolumeSizeStream for
+// that, since it requires a slow system-wide disk-usage scan.
+func (m *Manager) ListVolumes(ctx context.Context) ([]Volume, error) {
+	raw, err := m.cli.VolumeList(ctx, volume.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	_, _, byVolume, err := m.containerUsage(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	volumes := make([]Volume, 0, len(raw.Volumes))
+	for _, item := range raw.Volumes {
+		volumes = append(volumes, Volume{
+			Name:   item.Name,
+			UsedBy: usedByRefs(byVolume, item.Name),
+		})
+	}
+
+	sort.Slice(volumes, func(i, j int) bool { return volumes[i].Name < volumes[j].Name })
+	return volumes, nil
+}
+
+// VolumeSizeStream is a size scan that has already listed every volume name
+// — so a listing failure can be reported as a normal error response — and
+// is ready to run the (possibly slow) disk-usage scan once the caller has
+// committed to an SSE response.
+type VolumeSizeStream struct {
+	m     *Manager
+	names []string
+}
+
+func (m *Manager) OpenVolumeSizeStream(ctx context.Context) (*VolumeSizeStream, error) {
+	raw, err := m.cli.VolumeList(ctx, volume.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(raw.Volumes))
+	for _, item := range raw.Volumes {
+		names = append(names, item.Name)
+	}
+	return &VolumeSizeStream{m: m, names: names}, nil
+}
+
+func (s *VolumeSizeStream) Close() {}
+
+// Run computes every volume's on-disk size via a single system-wide
+// disk-usage scan (Docker doesn't expose per-volume size any cheaper way),
+// then calls emit once per volume so the frontend can render each result as
+// it arrives rather than waiting on the whole scan. emit is never called
+// concurrently. A volume without usage data (a non-local driver) reports 0.
+func (s *VolumeSizeStream) Run(ctx context.Context, emit func(VolumeSize)) error {
+	usage, err := s.m.cli.DiskUsage(ctx, types.DiskUsageOptions{Types: []types.DiskUsageObject{types.VolumeObject}})
+	if err != nil {
+		return err
+	}
+
+	sizes := make(map[string]int64, len(usage.Volumes))
+	for _, v := range usage.Volumes {
+		if v.UsageData != nil {
+			sizes[v.Name] = v.UsageData.Size
+		}
+	}
+
+	for _, name := range s.names {
+		emit(VolumeSize{Name: name, Bytes: sizes[name]})
+	}
+	return nil
+}
+
+// DeleteVolumes removes the supplied unused volumes without forcing
+// removal. Docker remains the final authority and rejects any volume that
+// becomes used between listing and deletion.
+func (m *Manager) DeleteVolumes(ctx context.Context, names []string) error {
+	for _, name := range names {
+		if strings.TrimSpace(name) == "" {
+			return fmt.Errorf("%w: volume name", ErrInvalidVolume)
+		}
+		if err := m.cli.VolumeRemove(ctx, name, false); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // IsPredefinedNetwork reports whether name is one of Docker's built-in
