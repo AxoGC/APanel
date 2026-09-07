@@ -148,9 +148,9 @@ curl -fsSL https://apanel.axogc.net/install.sh | sudo bash
 ```
 这个脚本将会下载并解压最新版本程序，删除并替换旧的可执行文件，如果有旧的数据和`.service`文件，则保留，如果没有，则创建最小化的`.service`文件，然后重启apanel服务。
 
-如果你想手动逐步安装，不想用一键脚本，请参阅[apanel.axogc.net/install.md](https://apanel.axogc.net/install.md)
+如果你想手动逐步安装，不想用一键脚本，请参阅[apanel.axogc.net/install.html](https://apanel.axogc.net/install.html)
 
-如果你想自己编译程序，请参阅[apanel.axogc.net/build.md](https://apanel.axogc.net/build.md)
+如果你想自己编译程序，请参阅[apanel.axogc.net/build.html](https://apanel.axogc.net/build.html)
 
 APanel 没有配置文件的概念：默认端口是`8123`，数据（包括登录密码）都存放在自己的 sqlite 数据库里，不需要单独部署或配置数据库。首次启动时，如果数据库里还没有任何用户，APanel 会自动创建一个、生成一个随机密码并打印到日志中：
 
@@ -225,7 +225,7 @@ server {
 
 ### 3.4 升级
 
-升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体步骤（含一键脚本和手动升级）请参阅[apanel.axogc.net/upgrade.md](https://apanel.axogc.net/upgrade.md)。
+升级只替换可执行文件，数据库和 systemd 单元都不受影响，具体步骤（含一键脚本和手动升级）请参阅[apanel.axogc.net/upgrade.html](https://apanel.axogc.net/upgrade.html)。
 
 ## 4. 安全说明
 
@@ -244,7 +244,7 @@ APanel 支持多个登录账号（在「设置 → 用户管理」中添加，�
 
 ### 4.1 忘记密码
 
-忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.md](https://apanel.axogc.net/install.md)的「5. 忘记密码」一节。
+忘记登录密码时，可以重置整个数据库，也可以只删除密码记录、保留其余设置，具体步骤请参阅[apanel.axogc.net/install.html](https://apanel.axogc.net/install.html)的「5. 忘记密码」一节。
 
 ## 5. 许可证
 
