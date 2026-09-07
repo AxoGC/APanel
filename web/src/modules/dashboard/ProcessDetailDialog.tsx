@@ -86,7 +86,7 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
       open={pid !== null}
       onOpenChange={onOpenChange}
       title={detail ? detail.name : t('dashboard.detail.title')}
-      className="h-[85vh] max-w-lg"
+      className="max-w-lg"
       footer={
         <div className="flex items-center justify-end gap-2">
           <AlertDialog>

@@ -105,7 +105,7 @@ export function VolumeManagerDialog({ open, onOpenChange }: { open: boolean; onO
   }
 
   return (
-    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.volumes.title')} className="h-[85vh] max-w-3xl">
+    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.volumes.title')} className="max-w-3xl" height="85vh">
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">

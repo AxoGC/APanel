@@ -58,6 +58,11 @@ function parentOf(dir: string): string | null {
 
 const PATH_STORAGE_KEY = 'apanel:files-path'
 
+// Lets the footer's submit button (rendered as a sibling of the form, not a
+// descendant — see SectionedDialog) still submit this form via the HTML
+// form="..." attribute.
+const MKDIR_FORM_ID = 'files-mkdir-form'
+
 // The preview dialog has no horizontal chrome (its body has no padding)
 // and a header a bit under 4rem tall, so the desktop image box is capped
 // against the viewport minus that allowance to keep the whole dialog
@@ -376,28 +381,31 @@ export default function FilesPage() {
         </>
       )}
 
-      <Dialog open={mkdirOpen} onOpenChange={setMkdirOpen}>
-        <DialogContent>
-          <form onSubmit={submitMkdir}>
-            <DialogHeader>
-              <DialogTitle>{t('files.newFolder.title')}</DialogTitle>
-            </DialogHeader>
-            <Input
-              autoFocus
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder={t('files.newFolder.placeholder')}
-              className="mt-4"
-            />
-            <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setMkdirOpen(false)}>
-                {t('confirm.cancel')}
-              </Button>
-              <Button type="submit">{t('files.create')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <SectionedDialog
+        open={mkdirOpen}
+        onOpenChange={setMkdirOpen}
+        title={t('files.newFolder.title')}
+        className="max-w-sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setMkdirOpen(false)}>
+              {t('confirm.cancel')}
+            </Button>
+            <Button type="submit" form={MKDIR_FORM_ID}>
+              {t('files.create')}
+            </Button>
+          </div>
+        }
+      >
+        <form id={MKDIR_FORM_ID} onSubmit={submitMkdir}>
+          <Input
+            autoFocus
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder={t('files.newFolder.placeholder')}
+          />
+        </form>
+      </SectionedDialog>
 
       <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
         <DialogContent>
@@ -431,10 +439,8 @@ export default function FilesPage() {
           }
         }}
         title={previewTarget?.name ?? ''}
-        className={cn(
-          'max-w-2xl overflow-hidden',
-          preview?.status === 'image' ? 'md:w-fit md:max-w-none' : 'h-[85vh]',
-        )}
+        className={cn('max-w-2xl overflow-hidden', preview?.status === 'image' && 'md:w-fit md:max-w-none')}
+        height={preview?.status === 'image' ? undefined : '85vh'}
         bodyClassName="p-0"
         footer={
           preview?.status === 'text' ? (

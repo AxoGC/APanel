@@ -17,6 +17,7 @@ export function SectionedDialog({
   className,
   bodyClassName,
   onOpenAutoFocus,
+  height,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -26,12 +27,16 @@ export function SectionedDialog({
   className?: string
   bodyClassName?: string
   onOpenAutoFocus?: (event: Event) => void
+  // Explicit dialog height (e.g. "85vh"). Omit to size the dialog to its
+  // content instead, up to DialogContent's own max-height cap.
+  height?: string
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
         onOpenAutoFocus={onOpenAutoFocus}
+        height={height}
         className={cn('flex flex-col gap-0 p-0', className)}
       >
         <div className="flex items-center justify-between gap-3 border-b border-gray-100 p-4 dark:border-gray-800">

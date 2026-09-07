@@ -41,7 +41,7 @@ export function CreateVolumeDialog({ open, onOpenChange }: { open: boolean; onOp
       open={open}
       onOpenChange={onOpenChange}
       title={t('containers.volumes.create.title')}
-      className="h-[85vh] max-w-lg"
+      className="max-w-lg"
       onOpenAutoFocus={(event) => {
         if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
       }}

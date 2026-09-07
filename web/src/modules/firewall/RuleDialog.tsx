@@ -202,7 +202,6 @@ export function RuleDialog({
             ? t('firewall.editRule.title')
             : t('firewall.addRule.title')
       }
-      className="h-[85vh]"
       onOpenAutoFocus={(event) => {
         if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
       }}

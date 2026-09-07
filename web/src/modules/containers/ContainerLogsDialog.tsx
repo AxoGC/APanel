@@ -220,7 +220,7 @@ export function ContainerLogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex h-[85vh] max-w-2xl flex-col gap-0 p-0" showCloseButton={false}>
+      <DialogContent className="flex max-w-2xl flex-col gap-0 p-0" height="85vh" showCloseButton={false}>
         <div className="flex items-center justify-between gap-2 p-4 pb-3">
           <DialogTitle className="truncate">
             {container ? `${container.name} — ${t('containers.logs')}` : ''}

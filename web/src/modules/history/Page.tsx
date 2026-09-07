@@ -2,17 +2,11 @@ import { Columns2, Plug, RectangleVertical, Settings } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { DependencyDialog } from '@/components/DependencyDialog'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { SectionedDialog } from '@/components/SectionedDialog'
 import { Switch } from '@/components/ui/switch'
 import { formatBytes, formatBitrate } from '@/lib/format'
 import { useDependencyGate } from '@/lib/useDependencyGate'
@@ -34,6 +28,11 @@ const TARGETS: CollectionTargetName[] = ['cpu', 'memory', 'swap']
 // Only affects the narrowest breakpoint (below sm) — sm and up always use a
 // fixed multi-column grid regardless of this preference.
 const NARROW_COLUMNS_KEY = 'apanel:history-narrow-columns'
+
+// Lets the footer's submit button (rendered as a sibling of the form, not a
+// descendant — see SectionedDialog) still submit this form via the HTML
+// form="..." attribute.
+const SETTINGS_FORM_ID = 'history-settings-form'
 
 function getStoredNarrowColumns(): 1 | 2 {
   return localStorage.getItem(NARROW_COLUMNS_KEY) === '2' ? 2 : 1
@@ -270,82 +269,76 @@ export default function HistoryPage() {
         </ScrollArea>
       )}
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="flex max-h-[85vh] flex-col">
-          <form onSubmit={submitSettings} className="flex min-h-0 flex-col gap-4">
-            <DialogHeader>
-              <DialogTitle>{t('history.settings.title')}</DialogTitle>
-            </DialogHeader>
+      <SectionedDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        title={t('history.settings.title')}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
+              {t('confirm.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              form={SETTINGS_FORM_ID}
+              disabled={!settings || savingSettings}
+              className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
+            >
+              {t('files.save')}
+            </Button>
+          </div>
+        }
+      >
+        <form id={SETTINGS_FORM_ID} onSubmit={submitSettings} className="flex flex-col gap-4">
+          <SegmentedControl
+            options={TARGETS.map((name) => ({ value: name, label: t(`history.settings.target.${name}`) }))}
+            value={settingsTarget}
+            onChange={setSettingsTarget}
+          />
 
-            <div className="scrollbar-shadcn min-h-0 grow overflow-y-auto overscroll-contain">
-              <div className="flex flex-col gap-4 pr-1">
-                <SegmentedControl
-                  options={TARGETS.map((name) => ({ value: name, label: t(`history.settings.target.${name}`) }))}
-                  value={settingsTarget}
-                  onChange={setSettingsTarget}
+          {target && settings && (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.enabled')}</span>
+                <Switch
+                  checked={target.enabled}
+                  onCheckedChange={(enabled) => setSettings({ ...settings, [settingsTarget]: { ...target, enabled } })}
                 />
-
-                {target && settings && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.enabled')}</span>
-                      <Switch
-                        checked={target.enabled}
-                        onCheckedChange={(enabled) =>
-                          setSettings({ ...settings, [settingsTarget]: { ...target, enabled } })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.interval')}</span>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={target.intervalMinutes}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            [settingsTarget]: { ...target, intervalMinutes: Number(e.target.value) },
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.retention')}</span>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={target.retentionDays}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            [settingsTarget]: { ...target, retentionDays: Number(e.target.value) },
-                          })
-                        }
-                      />
-                    </div>
-                  </>
-                )}
               </div>
-            </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
-                {t('confirm.cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={!settings || savingSettings}
-                className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
-              >
-                {t('files.save')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <div className="flex items-center gap-3">
+                <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.interval')}</span>
+                <Input
+                  type="number"
+                  min={1}
+                  value={target.intervalMinutes}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      [settingsTarget]: { ...target, intervalMinutes: Number(e.target.value) },
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="w-24 shrink-0 text-xs text-gray-500">{t('history.settings.retention')}</span>
+                <Input
+                  type="number"
+                  min={1}
+                  value={target.retentionDays}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      [settingsTarget]: { ...target, retentionDays: Number(e.target.value) },
+                    })
+                  }
+                />
+              </div>
+            </>
+          )}
+        </form>
+      </SectionedDialog>
       <DependencyDialog moduleKey="history" open={dependencyOpen} onOpenChange={setDependencyOpen} />
     </div>
   )

@@ -39,7 +39,7 @@ export function CreateImageDialog({ open, onOpenChange }: { open: boolean; onOpe
       open={open}
       onOpenChange={onOpenChange}
       title={t('containers.images.create.title')}
-      className="h-[85vh] max-w-lg"
+      className="max-w-lg"
       onOpenAutoFocus={(event) => {
         if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
       }}
