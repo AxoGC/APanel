@@ -38,6 +38,14 @@ var realFSTypes = map[string]bool{
 	"zfs": true, "hfsplus": true, "apfs": true,
 }
 
+// systemMountPoints are mount points that hold a real filesystem (so
+// realFSTypes alone won't catch them) but are still system-function
+// partitions rather than data ones — the EFI/boot partitions in particular
+// are commonly formatted vfat/ext4, same as a data partition.
+var systemMountPoints = map[string]bool{
+	"/boot": true, "/boot/efi": true, "/boot/firmware": true, "/efi": true,
+}
+
 // List returns every real data partition, deduplicated by source device
 // (a device bind-mounted at multiple points is only reported once, at its
 // first mount point).
@@ -58,7 +66,7 @@ func List() ([]Partition, error) {
 			continue
 		}
 		device, mountPoint, fsType := fields[0], unescapeMount(fields[1]), fields[2]
-		if !realFSTypes[fsType] || seen[device] {
+		if !realFSTypes[fsType] || systemMountPoints[mountPoint] || seen[device] {
 			continue
 		}
 
