@@ -177,6 +177,90 @@ func TestLoginChallengeIsSingleUse(t *testing.T) {
 	}
 }
 
+// loginToken drives a full login and returns the token from the response
+// body — what the standalone client stores and sends back as
+// `Authorization: Bearer <token>` instead of relying on the session cookie.
+func loginToken(t *testing.T, svc *Service, password string) string {
+	t.Helper()
+	challengeID, publicKey := getChallenge(t, svc)
+	body := encryptedLoginBody(t, challengeID, publicKey, password)
+	rec := doLogin(svc, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login: status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var env struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&env); err != nil {
+		t.Fatal(err)
+	}
+	if env.Data.Token == "" {
+		t.Fatal("expected a non-empty token in the login response body")
+	}
+	return env.Data.Token
+}
+
+func TestSessionWithBearerTokenSucceeds(t *testing.T) {
+	svc := newTestService(t)
+	setPassword(t, svc, "the-real-password")
+	token := loginToken(t, svc, "the-real-password")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	svc.Session(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSessionWithTokenQueryParamSucceeds(t *testing.T) {
+	svc := newTestService(t)
+	setPassword(t, svc, "the-real-password")
+	token := loginToken(t, svc, "the-real-password")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/dashboard/stream?token="+token, nil)
+	rec := httptest.NewRecorder()
+	svc.Session(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSessionWithWrongBearerTokenFails(t *testing.T) {
+	svc := newTestService(t)
+	setPassword(t, svc, "the-real-password")
+	loginToken(t, svc, "the-real-password")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Authorization", "Bearer not-a-real-token")
+	rec := httptest.NewRecorder()
+	svc.Session(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestLogoutWithBearerTokenRevokesSession(t *testing.T) {
+	svc := newTestService(t)
+	setPassword(t, svc, "the-real-password")
+	token := loginToken(t, svc, "the-real-password")
+
+	logoutReq := httptest.NewRequest(http.MethodPost, "/api/logout", nil)
+	logoutReq.Header.Set("Authorization", "Bearer "+token)
+	svc.Logout(httptest.NewRecorder(), logoutReq)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	svc.Session(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401 after logout", rec.Code)
+	}
+}
+
 func TestLoginWithUnknownChallengeFails(t *testing.T) {
 	svc := newTestService(t)
 	body := []byte(`{"challengeId":"does-not-exist","clientPublicKey":"","iv":"","ciphertext":""}`)

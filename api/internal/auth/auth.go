@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -269,17 +270,22 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 
 	s.setCookie(w, token, session.ExpiresAt)
 	s.audit.Record(user.Remark, "POST /api/login", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
-	response.WriteOK(w, nil)
+	// The token is also returned in the body (not just set as a cookie) for
+	// the standalone Tauri client, which talks to a remote apanel instance
+	// cross-origin and authenticates with `Authorization: Bearer <token>`
+	// instead of a cookie — see tokenFromRequest. The integrated web build
+	// just ignores this field.
+	response.WriteOK(w, map[string]string{"token": token})
 }
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie(cookieName); err == nil {
+	if token := tokenFromRequest(r); token != "" {
 		if session, ok := s.check(r); ok {
 			s.audit.Record(s.users.Remark(session.UserID), "POST /api/logout", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
 		}
-		s.db.Delete(&model.Session{}, "token = ?", cookie.Value)
+		s.db.Delete(&model.Session{}, "token = ?", token)
 		s.mu.Lock()
-		delete(s.sessions, cookie.Value)
+		delete(s.sessions, token)
 		s.mu.Unlock()
 	}
 	s.setCookie(w, "", time.Unix(0, 0))
@@ -309,21 +315,42 @@ func (s *Service) CurrentUserRemark(r *http.Request) (string, bool) {
 	return s.users.Remark(session.UserID), true
 }
 
+// tokenFromRequest resolves a session token from, in order: the
+// Authorization header (the standalone Tauri client, which can't rely on a
+// cross-origin cookie — see Login), a `token` query parameter (the same
+// client's WebSocket/EventSource/download-link requests, which can't set
+// custom headers at all), and finally the session cookie (the integrated
+// web build).
+func tokenFromRequest(r *http.Request) string {
+	if auth := r.Header.Get("Authorization"); auth != "" {
+		if token, ok := strings.CutPrefix(auth, "Bearer "); ok {
+			return token
+		}
+	}
+	if token := r.URL.Query().Get("token"); token != "" {
+		return token
+	}
+	if cookie, err := r.Cookie(cookieName); err == nil {
+		return cookie.Value
+	}
+	return ""
+}
+
 func (s *Service) check(r *http.Request) (model.Session, bool) {
-	cookie, err := r.Cookie(cookieName)
-	if err != nil {
+	token := tokenFromRequest(r)
+	if token == "" {
 		return model.Session{}, false
 	}
 
 	s.mu.RLock()
-	session, ok := s.sessions[cookie.Value]
+	session, ok := s.sessions[token]
 	s.mu.RUnlock()
 	if !ok {
 		return model.Session{}, false
 	}
 	if time.Now().After(session.ExpiresAt) {
 		s.mu.Lock()
-		delete(s.sessions, cookie.Value)
+		delete(s.sessions, token)
 		s.mu.Unlock()
 		return model.Session{}, false
 	}
@@ -333,9 +360,9 @@ func (s *Service) check(r *http.Request) (model.Session, bool) {
 	// the point of being able to remove someone's access.
 	if !s.users.Exists(session.UserID) {
 		s.mu.Lock()
-		delete(s.sessions, cookie.Value)
+		delete(s.sessions, token)
 		s.mu.Unlock()
-		s.db.Delete(&model.Session{}, "token = ?", cookie.Value)
+		s.db.Delete(&model.Session{}, "token = ?", token)
 		return model.Session{}, false
 	}
 	return session, true

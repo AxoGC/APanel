@@ -28,6 +28,7 @@ type Server struct {
 	registrars         []RouteRegistrar
 	dependencyCheckers map[string]DependencyChecker
 	mux                *http.ServeMux
+	corsAllowedOrigins map[string]bool
 }
 
 // New wires up the mux: the routes this package owns directly (auth,
@@ -43,6 +44,7 @@ func New(authSvc *auth.Service, statsCollector *stats.Collector, settingsMgr *se
 		registrars:         registrars,
 		dependencyCheckers: make(map[string]DependencyChecker),
 		mux:                http.NewServeMux(),
+		corsAllowedOrigins: corsAllowedOrigins(),
 	}
 	for _, r := range registrars {
 		if c, ok := r.(DependencyChecker); ok {
@@ -74,6 +76,10 @@ var auditExemptPaths = map[string]bool{
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	corsMiddleware(s.corsAllowedOrigins, http.HandlerFunc(s.serveAudited)).ServeHTTP(w, r)
+}
+
+func (s *Server) serveAudited(w http.ResponseWriter, r *http.Request) {
 	if !mutatingMethods[r.Method] || auditExemptPaths[r.URL.Path] {
 		s.mux.ServeHTTP(w, r)
 		return
