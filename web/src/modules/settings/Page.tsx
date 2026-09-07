@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import bilibiliIcon from '@/assets/bilibili.svg'
 import githubIcon from '@/assets/github.svg'
 import qqIcon from '@/assets/qq.svg'
-import { getSystemInfo, type SystemInfo } from './api'
+import { getDiskUsage, getSystemInfo, type DiskPartition, type SystemInfo } from './api'
 import { EnableModulesDialog } from './EnableModulesDialog'
 import { SiteDataDialog } from './SiteDataDialog'
 import { UpdateDialog } from './UpdateDialog'
@@ -59,6 +59,33 @@ function Field({ label, value }: { label: string; value: string }) {
   )
 }
 
+// Bytes -> whole GB, rounded (decimal, matching how drives are marketed —
+// e.g. a ~500GB disk reads "465 GB", not "500 GB" or a binary-GiB figure).
+function formatGB(bytes: number): string {
+  return Math.round(bytes / 1e9).toString()
+}
+
+function PartitionField({ partition }: { partition: DiskPartition }) {
+  const pct = partition.totalBytes > 0 ? (partition.usedBytes / partition.totalBytes) * 100 : 0
+  const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-theme-500'
+
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs text-gray-500" title={`${partition.fsType} ${partition.mountPoint}`}>
+          {partition.fsType} {partition.mountPoint}
+        </span>
+        <span className="shrink-0 text-xs text-gray-500">
+          {formatGB(partition.usedBytes)} / {formatGB(partition.totalBytes)} GB
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+        <div className={cn('h-full rounded-full', barColor)} style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+    </div>
+  )
+}
+
 // Drops leading zero-valued units (e.g. "5m 12s" once a host has been up
 // less than an hour) but always keeps seconds, so a freshly booted host
 // doesn't render as an empty string.
@@ -85,6 +112,7 @@ export default function SettingsPage() {
   const [readerLineNumbers, setReaderLineNumbers] = useState(getStoredReaderLineNumbers)
   const [readerTextWrap, setReaderTextWrap] = useState(getStoredReaderTextWrap)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
+  const [diskPartitions, setDiskPartitions] = useState<DiskPartition[]>([])
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false)
   const [siteDataDialogOpen, setSiteDataDialogOpen] = useState(false)
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
@@ -94,12 +122,13 @@ export default function SettingsPage() {
     getSystemInfo()
       .then(setSystemInfo)
       .catch(() => {})
+    getDiskUsage()
+      .then(setDiskPartitions)
+      .catch(() => {})
   }, [])
 
   return (
     <div className="mx-auto flex max-w-md flex-col p-4 sm:p-6">
-      <h1 className="mb-2 text-base text-gray-900 dark:text-gray-100">{t('nav.settings')}</h1>
-
       <div className="border-b border-gray-200 py-2 first:pt-0 dark:border-gray-800">
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Field label={t('settings.systemInfo.hostname')} value={systemInfo?.hostname ?? '–'} />
@@ -114,6 +143,9 @@ export default function SettingsPage() {
             label={t('settings.systemInfo.uptime')}
             value={systemInfo ? formatUptime(systemInfo.uptimeSeconds, t) : '–'}
           />
+          {diskPartitions.map((partition) => (
+            <PartitionField key={partition.device} partition={partition} />
+          ))}
         </div>
       </div>
 

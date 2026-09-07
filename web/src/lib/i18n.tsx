@@ -929,7 +929,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'settings.systemInfo.hostname': '主机名称',
     'settings.systemInfo.distro': '发行版本',
     'settings.systemInfo.kernel': '内核版本',
-    'settings.systemInfo.arch': '系统类型',
+    'settings.systemInfo.arch': '架构',
     'settings.systemInfo.bootTime': '启动时间',
     'settings.systemInfo.uptime': '运行时间',
     'settings.systemInfo.unit.day': '天',

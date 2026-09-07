@@ -15,6 +15,19 @@ export function getSystemInfo() {
   return apiFetch<SystemInfo>('/system/info', undefined, { silent: true })
 }
 
+export interface DiskPartition {
+  device: string
+  mountPoint: string
+  fsType: string
+  totalBytes: number
+  usedBytes: number
+  availBytes: number
+}
+
+export function getDiskUsage() {
+  return apiFetch<DiskPartition[]>('/system/disk', undefined, { silent: true })
+}
+
 export interface UpdateSettings {
   enabled: boolean
   source: string

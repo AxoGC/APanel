@@ -125,6 +125,7 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/status", s.auth.Middleware(http.HandlerFunc(s.getStatus)))
 	s.mux.Handle("PUT /api/status/features", s.auth.Middleware(http.HandlerFunc(s.putEnabledFeatures)))
 	s.mux.Handle("GET /api/system/info", s.auth.Middleware(http.HandlerFunc(s.getSystemInfo)))
+	s.mux.Handle("GET /api/system/disk", s.auth.Middleware(http.HandlerFunc(s.getDiskUsage)))
 
 	s.mux.Handle("GET /api/modules/{key}/dependency", s.auth.Middleware(http.HandlerFunc(s.getModuleDependency)))
 	s.mux.Handle("PUT /api/modules/{key}/dependency", s.auth.Middleware(http.HandlerFunc(s.putModuleDependency)))

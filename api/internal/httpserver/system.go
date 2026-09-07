@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"apanel/internal/diskusage"
 	"apanel/internal/response"
 	"apanel/internal/sysinfo"
 )
@@ -31,4 +32,13 @@ func (s *Server) getSystemInfo(w http.ResponseWriter, r *http.Request) {
 		BootTime:      info.BootTime,
 		UptimeSeconds: time.Since(info.BootTime).Seconds(),
 	})
+}
+
+func (s *Server) getDiskUsage(w http.ResponseWriter, r *http.Request) {
+	partitions, err := diskusage.List()
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, partitions)
 }
