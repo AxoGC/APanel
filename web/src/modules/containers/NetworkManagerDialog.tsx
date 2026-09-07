@@ -75,11 +75,11 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
         </div>
 
         <div className="flex min-h-0 grow flex-col">
-          <div className="flex items-center gap-3 border-b border-gray-200 px-2 pb-1.5 dark:border-gray-800">
+          <div className="flex items-center gap-1 border-b border-gray-200 px-2 pb-1.5 md:gap-3 dark:border-gray-800">
             <div className="min-w-0 flex-1 text-xs text-gray-500">{t('containers.networks.name')}</div>
-            <div className="w-24 shrink-0 text-xs text-gray-500">{t('containers.networks.driver')}</div>
-            <div className="w-20 shrink-0 text-xs text-gray-500">{t('containers.networks.scope')}</div>
-            <div className="w-24 shrink-0 text-right text-xs text-gray-500">{t('containers.usage')}</div>
+            <div className="w-14 shrink-0 text-xs text-gray-500 md:w-24">{t('containers.networks.driver')}</div>
+            <div className="hidden w-20 shrink-0 text-xs text-gray-500 md:block">{t('containers.networks.scope')}</div>
+            <div className="w-14 shrink-0 text-right text-xs text-gray-500 md:w-24">{t('containers.usage')}</div>
             <div className="w-8 shrink-0" />
           </div>
 
@@ -90,12 +90,12 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
             {filteredNetworks.map((n) => (
               <div
                 key={n.id}
-                className="flex items-center gap-3 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 dark:border-gray-900 dark:hover:bg-gray-800"
+                className="flex items-center gap-1 border-b border-gray-100 px-2 py-2 last:border-b-0 hover:bg-gray-100 md:gap-3 dark:border-gray-900 dark:hover:bg-gray-800"
               >
                 <div className="min-w-0 flex-1 truncate text-sm text-gray-900 dark:text-gray-100">{n.name}</div>
-                <div className="w-24 shrink-0 truncate text-xs text-gray-500">{n.driver}</div>
-                <div className="w-20 shrink-0 truncate text-xs text-gray-500">{n.scope}</div>
-                <div className="w-24 shrink-0 text-right">
+                <div className="w-14 shrink-0 truncate text-xs text-gray-500 md:w-24">{n.driver}</div>
+                <div className="hidden w-20 shrink-0 truncate text-xs text-gray-500 md:block">{n.scope}</div>
+                <div className="w-14 shrink-0 text-right md:w-24">
                   <UsageCell usedBy={n.usedBy} />
                 </div>
                 <div className="flex w-8 shrink-0 justify-end">
