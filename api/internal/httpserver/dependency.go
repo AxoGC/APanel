@@ -16,14 +16,14 @@ const (
 
 // dependencyModules is the subset of moduleOrder that can have a checkable
 // local dependency at all — dashboard/terminal/services/files are core,
-// always-local features with nothing to configure or detect. containers is
-// deliberately excluded too: it only ever talks to the local Docker
-// runtime (see container.New), so it has no connection dialog to offer —
-// its local-only health is still probed directly via dependencyCheckers
-// for initial-feature detection, just not exposed through this endpoint.
+// always-local features with nothing to configure or detect. containers and
+// firewall are deliberately excluded too: they only ever talk to the local
+// Docker runtime (see container.New) or local ufw binary respectively, so
+// neither has a connection dialog to offer — each one's local-only health
+// is still probed directly via dependencyCheckers for initial-feature
+// detection, just not exposed through this endpoint.
 var dependencyModules = map[string]struct{}{
 	"history":  {},
-	"firewall": {},
 	"proxy":    {},
 	"database": {},
 }
