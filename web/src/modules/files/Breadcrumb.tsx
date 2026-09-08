@@ -1,6 +1,5 @@
 import { ChevronRight, House } from 'lucide-react'
 import { Fragment } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
 
 // Splits "/a/b/c" into clickable ancestor segments, each carrying the full
 // path up to and including itself, so clicking any segment jumps straight
@@ -16,8 +15,12 @@ function segments(path: string): { name: string; path: string }[] {
 
 export function Breadcrumb({ path, onNavigate }: { path: string; onNavigate: (path: string) => void }) {
   return (
-    <ScrollArea orientation="horizontal" className="min-w-0 max-w-full" viewportClassName="pb-2">
-      <div className="flex w-max items-center gap-1 text-sm whitespace-nowrap">
+    // overflow-hidden + justify-end: when the segments are wider than the
+    // container, the overflow is pushed off the start (left) edge instead
+    // of the end, so a too-narrow container shows the tail of the path
+    // (the current location) rather than the root.
+    <div className="min-w-0 max-w-full overflow-hidden">
+      <div className="flex items-center justify-end gap-1 text-sm whitespace-nowrap">
         <button
           type="button"
           onClick={() => onNavigate('/')}
@@ -47,6 +50,6 @@ export function Breadcrumb({ path, onNavigate }: { path: string; onNavigate: (pa
           </Fragment>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   )
 }

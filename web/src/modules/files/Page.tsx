@@ -283,12 +283,7 @@ export default function FilesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-6',
-          mobileSearchOpen && 'max-md:block',
-        )}
-      >
+      <div className="flex flex-nowrap items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-6">
         <Button
           variant="ghost"
           size="icon-sm"
@@ -299,10 +294,10 @@ export default function FilesPage() {
         >
           <ArrowUp />
         </Button>
-        <div className={cn(mobileSearchOpen && 'max-md:hidden')}>
+        <div className={cn('min-w-0 grow', mobileSearchOpen && 'max-md:hidden')}>
           <Breadcrumb path={path} onNavigate={setPath} />
         </div>
-        <div className={cn('flex grow items-center justify-end gap-2', mobileSearchOpen && 'max-md:w-full')}>
+        <div className={cn('flex shrink-0 items-center justify-end gap-2', mobileSearchOpen && 'max-md:w-full')}>
           <div className={cn('relative w-full md:w-56', mobileSearchOpen ? 'block' : 'hidden md:block')}>
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
             <Input
