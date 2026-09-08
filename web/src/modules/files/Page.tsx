@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
 import {
   Dialog,
   DialogContent,
@@ -302,17 +303,6 @@ export default function FilesPage() {
           <Breadcrumb path={path} onNavigate={setPath} />
         </div>
         <div className={cn('flex grow items-center justify-end gap-2', mobileSearchOpen && 'max-md:w-full')}>
-          <button
-            type="button"
-            aria-label={t('files.search')}
-            onClick={() => setMobileSearchOpen(true)}
-            className={cn(
-              'flex size-8 cursor-pointer items-center justify-center rounded-lg border border-input text-gray-500 hover:bg-accent hover:text-gray-700 dark:bg-input/30 dark:hover:bg-input/50 dark:hover:text-gray-300 md:hidden',
-              mobileSearchOpen && 'hidden',
-            )}
-          >
-            <Search className="size-4" />
-          </button>
           <div className={cn('relative w-full md:w-56', mobileSearchOpen ? 'block' : 'hidden md:block')}>
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-400" />
             <Input
@@ -336,24 +326,51 @@ export default function FilesPage() {
               <span className="hidden md:inline">{t('files.delete')} ({selected.size})</span>
             </Button>
           )}
-          <ToggleButton
-            active={showHidden}
-            onClick={() => setShowHidden((v) => !v)}
-            ariaLabel={t('files.showHidden')}
-            title={t('files.showHidden')}
-            className={cn('h-8', mobileSearchOpen && 'max-md:hidden')}
-          >
-            <Eye className="size-3.5" />
-            <span className="hidden md:inline">{t('files.showHidden')}</span>
-          </ToggleButton>
-          <Button variant="outline" size="sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)} className={cn('h-8', mobileSearchOpen && 'max-md:hidden')}>
-            <FolderPlus />
-            <span className="hidden md:inline">{t('files.newFolder')}</span>
-          </Button>
-          <Button variant="outline" size="sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()} className={cn('h-8', mobileSearchOpen && 'max-md:hidden')}>
-            {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-            <span className="hidden md:inline">{t('files.upload')}</span>
-          </Button>
+
+          {/* Desktop: individually bordered buttons with labels. */}
+          <div className="hidden items-center gap-2 md:flex">
+            <ToggleButton
+              active={showHidden}
+              onClick={() => setShowHidden((v) => !v)}
+              ariaLabel={t('files.showHidden')}
+              title={t('files.showHidden')}
+              className="h-8"
+            >
+              <Eye className="size-3.5" />
+              <span>{t('files.showHidden')}</span>
+            </ToggleButton>
+            <Button variant="outline" size="sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)} className="h-8">
+              <FolderPlus />
+              <span>{t('files.newFolder')}</span>
+            </Button>
+            <Button variant="outline" size="sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()} className="h-8">
+              {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
+              <span>{t('files.upload')}</span>
+            </Button>
+          </div>
+
+          {/* Mobile: icon-only buttons collapsed into a single button group. */}
+          <ButtonGroup className={cn('md:hidden', mobileSearchOpen && 'hidden')}>
+            <Button variant="ghost" size="icon-sm" aria-label={t('files.search')} onClick={() => setMobileSearchOpen(true)}>
+              <Search />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-pressed={showHidden}
+              aria-label={t('files.showHidden')}
+              onClick={() => setShowHidden((v) => !v)}
+              className={cn(showHidden && 'text-theme-600 dark:text-theme-400')}
+            >
+              <Eye />
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)}>
+              <FolderPlus />
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+              {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
+            </Button>
+          </ButtonGroup>
           <input ref={fileInputRef} type="file" multiple hidden onChange={onFilesSelected} />
         </div>
       </div>
