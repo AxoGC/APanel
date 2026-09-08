@@ -289,6 +289,42 @@ export function ContainerLogsDialog({
         socket.send(JSON.stringify({ type: 'input', data }))
       }
     })
+    // xterm 6 scrolls through a port of VS Code's ScrollableElement: there is
+    // no natively scrollable element anywhere in the terminal, only JS that
+    // moves the buffer in response to wheel events. Its touch-gesture support
+    // is shipped but never registered (Gesture.addTarget is dead code), so a
+    // swipe does nothing at all — no CSS can fix that since the browser has
+    // nothing to pan. Translate finger movement into scrollLines() instead.
+    let touchY: number | null = null
+    let touchRemainder = 0
+    const handleTouchStart = (event: TouchEvent) => {
+      touchY = event.touches.length === 1 ? event.touches[0].clientY : null
+      touchRemainder = 0
+    }
+    const handleTouchMove = (event: TouchEvent) => {
+      if (touchY == null || event.touches.length !== 1) return
+      const cellHeight = target.clientHeight / terminal.rows
+      if (!Number.isFinite(cellHeight) || cellHeight <= 0) return
+      const y = event.touches[0].clientY
+      // Sub-cell movement is carried over rather than dropped, so a slow drag
+      // still scrolls instead of rounding away to nothing on every event.
+      touchRemainder += touchY - y
+      touchY = y
+      const lines = Math.trunc(touchRemainder / cellHeight)
+      if (lines !== 0) {
+        touchRemainder -= lines * cellHeight
+        terminal.scrollLines(lines)
+      }
+      if (event.cancelable) event.preventDefault()
+    }
+    const handleTouchEnd = () => {
+      touchY = null
+    }
+    target.addEventListener('touchstart', handleTouchStart, { passive: true })
+    target.addEventListener('touchmove', handleTouchMove, { passive: false })
+    target.addEventListener('touchend', handleTouchEnd, { passive: true })
+    target.addEventListener('touchcancel', handleTouchEnd, { passive: true })
+
     const resizeObserver = new ResizeObserver(resize)
     resizeObserver.observe(target)
     const frame = requestAnimationFrame(resize)
@@ -301,6 +337,10 @@ export function ContainerLogsDialog({
     return () => {
       disposed = true
       cancelAnimationFrame(frame)
+      target.removeEventListener('touchstart', handleTouchStart)
+      target.removeEventListener('touchmove', handleTouchMove)
+      target.removeEventListener('touchend', handleTouchEnd)
+      target.removeEventListener('touchcancel', handleTouchEnd)
       themeObserver.disconnect()
       resizeObserver.disconnect()
       inputSubscription.dispose()
