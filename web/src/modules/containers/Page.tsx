@@ -131,7 +131,7 @@ export default function ContainersPage() {
           </Select>
         </div>
         <div className={cn('ml-auto flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
-          <ButtonGroup className="h-8 border-border divide-border">
+          <ButtonGroup className="h-8">
             <Button variant="ghost" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
               <Images />
               <span className="hidden md:inline">{t('containers.images')}</span>

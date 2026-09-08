@@ -10,8 +10,12 @@ function ButtonGroup({ className, ...props }: React.ComponentProps<'div'>) {
       role="group"
       data-slot="button-group"
       className={cn(
-        'flex items-stretch divide-x divide-gray-200 overflow-hidden rounded-lg border border-gray-200 dark:divide-gray-800 dark:border-gray-800',
-        '[&>*]:!rounded-none',
+        'flex items-stretch overflow-hidden rounded-lg border border-border',
+        // divide-x relies on child border-left, but Button's own base class
+        // already sets a (transparent) border on every side, at equal
+        // specificity to divide-x's color utility — so it's a coin flip
+        // which one wins. Force it instead of hoping divide-x does.
+        '[&>*]:!rounded-none [&>*:not(:first-child)]:!border-l-border',
         className,
       )}
       {...props}
