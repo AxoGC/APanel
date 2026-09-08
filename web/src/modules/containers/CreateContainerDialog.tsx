@@ -1,14 +1,16 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Info, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Combobox } from '@/components/Combobox'
 import { SectionedDialog } from '@/components/SectionedDialog'
 import { ToggleButton } from '@/components/ToggleButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { SegmentedControl } from '@/components/ui/segmented-control'
+import { SegmentedInput } from '@/components/ui/segmented-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import {
   createContainer,
   listContainerImageTags,
@@ -32,6 +34,11 @@ const RESTART_POLICY_LABELS: Record<RestartPolicy, TranslationKey> = {
   'unless-stopped': 'containers.create.restartPolicy.unlessStopped',
 }
 
+// Just suggestions offered via the combobox dropdown — both fields still
+// accept any free-text value the admin types.
+const CPU_LIMIT_OPTIONS = ['0.5', '1', '2', '4', '8']
+const MEMORY_LIMIT_OPTIONS = ['512m', '1g', '2g', '4g', '8g']
+
 // Left label / right value on desktop; stacked label-above-value on mobile.
 function FormRow({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -51,41 +58,59 @@ function linesOf(text: string): string[] {
     .filter(Boolean)
 }
 
-type MountType = 'volume' | 'bind'
-
 interface MountRow {
   key: number
-  type: MountType
   source: string
   target: string
   readOnly: boolean
 }
 
-// Docker's Binds syntax is identical for a named volume and a bind mount —
-// "source:target[:ro]" — so the type toggle is purely a UI affordance (guides
-// the source placeholder / autocomplete); both encode the same way here.
+// Docker's own Binds syntax, auto-detected the same way the daemon itself
+// parses it: an empty source means an anonymous volume ("target[:ro]"), a
+// non-empty one is a named volume or a bind mount depending on its shape
+// ("source:target[:ro]") — there's no separate type field to keep in sync.
 function mountsToVolumeStrings(rows: MountRow[]): string[] {
   return rows
-    .filter((row) => row.source.trim() !== '' && row.target.trim() !== '')
-    .map((row) => `${row.source.trim()}:${row.target.trim()}${row.readOnly ? ':ro' : ''}`)
+    .filter((row) => row.target.trim() !== '')
+    .map((row) => {
+      const target = row.target.trim()
+      const source = row.source.trim()
+      const suffix = row.readOnly ? ':ro' : ''
+      return source ? `${source}:${target}${suffix}` : `${target}${suffix}`
+    })
 }
 
 type PortProtocol = 'tcp' | 'udp'
 
 interface PortRow {
   key: number
-  hostPort: string
+  // Everything before the container port: just a host port ("8080") or an
+  // IP-qualified one ("0.0.0.0:8080") — free text, since it's one <input>
+  // and the daemon's own parser (see below) accepts either shape.
+  hostPart: string
   containerPort: string
   protocol: PortProtocol
 }
 
-// Docker's own "hostPort:containerPort/proto" syntax — passed straight
-// through to the backend, which parses it with the same nat.Port helpers
-// the daemon itself uses.
+// Docker's own "[host-ip:]host-port:container-port[/proto]" syntax (either
+// port may also be a range, e.g. "8000-8010") — passed straight through to
+// the backend, which parses it with the same nat.ParsePortSpecs the `docker
+// run -p` flag itself uses.
 function portsToStrings(rows: PortRow[]): string[] {
   return rows
-    .filter((row) => row.hostPort.trim() !== '' && row.containerPort.trim() !== '')
-    .map((row) => `${row.hostPort.trim()}:${row.containerPort.trim()}/${row.protocol}`)
+    .filter((row) => row.hostPart.trim() !== '' && row.containerPort.trim() !== '')
+    .map((row) => `${row.hostPart.trim()}:${row.containerPort.trim()}/${row.protocol}`)
+}
+
+// A bare number left in the memory field has no unit to send to the
+// backend. On blur we guess the intended one the way an admin would read
+// it themselves: small numbers are almost always gigabytes, larger ones
+// are megabytes. Anything already carrying a unit (or non-numeric) passes
+// through unchanged.
+function normalizeMemoryLimit(value: string): string {
+  const trimmed = value.trim()
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return trimmed
+  return trimmed + (parseFloat(trimmed) < 16 ? 'g' : 'm')
 }
 
 // "none" has no network to publish ports on; "host" already shares the
@@ -112,6 +137,8 @@ export function CreateContainerDialog({
   const [stdinOpen, setStdinOpen] = useState(false)
   const [networkMode, setNetworkMode] = useState('bridge')
   const [restartPolicy, setRestartPolicy] = useState<RestartPolicy>('no')
+  const [cpuLimit, setCpuLimit] = useState('')
+  const [memoryLimit, setMemoryLimit] = useState('')
   const [env, setEnv] = useState('')
   const [mounts, setMounts] = useState<MountRow[]>([])
   const [ports, setPorts] = useState<PortRow[]>([])
@@ -119,14 +146,15 @@ export function CreateContainerDialog({
   const [imageTags, setImageTags] = useState<string[]>([])
   const [networks, setNetworks] = useState<ContainerNetwork[]>([])
   const [creating, setCreating] = useState(false)
+  // Radix's Tooltip only opens on hover/focus by default, which touch
+  // devices have neither of — toggling it on click keeps the info icon
+  // reachable on mobile too.
+  const [portsTooltipOpen, setPortsTooltipOpen] = useState(false)
   const nextMountKey = useRef(0)
   const nextPortKey = useRef(0)
 
   function addMountRow(row?: Partial<Omit<MountRow, 'key'>>) {
-    setMounts((current) => [
-      ...current,
-      { key: nextMountKey.current++, type: 'volume', source: '', target: '', readOnly: false, ...row },
-    ])
+    setMounts((current) => [...current, { key: nextMountKey.current++, source: '', target: '', readOnly: false, ...row }])
   }
 
   function updateMountRow(key: number, patch: Partial<Omit<MountRow, 'key'>>) {
@@ -138,7 +166,7 @@ export function CreateContainerDialog({
   }
 
   function addPortRow() {
-    setPorts((current) => [...current, { key: nextPortKey.current++, hostPort: '', containerPort: '', protocol: 'tcp' }])
+    setPorts((current) => [...current, { key: nextPortKey.current++, hostPart: '', containerPort: '', protocol: 'tcp' }])
   }
 
   function updatePortRow(key: number, patch: Partial<Omit<PortRow, 'key'>>) {
@@ -157,6 +185,8 @@ export function CreateContainerDialog({
     setStdinOpen(false)
     setNetworkMode('bridge')
     setRestartPolicy('no')
+    setCpuLimit('')
+    setMemoryLimit('')
     setEnv('')
     setMounts([])
     setPorts([])
@@ -186,7 +216,7 @@ export function CreateContainerDialog({
         .then((paths) => {
           if (cancelled) return
           setMounts(
-            paths.map((path) => ({ key: nextMountKey.current++, type: 'volume' as const, source: '', target: path, readOnly: false })),
+            paths.map((path) => ({ key: nextMountKey.current++, source: '', target: path, readOnly: false })),
           )
         })
         .catch(() => {})
@@ -215,6 +245,8 @@ export function CreateContainerDialog({
         openStdin: stdinOpen,
         networkMode,
         restartPolicy,
+        cpuLimit: cpuLimit.trim(),
+        memoryLimit: memoryLimit.trim(),
         env: linesOf(env),
         volumes: mountsToVolumeStrings(mounts),
         ports: portsToStrings(ports),
@@ -233,7 +265,7 @@ export function CreateContainerDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('containers.create.title')}
-      className="max-w-lg"
+      className="sm:max-w-xl"
       drawer
       onOpenAutoFocus={(event) => {
         if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()
@@ -304,8 +336,35 @@ export function CreateContainerDialog({
           </Select>
         </FormRow>
 
+        <FormRow label={t('containers.create.cpuLimit')}>
+          <div className="relative w-32">
+            <Combobox
+              value={cpuLimit}
+              onChange={setCpuLimit}
+              options={CPU_LIMIT_OPTIONS}
+              inputClassName="pr-10"
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-muted-foreground">
+              {t('containers.create.cpuLimit.unit')}
+            </span>
+          </div>
+        </FormRow>
+
+        <FormRow label={t('containers.create.memoryLimit')}>
+          <div className="w-32">
+            <Combobox
+              value={memoryLimit}
+              onChange={setMemoryLimit}
+              onBlur={() => setMemoryLimit((v) => normalizeMemoryLimit(v))}
+              options={MEMORY_LIMIT_OPTIONS}
+              placeholder={t('containers.create.memoryLimit.placeholder')}
+            />
+          </div>
+        </FormRow>
+
         <FormRow label={t('containers.create.env')}>
           <Textarea
+            className="text-xs"
             value={env}
             onChange={(e) => setEnv(e.target.value)}
             placeholder={t('containers.create.env.placeholder')}
@@ -314,145 +373,137 @@ export function CreateContainerDialog({
         </FormRow>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs text-gray-500">{t('containers.create.volumes')}</span>
-          <div className="flex flex-col">
-            <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-1.5 dark:border-gray-800">
-              <div className="shrink-0 text-xs whitespace-nowrap text-gray-500">{t('containers.create.volumes.type')}</div>
-              <div className="min-w-32 flex-1 text-xs text-gray-500">{t('containers.create.volumes.source')}</div>
-              <div className="min-w-32 flex-1 text-xs text-gray-500">{t('containers.create.volumes.target')}</div>
-              <div className="flex w-8 shrink-0 justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t('containers.create.volumes.add')}
-                  onClick={() => addMountRow()}
-                >
-                  <Plus />
-                </Button>
-              </div>
-            </div>
-
-            {mounts.length === 0 && <p className="py-3 text-xs text-gray-500">{t('containers.create.volumes.empty')}</p>}
-
-            {mounts.map((row) => (
-              <div
-                key={row.key}
-                className="flex flex-wrap items-center gap-2 border-b border-gray-100 py-2 last:border-b-0 dark:border-gray-900"
-              >
-                <div className="shrink-0">
-                  <SegmentedControl
-                    options={[
-                      { value: 'volume', label: t('containers.create.volumes.type.volume') },
-                      { value: 'bind', label: t('containers.create.volumes.type.bind') },
-                    ]}
-                    value={row.type}
-                    onChange={(type) => updateMountRow(row.key, { type })}
-                  />
-                </div>
-                <Input
-                  className="min-w-32 flex-1"
-                  value={row.source}
-                  onChange={(e) => updateMountRow(row.key, { source: e.target.value })}
-                  placeholder={
-                    row.type === 'volume'
-                      ? t('containers.create.volumes.source.volumePlaceholder')
-                      : t('containers.create.volumes.source.bindPlaceholder')
-                  }
-                />
-                <Input
-                  className="min-w-32 flex-1"
-                  value={row.target}
-                  onChange={(e) => updateMountRow(row.key, { target: e.target.value })}
-                  placeholder={t('containers.create.volumes.target.placeholder')}
-                />
-                <ToggleButton
-                  active={row.readOnly}
-                  onClick={() => updateMountRow(row.key, { readOnly: !row.readOnly })}
-                  className="shrink-0"
-                >
-                  {t('containers.create.volumes.readOnly')}
-                </ToggleButton>
-                <div className="flex w-8 shrink-0 justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('containers.create.volumes.remove')}
-                    onClick={() => removeMountRow(row.key)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-gray-500">{t('containers.create.volumes')}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('containers.create.volumes.add')}
+              onClick={() => addMountRow()}
+            >
+              <Plus />
+            </Button>
           </div>
+
+          {mounts.length === 0 && <p className="text-xs text-gray-500">{t('containers.create.volumes.empty')}</p>}
+
+          {mounts.map((row) => (
+            <div key={row.key} className="flex items-center gap-2">
+              <SegmentedInput
+                className="flex-1"
+                separator=":"
+                segments={[
+                  {
+                    value: row.source,
+                    onChange: (source) => updateMountRow(row.key, { source }),
+                    placeholder: t('containers.create.volumes.source.placeholder'),
+                  },
+                  {
+                    value: row.target,
+                    onChange: (target) => updateMountRow(row.key, { target }),
+                    placeholder: t('containers.create.volumes.target.placeholder'),
+                  },
+                ]}
+                suffix={
+                  <>
+                    <span className="flex items-center text-muted-foreground select-none">:</span>
+                    <button
+                      type="button"
+                      onClick={() => updateMountRow(row.key, { readOnly: !row.readOnly })}
+                      title={row.readOnly ? t('containers.create.volumes.readOnly') : t('containers.create.volumes.readWrite')}
+                      className={cn(
+                        'shrink-0 cursor-pointer self-stretch px-3 text-xs transition-colors',
+                        row.readOnly ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600',
+                      )}
+                    >
+                      {row.readOnly ? 'ro' : 'rw'}
+                    </button>
+                  </>
+                }
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('containers.create.volumes.remove')}
+                onClick={() => removeMountRow(row.key)}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
         </div>
 
         {networkModeHasPorts(networkMode) && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-gray-500">{t('containers.create.ports')}</span>
-            <div className="flex flex-col">
-              <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-1.5 dark:border-gray-800">
-                <div className="min-w-24 flex-1 text-xs text-gray-500">{t('containers.create.ports.host')}</div>
-                <div className="min-w-24 flex-1 text-xs text-gray-500">{t('containers.create.ports.container')}</div>
-                <div className="shrink-0 text-xs whitespace-nowrap text-gray-500">{t('containers.create.ports.protocol')}</div>
-                <div className="flex w-8 shrink-0 justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('containers.create.ports.add')}
-                    onClick={() => addPortRow()}
+            <div className="flex items-center justify-between gap-2">
+              <Tooltip open={portsTooltipOpen} onOpenChange={setPortsTooltipOpen}>
+                <TooltipTrigger asChild>
+                  <span
+                    onClick={() => setPortsTooltipOpen((v) => !v)}
+                    className="flex cursor-help items-center gap-1 text-xs text-gray-500"
                   >
-                    <Plus />
-                  </Button>
-                </div>
-              </div>
-
-              {ports.length === 0 && <p className="py-3 text-xs text-gray-500">{t('containers.create.ports.empty')}</p>}
-
-              {ports.map((row) => (
-                <div
-                  key={row.key}
-                  className="flex flex-wrap items-center gap-2 border-b border-gray-100 py-2 last:border-b-0 dark:border-gray-900"
-                >
-                  <Input
-                    className="min-w-24 flex-1"
-                    value={row.hostPort}
-                    onChange={(e) => updatePortRow(row.key, { hostPort: e.target.value })}
-                    placeholder={t('containers.create.ports.host.placeholder')}
-                  />
-                  <Input
-                    className="min-w-24 flex-1"
-                    value={row.containerPort}
-                    onChange={(e) => updatePortRow(row.key, { containerPort: e.target.value })}
-                    placeholder={t('containers.create.ports.container.placeholder')}
-                  />
-                  <div className="shrink-0">
-                    <SegmentedControl
-                      options={[
-                        { value: 'tcp', label: 'TCP' },
-                        { value: 'udp', label: 'UDP' },
-                      ]}
-                      value={row.protocol}
-                      onChange={(protocol) => updatePortRow(row.key, { protocol })}
-                    />
-                  </div>
-                  <div className="flex w-8 shrink-0 justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={t('containers.create.ports.remove')}
-                      onClick={() => removePortRow(row.key)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                    {t('containers.create.ports')}
+                    <Info className="size-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('containers.create.ports.tooltip')}</TooltipContent>
+              </Tooltip>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('containers.create.ports.add')}
+                onClick={() => addPortRow()}
+              >
+                <Plus />
+              </Button>
             </div>
+
+            {ports.length === 0 && <p className="text-xs text-gray-500">{t('containers.create.ports.empty')}</p>}
+
+            {ports.map((row) => (
+              <div key={row.key} className="flex items-center gap-2">
+                <SegmentedInput
+                  className="flex-1"
+                  separator=":"
+                  segments={[
+                    {
+                      value: row.hostPart,
+                      onChange: (hostPart) => updatePortRow(row.key, { hostPart }),
+                      placeholder: t('containers.create.ports.host.placeholder'),
+                    },
+                    {
+                      value: row.containerPort,
+                      onChange: (containerPort) => updatePortRow(row.key, { containerPort }),
+                      placeholder: t('containers.create.ports.container.placeholder'),
+                    },
+                  ]}
+                  suffix={
+                    <>
+                      <span className="flex items-center text-muted-foreground select-none">/</span>
+                      <button
+                        type="button"
+                        onClick={() => updatePortRow(row.key, { protocol: row.protocol === 'tcp' ? 'udp' : 'tcp' })}
+                        className="shrink-0 cursor-pointer self-stretch px-3 text-xs font-medium text-gray-700 transition-colors dark:text-gray-300"
+                      >
+                        {row.protocol === 'tcp' ? 'TCP' : 'UDP'}
+                      </button>
+                    </>
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('containers.create.ports.remove')}
+                  onClick={() => removePortRow(row.key)}
+                >
+                  <Trash2 />
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </form>

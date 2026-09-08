@@ -128,6 +128,8 @@ export interface NewContainer {
   openStdin: boolean
   networkMode: string
   restartPolicy: string
+  cpuLimit: string
+  memoryLimit: string
   env: string[]
   volumes: string[]
   ports: string[]

@@ -92,6 +92,8 @@ func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 		OpenStdin     bool     `json:"openStdin"`
 		NetworkMode   string   `json:"networkMode"`
 		RestartPolicy string   `json:"restartPolicy"`
+		CPULimit      string   `json:"cpuLimit"`
+		MemoryLimit   string   `json:"memoryLimit"`
 		Env           []string `json:"env"`
 		Volumes       []string `json:"volumes"`
 		Ports         []string `json:"ports"`
@@ -108,6 +110,8 @@ func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 		OpenStdin:     body.OpenStdin,
 		NetworkMode:   body.NetworkMode,
 		RestartPolicy: body.RestartPolicy,
+		CPULimit:      body.CPULimit,
+		MemoryLimit:   body.MemoryLimit,
 		Env:           body.Env,
 		Binds:         body.Volumes,
 		Ports:         body.Ports,

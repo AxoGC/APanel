@@ -14,12 +14,16 @@ export function Combobox({
   options,
   placeholder,
   emptyText,
+  onBlur,
+  inputClassName,
 }: {
   value: string
   onChange: (value: string) => void
   options: string[]
   placeholder?: string
   emptyText?: string
+  onBlur?: () => void
+  inputClassName?: string
 }) {
   const [open, setOpen] = useState(false)
 
@@ -40,8 +44,10 @@ export function Combobox({
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
+          onBlur={onBlur}
           placeholder={placeholder || emptyText}
           autoComplete="off"
+          className={inputClassName}
         />
       </PopoverAnchor>
       <PopoverContent

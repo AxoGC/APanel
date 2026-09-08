@@ -27,6 +27,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
+	"github.com/docker/go-units"
 
 	"apanel/internal/dependency"
 )
@@ -528,33 +529,19 @@ type CreateOptions struct {
 	// syntax, one entry per line of the form's volumes textarea — passed
 	// straight through since the daemon already validates the format.
 	Binds []string
-	// Ports is one entry per mapped port, "hostPort:containerPort/proto"
-	// (proto is "tcp" or "udp"). Only meaningful outside "none"/"host"
-	// network mode — those modes either have no ports to publish or already
-	// share the host's, so the create form hides the port table for them.
+	// Ports is one entry per mapped port, in the same "[host-ip:]host-port:
+	// container-port[/proto]" syntax `docker run -p` accepts (either side may
+	// be a port range). Only meaningful outside "none"/"host" network mode —
+	// those modes either have no ports to publish or already share the
+	// host's, so the create form hides the port table for them.
 	Ports []string
-}
-
-// parsePortMappings turns "hostPort:containerPort/proto" entries into the
-// exposed-ports set and port-bindings map ContainerCreate expects. Binding
-// to all interfaces (empty HostIP) matches what the create form offers —
-// there's no per-mapping bind-address field to restrict it further.
-func parsePortMappings(entries []string) (nat.PortSet, nat.PortMap, error) {
-	exposed := make(nat.PortSet, len(entries))
-	bindings := make(nat.PortMap, len(entries))
-	for _, entry := range entries {
-		hostPort, containerPortProto, ok := strings.Cut(entry, ":")
-		if !ok {
-			return nil, nil, fmt.Errorf("invalid port mapping %q", entry)
-		}
-		port, err := nat.NewPort(nat.SplitProtoPort(containerPortProto))
-		if err != nil {
-			return nil, nil, fmt.Errorf("invalid port mapping %q: %w", entry, err)
-		}
-		exposed[port] = struct{}{}
-		bindings[port] = append(bindings[port], nat.PortBinding{HostPort: hostPort})
-	}
-	return exposed, bindings, nil
+	// CPULimit is the number of CPUs the container may use (may be
+	// fractional, e.g. "0.5"). Empty means no limit.
+	CPULimit string
+	// MemoryLimit is a size string in the same "<number><unit>" syntax
+	// `docker run -m` accepts (b/k/m/g, e.g. "512m" or "2g"). Empty means no
+	// limit.
+	MemoryLimit string
 }
 
 // Create makes a new container from opts and starts it immediately: the
@@ -574,9 +561,31 @@ func (m *Manager) Create(ctx context.Context, opts CreateOptions) (string, error
 		return "", fmt.Errorf("%w: restart policy", ErrInvalidCreate)
 	}
 
-	exposedPorts, portBindings, err := parsePortMappings(opts.Ports)
+	// nat.ParsePortSpecs is the exact same parser `docker run -p` uses, so it
+	// already covers optional host IPs and port ranges on either side.
+	exposedPorts, portBindings, err := nat.ParsePortSpecs(opts.Ports)
 	if err != nil {
 		return "", fmt.Errorf("%w: %s", ErrInvalidCreate, err)
+	}
+
+	var nanoCPUs int64
+	if cpus := strings.TrimSpace(opts.CPULimit); cpus != "" {
+		parsed, err := strconv.ParseFloat(cpus, 64)
+		if err != nil || parsed <= 0 {
+			return "", fmt.Errorf("%w: cpu limit", ErrInvalidCreate)
+		}
+		nanoCPUs = int64(parsed * 1e9)
+	}
+
+	var memoryBytes int64
+	if mem := strings.TrimSpace(opts.MemoryLimit); mem != "" {
+		// units.RAMInBytes is the same size-string parser `docker run -m`
+		// uses (bare bytes, or a b/k/m/g suffix).
+		parsed, err := units.RAMInBytes(mem)
+		if err != nil || parsed <= 0 {
+			return "", fmt.Errorf("%w: memory limit", ErrInvalidCreate)
+		}
+		memoryBytes = parsed
 	}
 
 	config := &container.Config{
@@ -592,6 +601,7 @@ func (m *Manager) Create(ctx context.Context, opts CreateOptions) (string, error
 		NetworkMode:   container.NetworkMode(opts.NetworkMode),
 		RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyMode(restartPolicy)},
 		PortBindings:  portBindings,
+		Resources:     container.Resources{NanoCPUs: nanoCPUs, Memory: memoryBytes},
 	}
 
 	created, err := m.cli.ContainerCreate(ctx, config, hostConfig, nil, nil, strings.TrimSpace(opts.Name))
