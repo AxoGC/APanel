@@ -185,6 +185,14 @@ export function ContainerLogsDialog({
     contentRef.current = content
   }, [content])
 
+  // A stopped container has nothing left to stream — following is only
+  // meaningful (and only offered) while it's running. Re-evaluated whenever
+  // canAttach flips so a container stopping mid-follow turns it off too,
+  // instead of leaving the stream to die on its own and surface as an error.
+  useEffect(() => {
+    if (open) setFollow(canAttach)
+  }, [open, canAttach])
+
   useEffect(() => {
     if (!open || mode !== 'logs' || follow) return
     let cancelled = false
@@ -404,7 +412,7 @@ export function ContainerLogsDialog({
               />
               <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">
                 {t('logs.follow')}
-                <Switch checked={follow} onCheckedChange={setFollow} />
+                <Switch checked={follow} onCheckedChange={setFollow} disabled={!canAttach} />
               </label>
             </>
           ) : (
