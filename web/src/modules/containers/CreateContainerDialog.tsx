@@ -404,7 +404,7 @@ export function CreateContainerDialog({
                 clearable
               />
             </div>
-            <ToggleButton active={imageAutoUpdate} onClick={() => setImageAutoUpdate((v) => !v)}>
+            <ToggleButton active={imageAutoUpdate} onClick={() => setImageAutoUpdate((v) => !v)} className="h-8 shrink-0">
               {t('containers.create.image.autoUpdate')}
             </ToggleButton>
             <button
