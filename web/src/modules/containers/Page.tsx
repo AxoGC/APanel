@@ -1,5 +1,6 @@
 import { HardDrive, Images, Network, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ButtonGroup } from '@/components/ui/button-group'
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -130,18 +131,20 @@ export default function ContainersPage() {
           </Select>
         </div>
         <div className={cn('ml-auto flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
-          <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
-            <Images />
-            <span className="hidden md:inline">{t('containers.images')}</span>
-          </Button>
-          <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
-            <Network />
-            <span className="hidden md:inline">{t('containers.networks')}</span>
-          </Button>
-          <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
-            <HardDrive />
-            <span className="hidden md:inline">{t('containers.volumes')}</span>
-          </Button>
+          <ButtonGroup className="h-8 border-border divide-border">
+            <Button variant="ghost" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
+              <Images />
+              <span className="hidden md:inline">{t('containers.images')}</span>
+            </Button>
+            <Button variant="ghost" size="sm" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
+              <Network />
+              <span className="hidden md:inline">{t('containers.networks')}</span>
+            </Button>
+            <Button variant="ghost" size="sm" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
+              <HardDrive />
+              <span className="hidden md:inline">{t('containers.volumes')}</span>
+            </Button>
+          </ButtonGroup>
           <Button
             size="sm"
             aria-label={t('containers.create')}
