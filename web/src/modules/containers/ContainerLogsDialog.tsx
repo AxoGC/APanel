@@ -407,7 +407,15 @@ export function ContainerLogsDialog({
             </div>
           </ScrollArea>
         ) : (
-          <div ref={terminalRef} className="min-h-0 w-full grow border-t border-gray-200 dark:border-gray-800" />
+          <div
+            ref={terminalRef}
+            // touch-pan-y tells the browser this region's vertical touch
+            // gesture is always native scrolling — without it, the dialog's
+            // scroll-lock (react-remove-scroll, via Radix Dialog) can end up
+            // swallowing touchmove here since it can't always tell xterm's
+            // nested viewport is the thing that should be scrolling.
+            className="min-h-0 w-full grow touch-pan-y border-t border-gray-200 dark:border-gray-800"
+          />
         )}
       </DialogContent>
     </Dialog>
