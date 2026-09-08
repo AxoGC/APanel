@@ -18,6 +18,16 @@ import {
 
 const LINE_OPTIONS = [100, 500, 1000, 2000]
 
+// Plain-text log lines are rendered as-is, not through xterm (that's only
+// the interactive "attach" mode) — so a program that colors its own output
+// (logrus etc.) leaves raw ANSI escape/CSI sequences sitting in the text
+// instead of being interpreted, e.g. literal "\x1b[37mDEBU\x1b[0m[0000]".
+// eslint-disable-next-line no-control-regex
+const ANSI_ESCAPE_RE = /\x1b\[[0-9;]*[a-zA-Z]/g
+function stripAnsi(line: string): string {
+  return line.replace(ANSI_ESCAPE_RE, '')
+}
+
 type ViewMode = 'logs' | 'attach'
 type AttachState = 'connecting' | 'connected' | 'disconnected'
 
@@ -279,7 +289,7 @@ export function ContainerLogsDialog({
               ) : (
                 content.map((line, index) => (
                   <div key={index} className="whitespace-pre-wrap break-all">
-                    {line}
+                    {stripAnsi(line)}
                   </div>
                 ))
               )}
