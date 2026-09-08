@@ -25,6 +25,7 @@ const (
 // calls this method on whatever it was given at construction time.
 func (m *Manager) RegisterRoutes(mux *http.ServeMux, requireAuth func(http.Handler) http.Handler) {
 	mux.Handle("GET /api/files", requireAuth(http.HandlerFunc(m.listFiles)))
+	mux.Handle("GET /api/files/path-complete", requireAuth(http.HandlerFunc(m.pathComplete)))
 	mux.Handle("GET /api/files/content", requireAuth(http.HandlerFunc(m.readFileContent)))
 	mux.Handle("PUT /api/files/content", requireAuth(http.HandlerFunc(m.writeFileContent)))
 	mux.Handle("POST /api/files/mkdir", requireAuth(http.HandlerFunc(m.mkdir)))
@@ -59,6 +60,15 @@ func (m *Manager) listFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.WriteOK(w, entries)
+}
+
+func (m *Manager) pathComplete(w http.ResponseWriter, r *http.Request) {
+	paths, err := m.PathComplete(r.URL.Query().Get("path"))
+	if err != nil {
+		writeFileError(w, err)
+		return
+	}
+	response.WriteOK(w, paths)
 }
 
 func (m *Manager) mkdir(w http.ResponseWriter, r *http.Request) {

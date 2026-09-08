@@ -122,6 +122,60 @@ func (m *Manager) List(reqPath string) ([]Entry, error) {
 	return entries, nil
 }
 
+// maxPathCompleteResults bounds how many directory names PathComplete
+// returns, so a huge directory (or a one-character prefix matching most of
+// it) can't balloon the response.
+const maxPathCompleteResults = 100
+
+// PathComplete returns candidate absolute directory paths for a
+// filesystem-path input field: if reqPath is itself an existing directory,
+// its subdirectories; otherwise the subdirectories of reqPath's parent
+// whose name starts with reqPath's own last segment — the same way shell
+// tab-completion turns "/usr/l" into "/usr/local". Directories only: this
+// exists to help pick a directory, not browse files.
+func (m *Manager) PathComplete(reqPath string) ([]string, error) {
+	full, err := m.resolve(reqPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if info, err := os.Stat(full); err == nil && info.IsDir() {
+		return m.listSubdirs(full, "")
+	}
+	return m.listSubdirs(filepath.Dir(full), filepath.Base(full))
+}
+
+func (m *Manager) listSubdirs(dir, prefix string) ([]string, error) {
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+
+	var names []string
+	for _, de := range dirEntries {
+		if !de.IsDir() {
+			continue
+		}
+		if prefix != "" && !strings.HasPrefix(de.Name(), prefix) {
+			continue
+		}
+		names = append(names, de.Name())
+	}
+	sort.Slice(names, func(i, j int) bool { return strings.ToLower(names[i]) < strings.ToLower(names[j]) })
+	if len(names) > maxPathCompleteResults {
+		names = names[:maxPathCompleteResults]
+	}
+
+	paths := make([]string, len(names))
+	for i, name := range names {
+		paths[i] = m.toClientPath(filepath.Join(dir, name))
+	}
+	return paths, nil
+}
+
 func (m *Manager) Mkdir(reqPath string) error {
 	full, err := m.resolve(reqPath)
 	if err != nil {

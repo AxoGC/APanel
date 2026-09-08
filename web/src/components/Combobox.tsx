@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,7 @@ export function Combobox({
   emptyText,
   onBlur,
   inputClassName,
+  clearable,
 }: {
   value: string
   onChange: (value: string) => void
@@ -24,6 +26,7 @@ export function Combobox({
   emptyText?: string
   onBlur?: () => void
   inputClassName?: string
+  clearable?: boolean
 }) {
   const [open, setOpen] = useState(false)
 
@@ -36,19 +39,32 @@ export function Combobox({
   return (
     <Popover open={open && filtered.length > 0} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <Input
-          data-combobox-input=""
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value)
-            setOpen(true)
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={onBlur}
-          placeholder={placeholder || emptyText}
-          autoComplete="off"
-          className={inputClassName}
-        />
+        <div className="relative w-full">
+          <Input
+            data-combobox-input=""
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value)
+              setOpen(true)
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={onBlur}
+            placeholder={placeholder || emptyText}
+            autoComplete="off"
+            className={cn(clearable && value && 'pr-7', inputClassName)}
+          />
+          {clearable && value && (
+            <button
+              type="button"
+              data-combobox-input=""
+              onClick={() => onChange('')}
+              aria-label="Clear"
+              className="absolute inset-y-0 right-1.5 flex items-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
       </PopoverAnchor>
       <PopoverContent
         align="start"

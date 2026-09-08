@@ -251,11 +251,12 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'containers.create.env': 'Environment',
     'containers.create.env.placeholder': 'KEY=value, one per line',
     'containers.create.volumes': 'Volumes',
+    'containers.create.volumes.tooltip':
+      'The first part is a volume name or host path; leave it empty for an anonymous volume. The second part is the path inside the container. Toggle ro/rw to control write access.',
     'containers.create.volumes.source.placeholder': 'volume name or /host/path (optional)',
     'containers.create.volumes.target.placeholder': '/container/path',
     'containers.create.volumes.add': 'Add mount',
     'containers.create.volumes.remove': 'Remove mount',
-    'containers.create.volumes.empty': 'No mounts yet',
     'containers.create.volumes.readOnly': 'Read-only',
     'containers.create.volumes.readWrite': 'Read-write',
 
@@ -266,7 +267,6 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'containers.create.ports.container.placeholder': '80',
     'containers.create.ports.add': 'Add port',
     'containers.create.ports.remove': 'Remove port',
-    'containers.create.ports.empty': 'No published ports',
     'containers.create.submit': 'Create',
     'containers.name': 'Name',
     'containers.image': 'Image',
@@ -852,11 +852,12 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'containers.create.env': '环境变量',
     'containers.create.env.placeholder': '一行一个 KEY=value',
     'containers.create.volumes': '数据卷',
+    'containers.create.volumes.tooltip':
+      '第一段是卷名或宿主机路径，留空则为匿名卷。第二段是容器内的路径。点击 ro/rw 切换是否只读。',
     'containers.create.volumes.source.placeholder': '卷名或 /宿主机路径（可留空）',
     'containers.create.volumes.target.placeholder': '/容器内路径',
     'containers.create.volumes.add': '添加挂载',
     'containers.create.volumes.remove': '删除挂载',
-    'containers.create.volumes.empty': '暂无挂载',
     'containers.create.volumes.readOnly': '只读',
     'containers.create.volumes.readWrite': '读写',
 
@@ -867,7 +868,6 @@ const dictionaries: Record<Locale, Record<string, string>> = {
     'containers.create.ports.container.placeholder': '80',
     'containers.create.ports.add': '添加端口',
     'containers.create.ports.remove': '删除端口',
-    'containers.create.ports.empty': '暂无端口映射',
     'containers.create.submit': '创建',
     'containers.name': '名称',
     'containers.image': '镜像',

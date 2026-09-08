@@ -13,6 +13,14 @@ export function listFiles(path: string) {
   return apiFetch<FileEntry[]>(`/files?${new URLSearchParams({ path })}`)
 }
 
+// Candidate absolute directory paths for a filesystem-path input: if path
+// is itself a directory, its subdirectories; otherwise the subdirectories
+// of its parent whose name starts with path's own last segment (shell-style
+// tab completion, e.g. "/usr/l" -> "/usr/local").
+export function pathComplete(path: string) {
+  return apiFetch<string[]>(`/files/path-complete?${new URLSearchParams({ path })}`)
+}
+
 export function mkdir(path: string) {
   return apiFetch<null>('/files/mkdir', { method: 'POST', body: JSON.stringify({ path }) })
 }

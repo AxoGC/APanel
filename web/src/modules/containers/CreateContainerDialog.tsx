@@ -5,10 +5,13 @@ import { SectionedDialog } from '@/components/SectionedDialog'
 import { ToggleButton } from '@/components/ToggleButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { SegmentedInput } from '@/components/ui/segmented-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { pathComplete } from '@/modules/files/api'
 import { useI18n, type TranslationKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
@@ -140,8 +143,11 @@ export function CreateContainerDialog({
   const [cpuLimit, setCpuLimit] = useState('')
   const [memoryLimit, setMemoryLimit] = useState('')
   const [env, setEnv] = useState('')
-  const [mounts, setMounts] = useState<MountRow[]>([])
-  const [ports, setPorts] = useState<PortRow[]>([])
+  // Both tables always keep at least one row in the UI — an empty row just
+  // means "none of these", so there's no separate empty state to render,
+  // and removing the last row clears it in place instead of vanishing.
+  const [mounts, setMounts] = useState<MountRow[]>([{ key: 0, source: '', target: '', readOnly: false }])
+  const [ports, setPorts] = useState<PortRow[]>([{ key: 0, hostPart: '', containerPort: '', protocol: 'tcp' }])
 
   const [imageTags, setImageTags] = useState<string[]>([])
   const [networks, setNetworks] = useState<ContainerNetwork[]>([])
@@ -150,8 +156,13 @@ export function CreateContainerDialog({
   // devices have neither of — toggling it on click keeps the info icon
   // reachable on mobile too.
   const [portsTooltipOpen, setPortsTooltipOpen] = useState(false)
-  const nextMountKey = useRef(0)
-  const nextPortKey = useRef(0)
+  const [volumesTooltipOpen, setVolumesTooltipOpen] = useState(false)
+  // Which mount row's host-path field is showing directory suggestions —
+  // at most one at a time, since it only ever follows the focused field.
+  const [pathSuggestKey, setPathSuggestKey] = useState<number | null>(null)
+  const [pathSuggestOptions, setPathSuggestOptions] = useState<string[]>([])
+  const nextMountKey = useRef(1)
+  const nextPortKey = useRef(1)
 
   function addMountRow(row?: Partial<Omit<MountRow, 'key'>>) {
     setMounts((current) => [...current, { key: nextMountKey.current++, source: '', target: '', readOnly: false, ...row }])
@@ -161,8 +172,15 @@ export function CreateContainerDialog({
     setMounts((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)))
   }
 
+  // Deleting the last remaining row clears its fields instead of removing
+  // it, so the table never collapses to zero rows.
   function removeMountRow(key: number) {
-    setMounts((current) => current.filter((row) => row.key !== key))
+    setMounts((current) => {
+      if (current.length <= 1) {
+        return current.map((row) => (row.key === key ? { key: row.key, source: '', target: '', readOnly: false } : row))
+      }
+      return current.filter((row) => row.key !== key)
+    })
   }
 
   function addPortRow() {
@@ -173,8 +191,16 @@ export function CreateContainerDialog({
     setPorts((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)))
   }
 
+  // Same "clear, don't remove" rule as removeMountRow for the last row.
   function removePortRow(key: number) {
-    setPorts((current) => current.filter((row) => row.key !== key))
+    setPorts((current) => {
+      if (current.length <= 1) {
+        return current.map((row) =>
+          row.key === key ? { key: row.key, hostPart: '', containerPort: '', protocol: 'tcp' } : row,
+        )
+      }
+      return current.filter((row) => row.key !== key)
+    })
   }
 
   useEffect(() => {
@@ -188,8 +214,8 @@ export function CreateContainerDialog({
     setCpuLimit('')
     setMemoryLimit('')
     setEnv('')
-    setMounts([])
-    setPorts([])
+    setMounts([{ key: nextMountKey.current++, source: '', target: '', readOnly: false }])
+    setPorts([{ key: nextPortKey.current++, hostPart: '', containerPort: '', protocol: 'tcp' }])
     Promise.all([listContainerImageTags(), listContainerNetworks()])
       .then(([tags, nets]) => {
         setImageTags(tags)
@@ -208,13 +234,13 @@ export function CreateContainerDialog({
   useEffect(() => {
     if (!open) return
     const ref = image.trim()
-    setMounts([])
+    setMounts([{ key: nextMountKey.current++, source: '', target: '', readOnly: false }])
     if (!ref) return
     let cancelled = false
     const timer = setTimeout(() => {
       listImageVolumes(ref)
         .then((paths) => {
-          if (cancelled) return
+          if (cancelled || paths.length === 0) return
           setMounts(
             paths.map((path) => ({ key: nextMountKey.current++, source: '', target: path, readOnly: false })),
           )
@@ -227,11 +253,41 @@ export function CreateContainerDialog({
     }
   }, [open, image])
 
+  // Only an absolute host path (source starting with "/") has anything on
+  // disk to suggest — a volume name or a relative bind source doesn't.
+  useEffect(() => {
+    if (pathSuggestKey == null) return
+    const row = mounts.find((r) => r.key === pathSuggestKey)
+    if (!row || !row.source.startsWith('/')) {
+      setPathSuggestOptions([])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      pathComplete(row.source)
+        .then((paths) => {
+          if (!cancelled) setPathSuggestOptions(paths)
+        })
+        .catch(() => {})
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [pathSuggestKey, mounts])
+
   // The port table is hidden for network modes that can't publish ports —
   // drop any rows the admin entered before switching to one, so a stale
-  // mapping can't silently ride along in the submit payload.
+  // mapping can't silently ride along in the submit payload. Switching back
+  // to a mode that can publish ports restores the usual single empty row.
   useEffect(() => {
-    if (!networkModeHasPorts(networkMode)) setPorts([])
+    if (!networkModeHasPorts(networkMode)) {
+      setPorts([])
+      return
+    }
+    setPorts((current) =>
+      current.length === 0 ? [{ key: nextPortKey.current++, hostPart: '', containerPort: '', protocol: 'tcp' }] : current,
+    )
   }, [networkMode])
 
   async function submit(e: FormEvent) {
@@ -292,7 +348,13 @@ export function CreateContainerDialog({
         </FormRow>
 
         <FormRow label={t('containers.create.image')}>
-          <Combobox value={image} onChange={setImage} options={imageTags} placeholder={t('containers.create.image.placeholder')} />
+          <Combobox
+            value={image}
+            onChange={setImage}
+            options={imageTags}
+            placeholder={t('containers.create.image.placeholder')}
+            clearable
+          />
         </FormRow>
 
         <FormRow label={t('containers.create.ttyStdin')}>
@@ -336,35 +398,9 @@ export function CreateContainerDialog({
           </Select>
         </FormRow>
 
-        <FormRow label={t('containers.create.cpuLimit')}>
-          <div className="relative w-32">
-            <Combobox
-              value={cpuLimit}
-              onChange={setCpuLimit}
-              options={CPU_LIMIT_OPTIONS}
-              inputClassName="pr-10"
-            />
-            <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-muted-foreground">
-              {t('containers.create.cpuLimit.unit')}
-            </span>
-          </div>
-        </FormRow>
-
-        <FormRow label={t('containers.create.memoryLimit')}>
-          <div className="w-32">
-            <Combobox
-              value={memoryLimit}
-              onChange={setMemoryLimit}
-              onBlur={() => setMemoryLimit((v) => normalizeMemoryLimit(v))}
-              options={MEMORY_LIMIT_OPTIONS}
-              placeholder={t('containers.create.memoryLimit.placeholder')}
-            />
-          </div>
-        </FormRow>
-
         <FormRow label={t('containers.create.env')}>
           <Textarea
-            className="text-xs"
+            className="text-sm"
             value={env}
             onChange={(e) => setEnv(e.target.value)}
             placeholder={t('containers.create.env.placeholder')}
@@ -374,7 +410,18 @@ export function CreateContainerDialog({
 
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-gray-500">{t('containers.create.volumes')}</span>
+            <Tooltip open={volumesTooltipOpen} onOpenChange={setVolumesTooltipOpen}>
+              <TooltipTrigger asChild>
+                <span
+                  onClick={() => setVolumesTooltipOpen((v) => !v)}
+                  className="flex cursor-help items-center gap-1 text-xs text-gray-500"
+                >
+                  {t('containers.create.volumes')}
+                  <Info className="size-3" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('containers.create.volumes.tooltip')}</TooltipContent>
+            </Tooltip>
             <Button
               type="button"
               variant="ghost"
@@ -386,53 +433,90 @@ export function CreateContainerDialog({
             </Button>
           </div>
 
-          {mounts.length === 0 && <p className="text-xs text-gray-500">{t('containers.create.volumes.empty')}</p>}
-
-          {mounts.map((row) => (
-            <div key={row.key} className="flex items-center gap-2">
-              <SegmentedInput
-                className="flex-1"
-                separator=":"
-                segments={[
-                  {
-                    value: row.source,
-                    onChange: (source) => updateMountRow(row.key, { source }),
-                    placeholder: t('containers.create.volumes.source.placeholder'),
-                  },
-                  {
-                    value: row.target,
-                    onChange: (target) => updateMountRow(row.key, { target }),
-                    placeholder: t('containers.create.volumes.target.placeholder'),
-                  },
-                ]}
-                suffix={
-                  <>
-                    <span className="flex items-center text-muted-foreground select-none">:</span>
-                    <button
-                      type="button"
-                      onClick={() => updateMountRow(row.key, { readOnly: !row.readOnly })}
-                      title={row.readOnly ? t('containers.create.volumes.readOnly') : t('containers.create.volumes.readWrite')}
-                      className={cn(
-                        'shrink-0 cursor-pointer self-stretch px-3 text-xs transition-colors',
-                        row.readOnly ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600',
-                      )}
-                    >
-                      {row.readOnly ? 'ro' : 'rw'}
-                    </button>
-                  </>
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t('containers.create.volumes.remove')}
-                onClick={() => removeMountRow(row.key)}
-              >
-                <Trash2 />
-              </Button>
-            </div>
-          ))}
+          {mounts.map((row) => {
+            const suggestOpen = pathSuggestKey === row.key && row.source.startsWith('/') && pathSuggestOptions.length > 0
+            return (
+              <div key={row.key} className="flex items-center gap-2">
+                <Popover open={suggestOpen} onOpenChange={(open) => !open && setPathSuggestKey(null)}>
+                  <PopoverAnchor data-path-suggest-anchor="" className="min-w-0 flex-1">
+                    <SegmentedInput
+                      separator=":"
+                      segments={[
+                        {
+                          value: row.source,
+                          onChange: (source) => updateMountRow(row.key, { source }),
+                          onFocus: () => setPathSuggestKey(row.key),
+                          placeholder: t('containers.create.volumes.source.placeholder'),
+                        },
+                        {
+                          value: row.target,
+                          onChange: (target) => updateMountRow(row.key, { target }),
+                          placeholder: t('containers.create.volumes.target.placeholder'),
+                        },
+                      ]}
+                      suffix={
+                        <>
+                          <span className="flex items-center text-muted-foreground select-none">:</span>
+                          <button
+                            type="button"
+                            onClick={() => updateMountRow(row.key, { readOnly: !row.readOnly })}
+                            title={
+                              row.readOnly ? t('containers.create.volumes.readOnly') : t('containers.create.volumes.readWrite')
+                            }
+                            className={cn(
+                              'shrink-0 cursor-pointer self-stretch px-3 text-xs transition-colors',
+                              row.readOnly ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600',
+                            )}
+                          >
+                            {row.readOnly ? 'ro' : 'rw'}
+                          </button>
+                        </>
+                      }
+                    />
+                  </PopoverAnchor>
+                  <PopoverContent
+                    align="start"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                    // Radix only exempts an actual Trigger from counting as an
+                    // outside interaction; Anchor isn't tracked the same way,
+                    // so typing/clicking in either segment would otherwise
+                    // read as focus-outside and close this immediately.
+                    onInteractOutside={(e) => {
+                      if (e.target instanceof HTMLElement && e.target.closest('[data-path-suggest-anchor]')) {
+                        e.preventDefault()
+                      }
+                    }}
+                    className="w-(--radix-popover-trigger-width) p-1"
+                  >
+                    <ScrollArea className="max-h-56" viewportClassName="max-h-56">
+                      {pathSuggestOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            updateMountRow(row.key, { source: opt })
+                            setPathSuggestKey(null)
+                          }}
+                          className="block w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('containers.create.volumes.remove')}
+                  onClick={() => removeMountRow(row.key)}
+                >
+                  <Trash2 />
+                </Button>
+              </div>
+            )
+          })}
         </div>
 
         {networkModeHasPorts(networkMode) && (
@@ -460,8 +544,6 @@ export function CreateContainerDialog({
                 <Plus />
               </Button>
             </div>
-
-            {ports.length === 0 && <p className="text-xs text-gray-500">{t('containers.create.ports.empty')}</p>}
 
             {ports.map((row) => (
               <div key={row.key} className="flex items-center gap-2">
@@ -506,6 +588,33 @@ export function CreateContainerDialog({
             ))}
           </div>
         )}
+
+        <FormRow label={t('containers.create.cpuLimit')}>
+          <div className="relative w-32">
+            <Combobox
+              value={cpuLimit}
+              onChange={setCpuLimit}
+              options={CPU_LIMIT_OPTIONS}
+              inputClassName="pr-10 text-sm"
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-muted-foreground">
+              {t('containers.create.cpuLimit.unit')}
+            </span>
+          </div>
+        </FormRow>
+
+        <FormRow label={t('containers.create.memoryLimit')}>
+          <div className="w-32">
+            <Combobox
+              value={memoryLimit}
+              onChange={setMemoryLimit}
+              onBlur={() => setMemoryLimit((v) => normalizeMemoryLimit(v))}
+              options={MEMORY_LIMIT_OPTIONS}
+              placeholder={t('containers.create.memoryLimit.placeholder')}
+              inputClassName="text-sm"
+            />
+          </div>
+        </FormRow>
       </form>
     </SectionedDialog>
   )

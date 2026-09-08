@@ -15,6 +15,27 @@ function PopoverTrigger({ ...props }: React.ComponentProps<typeof PopoverPrimiti
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
 
+// Popover content is portaled onto <body>, which puts it outside the DOM
+// subtree of any Dialog it was opened from. A modal Dialog locks background
+// scrolling with react-remove-scroll, and that lock cancels every
+// wheel/touchmove event whose target sits outside the dialog — so scrollable
+// content inside a popover (a long suggestion list) refused to scroll by
+// mouse wheel or touch, even though dragging its scrollbar still worked,
+// since dragging scrolls programmatically instead of through those events.
+// Keeping wheel/touchmove from bubbling as far as that document-level
+// listener restores normal scrolling; the browser scrolls the element under
+// the pointer on its own, without needing the event to propagate.
+function isolateScrollEvents(node: HTMLElement | null) {
+  if (!node) return
+  const stopPropagation = (event: Event) => event.stopPropagation()
+  node.addEventListener('wheel', stopPropagation, { passive: false })
+  node.addEventListener('touchmove', stopPropagation, { passive: false })
+  return () => {
+    node.removeEventListener('wheel', stopPropagation)
+    node.removeEventListener('touchmove', stopPropagation)
+  }
+}
+
 function PopoverContent({
   className,
   align = 'center',
@@ -24,6 +45,7 @@ function PopoverContent({
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
+        ref={isolateScrollEvents}
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}

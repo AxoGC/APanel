@@ -5,6 +5,8 @@ export interface SegmentedInputSegment {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  onFocus?: () => void
+  onBlur?: () => void
 }
 
 // A single bordered field split into independently-editable text segments
@@ -37,6 +39,8 @@ export function SegmentedInput({
             className="min-w-0 flex-1 px-2.5 py-1 text-xs outline-none placeholder:text-muted-foreground"
             value={segment.value}
             onChange={(e) => segment.onChange(e.target.value)}
+            onFocus={segment.onFocus}
+            onBlur={segment.onBlur}
             placeholder={segment.placeholder}
           />
         </Fragment>
