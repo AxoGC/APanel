@@ -376,10 +376,8 @@ export function ContainerLogsDialog({
 
         {error && <p className="px-4 pb-3 text-xs text-red-600">{error}</p>}
 
-        <div className="border-t border-gray-200 dark:border-gray-800" />
-
         {mode === 'logs' ? (
-          <ScrollArea className="min-h-0 grow" viewportRef={bodyRef}>
+          <ScrollArea className="min-h-0 grow border-t border-gray-200 dark:border-gray-800" viewportRef={bodyRef}>
             <div className="p-4 font-mono text-xs text-gray-700 dark:text-gray-300">
               {content.length === 0 ? (
                 <p className="text-gray-500">{t('logs.empty')}</p>
@@ -393,9 +391,7 @@ export function ContainerLogsDialog({
             </div>
           </ScrollArea>
         ) : (
-          <div className="min-h-0 grow">
-            <div ref={terminalRef} className="h-full w-full" />
-          </div>
+          <div ref={terminalRef} className="min-h-0 w-full grow border-t border-gray-200 dark:border-gray-800" />
         )}
       </DialogContent>
     </Dialog>
