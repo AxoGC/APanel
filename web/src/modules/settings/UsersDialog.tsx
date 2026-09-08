@@ -253,10 +253,12 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       className="max-w-sm"
       drawer
       footer={
-        <Button size="sm" className="w-full" onClick={() => setAddOpen(true)}>
-          <UserPlus />
-          {t('settings.users.add')}
-        </Button>
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <UserPlus />
+            {t('settings.users.add')}
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col">
