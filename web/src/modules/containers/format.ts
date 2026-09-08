@@ -19,6 +19,23 @@ const DURATION_KEYS: Record<string, TranslationKey> = {
   hours: 'containers.duration.hours',
   day: 'containers.duration.day',
   days: 'containers.duration.days',
+  week: 'containers.duration.week',
+  weeks: 'containers.duration.weeks',
+  month: 'containers.duration.month',
+  months: 'containers.duration.months',
+  year: 'containers.duration.year',
+  years: 'containers.duration.years',
+}
+
+// Docker's go-units HumanDuration has three fixed phrases instead of a count
+// + unit ("Less than a second", "About a minute", "About an hour") for the
+// smallest value of their respective units — these must be translated as
+// whole phrases before the word-level pass below, otherwise e.g. "About an
+// hour" only gets its trailing "hour" swapped out, leaving "About an 小时".
+const DURATION_PHRASE_KEYS: Record<string, TranslationKey> = {
+  'Less than a second': 'containers.duration.lessThanASecond',
+  'About a minute': 'containers.duration.aboutAMinute',
+  'About an hour': 'containers.duration.aboutAnHour',
 }
 
 const HEALTH_KEYS: Record<string, TranslationKey> = {
@@ -33,7 +50,10 @@ const HEALTH_KEYS: Record<string, TranslationKey> = {
 export function formatContainerStatus(status: string, t: (key: TranslationKey) => string): string {
   return status
     .replace(/^(Up|Exited|Created|Restarting|Paused|Removing|Dead)\b/, (word) => t(STATUS_KEYS[word]))
-    .replace(/\b(second|seconds|minute|minutes|hour|hours|day|days)\b/g, (word) => t(DURATION_KEYS[word]))
+    .replace(/Less than a second|About a minute|About an hour/, (phrase) => t(DURATION_PHRASE_KEYS[phrase]))
+    .replace(/\b(second|seconds|minute|minutes|hour|hours|day|days|week|weeks|month|months|year|years)\b/g, (word) =>
+      t(DURATION_KEYS[word]),
+    )
     .replace(/\((healthy|unhealthy|health: starting)\)/, (_, word: string) => `(${t(HEALTH_KEYS[word])})`)
     .replace(/\bago\b/g, t('containers.status.ago'))
 }
