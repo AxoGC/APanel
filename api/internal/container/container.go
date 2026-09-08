@@ -861,7 +861,7 @@ func (m *Manager) Logs(ctx context.Context, id string, lines int) (string, error
 		return "", err
 	}
 	rc, err := m.cli.ContainerLogs(ctx, id, container.LogsOptions{
-		ShowStdout: true, ShowStderr: true, Tail: strconv.Itoa(lines), Timestamps: true,
+		ShowStdout: true, ShowStderr: true, Tail: strconv.Itoa(lines),
 	})
 	if err != nil {
 		return "", translateNotFound(err)
@@ -889,7 +889,7 @@ func (m *Manager) StreamLogs(ctx context.Context, id string, lines int) (io.Read
 		return nil, err
 	}
 	rc, err := m.cli.ContainerLogs(ctx, id, container.LogsOptions{
-		ShowStdout: true, ShowStderr: true, Tail: strconv.Itoa(lines), Timestamps: true, Follow: true,
+		ShowStdout: true, ShowStderr: true, Tail: strconv.Itoa(lines), Follow: true,
 	})
 	if err != nil {
 		return nil, translateNotFound(err)
