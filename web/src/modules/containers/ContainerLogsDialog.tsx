@@ -121,11 +121,19 @@ interface AttachInfo {
   stdinOnce: boolean
 }
 
-function attachTerminalTheme() {
-  const dark = document.documentElement.dataset.theme === 'dark'
-  return dark
-    ? { background: '#030712', foreground: '#f3f4f6', cursor: '#f3f4f6', selectionBackground: '#374151' }
-    : { background: '#ffffff', foreground: '#1f2937', cursor: '#1f2937', selectionBackground: '#d1d5db' }
+// Reads the dialog surface's own computed color (same technique the
+// /terminal page uses for its "match the app" theme, just scoped to the
+// dialog instead of the body) rather than hardcoding hex values that can
+// drift out of sync with the actual popover background — including missing
+// the "system" theme entirely, since that only ever shows up via
+// prefers-color-scheme and never sets data-theme. xterm.js paints only the
+// rows it has, not the full height of its container, so any gap left below
+// it (or hidden under padding) renders as a visible seam unless this color
+// matches the dialog around it exactly.
+function attachTerminalTheme(target: HTMLElement) {
+  const surface = target.closest<HTMLElement>('[data-slot="dialog-content"]') ?? document.body
+  const styles = getComputedStyle(surface)
+  return { background: styles.backgroundColor, foreground: styles.color, cursor: styles.color }
 }
 
 // Container logs and Docker attach deliberately live in their own dialog:
@@ -223,7 +231,7 @@ export function ContainerLogsDialog({
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
       fontSize: 13,
       scrollback: 5000,
-      theme: attachTerminalTheme(),
+      theme: attachTerminalTheme(target),
     })
     const fitAddon = new FitAddon()
     terminal.loadAddon(fitAddon)
@@ -281,7 +289,7 @@ export function ContainerLogsDialog({
     const frame = requestAnimationFrame(resize)
 
     const themeObserver = new MutationObserver(() => {
-      terminal.options.theme = attachTerminalTheme()
+      terminal.options.theme = attachTerminalTheme(target)
     })
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
@@ -380,7 +388,9 @@ export function ContainerLogsDialog({
             </div>
           </ScrollArea>
         ) : (
-          <div ref={terminalRef} className="h-[60vh] min-h-64 w-full p-4" />
+          <div className="min-h-0 grow">
+            <div ref={terminalRef} className="h-full w-full" />
+          </div>
         )}
       </DialogContent>
     </Dialog>
