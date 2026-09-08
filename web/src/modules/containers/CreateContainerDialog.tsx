@@ -387,7 +387,7 @@ export function CreateContainerDialog({
             <button
               type="button"
               onClick={() => setImagesOpen(true)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 md:hidden dark:hover:text-gray-300"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 transition-colors hover:text-gray-700 md:hidden dark:border-gray-800 dark:hover:text-gray-300"
             >
               <Images className="size-3" />
               {t('containers.images')}
@@ -410,7 +410,7 @@ export function CreateContainerDialog({
             <button
               type="button"
               onClick={() => setImagesOpen(true)}
-              className="hidden shrink-0 items-center gap-1 text-xs text-gray-500 hover:text-gray-700 md:flex dark:hover:text-gray-300"
+              className="hidden shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 transition-colors hover:text-gray-700 md:inline-flex dark:border-gray-800 dark:hover:text-gray-300"
             >
               <Images className="size-3" />
               {t('containers.images')}
