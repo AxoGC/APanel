@@ -86,24 +86,25 @@ func (m *Manager) listContainers(w http.ResponseWriter, r *http.Request) {
 
 func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name          string   `json:"name"`
-		Image         string   `json:"image"`
-		TTY           bool     `json:"tty"`
-		OpenStdin     bool     `json:"openStdin"`
-		NetworkMode   string   `json:"networkMode"`
-		RestartPolicy string   `json:"restartPolicy"`
-		CPULimit      string   `json:"cpuLimit"`
-		MemoryLimit   string   `json:"memoryLimit"`
-		Env           []string `json:"env"`
-		Volumes       []string `json:"volumes"`
-		Ports         []string `json:"ports"`
+		Name            string   `json:"name"`
+		Image           string   `json:"image"`
+		ImageAutoUpdate bool     `json:"imageAutoUpdate"`
+		TTY             bool     `json:"tty"`
+		OpenStdin       bool     `json:"openStdin"`
+		NetworkMode     string   `json:"networkMode"`
+		RestartPolicy   string   `json:"restartPolicy"`
+		CPULimit        string   `json:"cpuLimit"`
+		MemoryLimit     string   `json:"memoryLimit"`
+		Env             []string `json:"env"`
+		Volumes         []string `json:"volumes"`
+		Ports           []string `json:"ports"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
 		return
 	}
 
-	id, err := m.Create(r.Context(), CreateOptions{
+	opts := CreateOptions{
 		Name:          body.Name,
 		Image:         body.Image,
 		TTY:           body.TTY,
@@ -115,20 +116,55 @@ func (m *Manager) createContainer(w http.ResponseWriter, r *http.Request) {
 		Env:           body.Env,
 		Binds:         body.Volumes,
 		Ports:         body.Ports,
-	})
-	if err != nil {
-		if errors.Is(err, ErrInvalidCreate) {
-			response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
+	}
+
+	// Auto-update pulls before creating, and reports progress over SSE — the
+	// only reason this endpoint streams at all — so the dialog can show a
+	// percentage on its own submit button instead of a plain spinner. Without
+	// auto-update, creating is already fast enough for a plain JSON response.
+	if !body.ImageAutoUpdate {
+		id, err := m.Create(r.Context(), opts)
+		if err != nil {
+			writeCreateContainerError(w, err)
 			return
 		}
-		if errors.Is(err, ErrNameConflict) {
-			response.WriteCode(w, http.StatusConflict, CONTAINER_NAME_CONFLICT)
-			return
-		}
-		response.WriteInternalError(w, err)
+		response.WriteOK(w, map[string]string{"id": id})
 		return
 	}
-	response.WriteOK(w, map[string]string{"id": id})
+
+	flusher, ok := response.RequireFlusher(w)
+	if !ok {
+		return
+	}
+	response.WriteLogStreamHeaders(w, flusher)
+
+	pullErr := m.PullImage(r.Context(), strings.TrimSpace(body.Image), func(p PullProgress) {
+		writeSSEEvent(w, flusher, p)
+	})
+	if pullErr != nil {
+		writeSSEStreamEnd(w, flusher, pullErr)
+		return
+	}
+
+	id, err := m.Create(r.Context(), opts)
+	if err != nil {
+		writeSSEStreamEnd(w, flusher, err)
+		return
+	}
+	writeSSEEvent(w, flusher, map[string]string{"id": id})
+	writeSSEStreamEnd(w, flusher, nil)
+}
+
+func writeCreateContainerError(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrInvalidCreate) {
+		response.WriteCode(w, http.StatusBadRequest, CONTAINER_CREATE_INVALID)
+		return
+	}
+	if errors.Is(err, ErrNameConflict) {
+		response.WriteCode(w, http.StatusConflict, CONTAINER_NAME_CONFLICT)
+		return
+	}
+	response.WriteInternalError(w, err)
 }
 
 func (m *Manager) listContainerImages(w http.ResponseWriter, r *http.Request) {

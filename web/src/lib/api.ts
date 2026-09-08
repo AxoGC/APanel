@@ -27,6 +27,14 @@ export function setApiErrorListener(listener: ErrorListener | null) {
   errorListener = listener
 }
 
+// For call sites that talk to the backend without apiFetch (e.g. a
+// text/event-stream response, since apiFetch only speaks the plain
+// {code,error,data} envelope) but still want a failure to surface through
+// the same global error dialog as everything else.
+export function reportApiError(err: ApiError) {
+  errorListener?.(err)
+}
+
 interface Envelope<T> {
   code: string
   error?: string

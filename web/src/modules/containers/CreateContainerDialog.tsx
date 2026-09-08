@@ -142,6 +142,7 @@ export function CreateContainerDialog({
 
   const [name, setName] = useState('')
   const [image, setImage] = useState('')
+  const [imageAutoUpdate, setImageAutoUpdate] = useState(false)
   const [tty, setTty] = useState(false)
   const [stdinOpen, setStdinOpen] = useState(false)
   const [networkMode, setNetworkMode] = useState('bridge')
@@ -158,6 +159,10 @@ export function CreateContainerDialog({
   const [imageTags, setImageTags] = useState<string[]>([])
   const [networks, setNetworks] = useState<ContainerNetwork[]>([])
   const [creating, setCreating] = useState(false)
+  // Only meaningful while creating with auto-update on — the pull happens
+  // before the container itself is created, so this is the only progress
+  // there is to show.
+  const [createPullPercent, setCreatePullPercent] = useState<number | null>(null)
   // Radix's Tooltip only opens on hover/focus by default, which touch
   // devices have neither of — toggling it on click keeps the info icon
   // reachable on mobile too.
@@ -219,6 +224,7 @@ export function CreateContainerDialog({
     if (!open) return
     setName('')
     setImage('')
+    setImageAutoUpdate(false)
     setTty(false)
     setStdinOpen(false)
     setNetworkMode('bridge')
@@ -315,26 +321,32 @@ export function CreateContainerDialog({
   async function submit(e: FormEvent) {
     e.preventDefault()
     setCreating(true)
+    setCreatePullPercent(imageAutoUpdate ? 0 : null)
     try {
-      const created = await createContainer({
-        name,
-        image,
-        tty,
-        openStdin: stdinOpen,
-        networkMode,
-        restartPolicy,
-        cpuLimit: cpuLimit.trim(),
-        memoryLimit: memoryLimit.trim(),
-        env: linesOf(env),
-        volumes: mountsToVolumeStrings(mounts),
-        ports: portsToStrings(ports),
-      })
+      const created = await createContainer(
+        {
+          name,
+          image,
+          imageAutoUpdate,
+          tty,
+          openStdin: stdinOpen,
+          networkMode,
+          restartPolicy,
+          cpuLimit: cpuLimit.trim(),
+          memoryLimit: memoryLimit.trim(),
+          env: linesOf(env),
+          volumes: mountsToVolumeStrings(mounts),
+          ports: portsToStrings(ports),
+        },
+        imageAutoUpdate ? setCreatePullPercent : undefined,
+      )
       onCreated(created.id)
       onOpenChange(false)
     } catch {
       // surfaced by the global error dialog
     } finally {
       setCreating(false)
+      setCreatePullPercent(null)
     }
   }
 
@@ -359,7 +371,7 @@ export function CreateContainerDialog({
             disabled={creating}
             className="border-theme-200 bg-theme-50 text-theme-700 hover:bg-theme-100 dark:border-theme-800 dark:bg-theme-950 dark:text-theme-300 dark:hover:bg-theme-900"
           >
-            {t('containers.create.submit')}
+            {createPullPercent == null ? t('containers.create.submit') : `${t('containers.create.pulling')} ${createPullPercent}%`}
           </Button>
         </div>
       }
@@ -372,24 +384,38 @@ export function CreateContainerDialog({
         <FormRow
           label={t('containers.create.image')}
           labelExtra={
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t('containers.images')}
               onClick={() => setImagesOpen(true)}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 md:hidden dark:hover:text-gray-300"
             >
-              <Images />
-            </Button>
+              <Images className="size-3" />
+              {t('containers.images')}
+            </button>
           }
         >
-          <Combobox
-            value={image}
-            onChange={setImage}
-            options={imageTags}
-            placeholder={t('containers.create.image.placeholder')}
-            clearable
-          />
+          <div className="flex w-full items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <Combobox
+                value={image}
+                onChange={setImage}
+                options={imageTags}
+                placeholder={t('containers.create.image.placeholder')}
+                clearable
+              />
+            </div>
+            <ToggleButton active={imageAutoUpdate} onClick={() => setImageAutoUpdate((v) => !v)}>
+              {t('containers.create.image.autoUpdate')}
+            </ToggleButton>
+            <button
+              type="button"
+              onClick={() => setImagesOpen(true)}
+              className="hidden shrink-0 items-center gap-1 text-xs text-gray-500 hover:text-gray-700 md:flex dark:hover:text-gray-300"
+            >
+              <Images className="size-3" />
+              {t('containers.images')}
+            </button>
+          </div>
         </FormRow>
 
         <FormRow label={t('containers.create.ttyStdin')}>

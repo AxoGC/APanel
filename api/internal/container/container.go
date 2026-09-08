@@ -8,6 +8,7 @@ package container
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -361,6 +362,75 @@ func (m *Manager) ImageVolumes(ctx context.Context, ref string) ([]string, error
 	}
 	sort.Strings(paths)
 	return paths, nil
+}
+
+// PullProgress reports pull progress as a single 0-100 percentage aggregated
+// across every layer Docker is downloading, rather than the per-layer
+// multi-line bars `docker pull` itself prints — good enough to drive a
+// single progress indicator.
+type PullProgress struct {
+	Percent int    `json:"percent"`
+	Status  string `json:"status"`
+}
+
+// dockerPullMessage is one line of the newline-delimited JSON stream the
+// daemon sends back for an image pull.
+type dockerPullMessage struct {
+	Status         string `json:"status"`
+	ID             string `json:"id"`
+	ProgressDetail struct {
+		Current int64 `json:"current"`
+		Total   int64 `json:"total"`
+	} `json:"progressDetail"`
+	Error string `json:"error"`
+}
+
+// PullImage pulls ref from its registry — the same check-then-download the
+// daemon already does for `docker pull`, so a tag that's already current is
+// a fast no-op — reporting aggregate progress to onProgress as it goes.
+func (m *Manager) PullImage(ctx context.Context, ref string, onProgress func(PullProgress)) error {
+	reader, err := m.cli.ImagePull(ctx, ref, image.PullOptions{})
+	if err != nil {
+		return fmt.Errorf("%w: pulling image %q: %s", ErrInvalidCreate, ref, err)
+	}
+	defer reader.Close()
+
+	type layerProgress struct{ current, total int64 }
+	layers := map[string]layerProgress{}
+
+	dec := json.NewDecoder(reader)
+	for {
+		var msg dockerPullMessage
+		if err := dec.Decode(&msg); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		if msg.Error != "" {
+			return fmt.Errorf("%w: pulling image %q: %s", ErrInvalidCreate, ref, msg.Error)
+		}
+		if msg.ID != "" && msg.ProgressDetail.Total > 0 {
+			layers[msg.ID] = layerProgress{msg.ProgressDetail.Current, msg.ProgressDetail.Total}
+		}
+		if onProgress == nil {
+			continue
+		}
+		var current, total int64
+		for _, l := range layers {
+			current += l.current
+			total += l.total
+		}
+		percent := 0
+		if total > 0 {
+			percent = int(current * 100 / total)
+		}
+		onProgress(PullProgress{Percent: percent, Status: msg.Status})
+	}
+	if onProgress != nil {
+		onProgress(PullProgress{Percent: 100, Status: "done"})
+	}
+	return nil
 }
 
 // ListNetworks returns Docker networks together with the containers

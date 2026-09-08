@@ -1,5 +1,5 @@
-import { apiFetch } from '@/lib/api'
-import { apiLinkUrl, apiWsUrl } from '@/lib/apiBase'
+import { apiFetch, ApiError, reportApiError } from '@/lib/api'
+import { apiLinkUrl, apiOrigin, apiWsUrl, getStoredToken, isStandalone } from '@/lib/apiBase'
 
 export interface ContainerInfo {
   id: string
@@ -124,6 +124,7 @@ export function getContainerDetail(id: string) {
 export interface NewContainer {
   name: string
   image: string
+  imageAutoUpdate: boolean
   tty: boolean
   openStdin: boolean
   networkMode: string
@@ -135,11 +136,67 @@ export interface NewContainer {
   ports: string[]
 }
 
-export function createContainer(payload: NewContainer) {
-  return apiFetch<{ id: string }>('/containers', {
+// When imageAutoUpdate is off, this is a plain create call. When it's on,
+// the backend pulls the image first and streams progress back as
+// text/event-stream instead of a single JSON envelope — onProgress reports
+// each 0-100 update along the way so the caller can show it somewhere (the
+// submit button, currently) instead of a plain spinner for however long the
+// pull takes.
+export async function createContainer(payload: NewContainer, onProgress?: (percent: number) => void) {
+  if (!payload.imageAutoUpdate) {
+    return apiFetch<{ id: string }>('/containers', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  const token = getStoredToken()
+  const res = await fetch(`${apiOrigin()}/api/containers`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: isStandalone ? 'omit' : 'same-origin',
     body: JSON.stringify(payload),
   })
+  if (!res.ok || !res.body) {
+    const err = new ApiError('INTERNAL_ERROR')
+    reportApiError(err)
+    throw err
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let id: string | undefined
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    let sepIndex: number
+    while ((sepIndex = buffer.indexOf('\n\n')) !== -1) {
+      const chunk = buffer.slice(0, sepIndex)
+      buffer = buffer.slice(sepIndex + 2)
+      const eventName = /^event: (.+)$/m.exec(chunk)?.[1] ?? 'message'
+      const dataLine = /^data: (.*)$/m.exec(chunk)?.[1]
+      const data = dataLine ? JSON.parse(dataLine) : {}
+      if (eventName === 'failed') {
+        const err = new ApiError('INTERNAL_ERROR', data.message)
+        reportApiError(err)
+        throw err
+      }
+      if (typeof data.percent === 'number') onProgress?.(data.percent)
+      if (typeof data.id === 'string') id = data.id
+    }
+  }
+  if (!id) {
+    const err = new ApiError('INTERNAL_ERROR')
+    reportApiError(err)
+    throw err
+  }
+  return { id }
 }
 
 export function getContainerLogs(id: string, lines: number) {
