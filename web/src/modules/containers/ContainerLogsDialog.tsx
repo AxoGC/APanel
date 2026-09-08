@@ -8,6 +8,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import {
   containerAttachSocketUrl,
   containerLogsStreamUrl,
@@ -22,10 +23,93 @@ const LINE_OPTIONS = [100, 500, 1000, 2000]
 // the interactive "attach" mode) — so a program that colors its own output
 // (logrus etc.) leaves raw ANSI escape/CSI sequences sitting in the text
 // instead of being interpreted, e.g. literal "\x1b[37mDEBU\x1b[0m[0000]".
+// Matches any CSI sequence, not just color (SGR/"m") ones, so cursor-control
+// codes get consumed too instead of leaking through as text.
 // eslint-disable-next-line no-control-regex
-const ANSI_ESCAPE_RE = /\x1b\[[0-9;]*[a-zA-Z]/g
-function stripAnsi(line: string): string {
-  return line.replace(ANSI_ESCAPE_RE, '')
+const ANSI_CSI_RE = /\x1b\[([0-9;]*)([a-zA-Z])/g
+
+// Standard 16-color ANSI foreground codes, mapped to Tailwind classes that
+// already carry their own dark-mode variant — consistent with how every
+// other color in this codebase is themed, rather than picking one fixed hex
+// per code that only reads well against one background.
+const ANSI_FG_CLASS: Record<number, string> = {
+  30: 'text-gray-500 dark:text-gray-400',
+  31: 'text-red-600 dark:text-red-400',
+  32: 'text-green-600 dark:text-green-400',
+  33: 'text-yellow-600 dark:text-yellow-400',
+  34: 'text-blue-600 dark:text-blue-400',
+  35: 'text-purple-600 dark:text-purple-400',
+  36: 'text-cyan-600 dark:text-cyan-400',
+  37: 'text-gray-700 dark:text-gray-300',
+  90: 'text-gray-400 dark:text-gray-500',
+  91: 'text-red-500 dark:text-red-400',
+  92: 'text-green-500 dark:text-green-400',
+  93: 'text-yellow-500 dark:text-yellow-400',
+  94: 'text-blue-500 dark:text-blue-400',
+  95: 'text-purple-500 dark:text-purple-400',
+  96: 'text-cyan-500 dark:text-cyan-400',
+  97: 'text-gray-900 dark:text-white',
+}
+
+interface AnsiSegment {
+  text: string
+  fg?: number
+  bold?: boolean
+}
+
+// Splits one log line into runs of text tagged with whatever SGR (color/
+// bold) state was active when they were printed. Only foreground color and
+// bold are tracked — background colors are dropped since a log line's own
+// background would fight the dialog's; every other CSI sequence (cursor
+// moves, line clears, ...) is consumed with no visual effect, same as a
+// real terminal ignores them for a static, already-flushed log.
+function parseAnsiLine(line: string): AnsiSegment[] {
+  const segments: AnsiSegment[] = []
+  let fg: number | undefined
+  let bold = false
+  let lastIndex = 0
+
+  ANSI_CSI_RE.lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = ANSI_CSI_RE.exec(line))) {
+    if (match.index > lastIndex) {
+      segments.push({ text: line.slice(lastIndex, match.index), fg, bold })
+    }
+    lastIndex = ANSI_CSI_RE.lastIndex
+
+    if (match[2] === 'm') {
+      const codes = match[1] === '' ? [0] : match[1].split(';').map(Number)
+      for (const code of codes) {
+        if (code === 0) {
+          fg = undefined
+          bold = false
+        } else if (code === 1) {
+          bold = true
+        } else if (code === 22) {
+          bold = false
+        } else if (code === 39) {
+          fg = undefined
+        } else if ((code >= 30 && code <= 37) || (code >= 90 && code <= 97)) {
+          fg = code
+        }
+      }
+    }
+  }
+  if (lastIndex < line.length) segments.push({ text: line.slice(lastIndex), fg, bold })
+  return segments
+}
+
+function AnsiLine({ line }: { line: string }) {
+  if (!line.includes('\x1b')) return <>{line}</>
+  return (
+    <>
+      {parseAnsiLine(line).map((seg, i) => (
+        <span key={i} className={cn(seg.fg != null && ANSI_FG_CLASS[seg.fg], seg.bold && 'font-semibold')}>
+          {seg.text}
+        </span>
+      ))}
+    </>
+  )
 }
 
 type ViewMode = 'logs' | 'attach'
@@ -289,7 +373,7 @@ export function ContainerLogsDialog({
               ) : (
                 content.map((line, index) => (
                   <div key={index} className="whitespace-pre-wrap break-all">
-                    {stripAnsi(line)}
+                    <AnsiLine line={line} />
                   </div>
                 ))
               )}
