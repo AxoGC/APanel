@@ -1,12 +1,13 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { XIcon } from 'lucide-react'
+import { Info, XIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import {
@@ -157,6 +158,10 @@ export function ContainerLogsDialog({
   const [attachState, setAttachState] = useState<AttachState>('disconnected')
   const [attachInfo, setAttachInfo] = useState<AttachInfo | null>(null)
   const [openStdin, setOpenStdin] = useState(false)
+  // Radix's Tooltip only opens on hover/focus by default, which touch
+  // devices have neither of — toggling it on click keeps the info icon
+  // reachable on mobile too.
+  const [attachInfoTooltipOpen, setAttachInfoTooltipOpen] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef(content)
@@ -323,7 +328,7 @@ export function ContainerLogsDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0 lg:max-w-4xl"
+        className="flex max-w-2xl flex-col gap-0 p-0 lg:max-w-4xl"
         height="85vh"
         showCloseButton={false}
         drawer
@@ -363,16 +368,27 @@ export function ContainerLogsDialog({
               </label>
             </>
           ) : (
-            <span className="ml-auto text-xs text-gray-500">{attachStateLabel}</span>
+            <div className="ml-auto flex items-center gap-1.5">
+              {attachInfo && (
+                <Tooltip open={attachInfoTooltipOpen} onOpenChange={setAttachInfoTooltipOpen}>
+                  <TooltipTrigger asChild>
+                    <span
+                      onClick={() => setAttachInfoTooltipOpen((v) => !v)}
+                      className="flex cursor-help items-center text-gray-500"
+                    >
+                      <Info className="size-3" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t('logs.attach.stdin')}
+                    {attachInfo.stdinOnce && ` ${t('logs.attach.stdinOnce')}`}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <span className="text-xs text-gray-500">{attachStateLabel}</span>
+            </div>
           )}
         </div>
-
-        {mode === 'attach' && attachInfo && (
-          <p className="px-4 pb-3 text-xs text-gray-500">
-            {t('logs.attach.stdin')}
-            {attachInfo.stdinOnce && ` ${t('logs.attach.stdinOnce')}`}
-          </p>
-        )}
 
         {error && <p className="px-4 pb-3 text-xs text-red-600">{error}</p>}
 
