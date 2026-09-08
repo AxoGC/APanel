@@ -164,10 +164,15 @@ export function CreateContainerDialog({
   const [portsTooltipOpen, setPortsTooltipOpen] = useState(false)
   const [volumesTooltipOpen, setVolumesTooltipOpen] = useState(false)
   const [imagesOpen, setImagesOpen] = useState(false)
-  // Which mount row's host-path field is showing directory suggestions —
+  // Which mount row (and which of its two segments) is showing suggestions —
   // at most one at a time, since it only ever follows the focused field.
   const [pathSuggestKey, setPathSuggestKey] = useState<number | null>(null)
+  const [pathSuggestField, setPathSuggestField] = useState<'source' | 'target'>('source')
   const [pathSuggestOptions, setPathSuggestOptions] = useState<string[]>([])
+  // The image's own declared VOLUME paths, offered as suggestions on the
+  // container-path segment regardless of which row they were first used to
+  // seed — the admin may add more mounts than the image declared.
+  const [imageVolumePaths, setImageVolumePaths] = useState<string[]>([])
   const nextMountKey = useRef(1)
   const nextPortKey = useRef(1)
 
@@ -249,12 +254,15 @@ export function CreateContainerDialog({
     if (!open) return
     const ref = image.trim()
     setMounts([{ key: nextMountKey.current++, source: '', target: '', readOnly: false }])
+    setImageVolumePaths([])
     if (!ref) return
     let cancelled = false
     const timer = setTimeout(() => {
       listImageVolumes(ref)
         .then((paths) => {
-          if (cancelled || paths.length === 0) return
+          if (cancelled) return
+          setImageVolumePaths(paths)
+          if (paths.length === 0) return
           setMounts(
             paths.map((path) => ({ key: nextMountKey.current++, source: '', target: path, readOnly: false })),
           )
@@ -270,7 +278,7 @@ export function CreateContainerDialog({
   // Only an absolute host path (source starting with "/") has anything on
   // disk to suggest — a volume name or a relative bind source doesn't.
   useEffect(() => {
-    if (pathSuggestKey == null) return
+    if (pathSuggestKey == null || pathSuggestField !== 'source') return
     const row = mounts.find((r) => r.key === pathSuggestKey)
     if (!row || !row.source.startsWith('/')) {
       setPathSuggestOptions([])
@@ -288,7 +296,7 @@ export function CreateContainerDialog({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [pathSuggestKey, mounts])
+  }, [pathSuggestKey, pathSuggestField, mounts])
 
   // The port table is hidden for network modes that can't publish ports —
   // drop any rows the admin entered before switching to one, so a stale
@@ -461,7 +469,17 @@ export function CreateContainerDialog({
           </div>
 
           {mounts.map((row) => {
-            const suggestOpen = pathSuggestKey === row.key && row.source.startsWith('/') && pathSuggestOptions.length > 0
+            const sourceSuggestOpen =
+              pathSuggestKey === row.key &&
+              pathSuggestField === 'source' &&
+              row.source.startsWith('/') &&
+              pathSuggestOptions.length > 0
+            const targetOptions = imageVolumePaths.filter(
+              (p) => !row.target.trim() || p.toLowerCase().includes(row.target.trim().toLowerCase()),
+            )
+            const targetSuggestOpen = pathSuggestKey === row.key && pathSuggestField === 'target' && targetOptions.length > 0
+            const suggestOpen = sourceSuggestOpen || targetSuggestOpen
+            const suggestOptions = pathSuggestField === 'source' ? pathSuggestOptions : targetOptions
             return (
               <div key={row.key} className="flex items-center gap-2">
                 <Popover open={suggestOpen} onOpenChange={(open) => !open && setPathSuggestKey(null)}>
@@ -472,12 +490,19 @@ export function CreateContainerDialog({
                         {
                           value: row.source,
                           onChange: (source) => updateMountRow(row.key, { source }),
-                          onFocus: () => setPathSuggestKey(row.key),
+                          onFocus: () => {
+                            setPathSuggestKey(row.key)
+                            setPathSuggestField('source')
+                          },
                           placeholder: t('containers.create.volumes.source.placeholder'),
                         },
                         {
                           value: row.target,
                           onChange: (target) => updateMountRow(row.key, { target }),
+                          onFocus: () => {
+                            setPathSuggestKey(row.key)
+                            setPathSuggestField('target')
+                          },
                           placeholder: t('containers.create.volumes.target.placeholder'),
                         },
                       ]}
@@ -516,12 +541,12 @@ export function CreateContainerDialog({
                     className="w-(--radix-popover-trigger-width) p-1"
                   >
                     <ScrollArea className="max-h-56" viewportClassName="max-h-56">
-                      {pathSuggestOptions.map((opt) => (
+                      {suggestOptions.map((opt) => (
                         <button
                           key={opt}
                           type="button"
                           onClick={() => {
-                            updateMountRow(row.key, { source: opt })
+                            updateMountRow(row.key, pathSuggestField === 'source' ? { source: opt } : { target: opt })
                             setPathSuggestKey(null)
                           }}
                           className="block w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
