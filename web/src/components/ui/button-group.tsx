@@ -15,7 +15,11 @@ function ButtonGroup({ className, ...props }: React.ComponentProps<'div'>) {
         // already sets a (transparent) border on every side, at equal
         // specificity to divide-x's color utility — so it's a coin flip
         // which one wins. Force it instead of hoping divide-x does.
-        '[&>*]:!rounded-none [&>*:not(:first-child)]:!border-l-border',
+        // Button's own size variants set a fixed height (e.g. h-7 for "sm"),
+        // which wins over items-stretch since stretch only fills a child
+        // with auto height — so force it back to auto/full or the divider
+        // stops short of the group's own height.
+        '[&>*]:!h-full [&>*]:!rounded-none [&>*:not(:first-child)]:!border-l-border',
         className,
       )}
       {...props}
