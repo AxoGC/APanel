@@ -1,4 +1,4 @@
-import { Info, Plus, Trash2 } from 'lucide-react'
+import { Images, Info, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Combobox } from '@/components/Combobox'
 import { SectionedDialog } from '@/components/SectionedDialog'
@@ -21,6 +21,7 @@ import {
   listImageVolumes,
   type ContainerNetwork,
 } from './api'
+import { ImageManagerDialog } from './ImageManagerDialog'
 
 // Lets the footer's submit button (rendered as a sibling of the form, not a
 // descendant — see SectionedDialog) still submit this form via the HTML
@@ -43,10 +44,15 @@ const CPU_LIMIT_OPTIONS = ['0.5', '1', '2', '4', '8']
 const MEMORY_LIMIT_OPTIONS = ['512m', '1g', '2g', '4g', '8g']
 
 // Left label / right value on desktop; stacked label-above-value on mobile.
-function FormRow({ label, children }: { label: string; children: ReactNode }) {
+// labelExtra renders alongside the label text (e.g. a button opening a
+// related management dialog), pinned to the opposite end of the same row.
+function FormRow({ label, labelExtra, children }: { label: string; labelExtra?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-3">
-      <span className="text-xs text-gray-500 md:w-28 md:shrink-0">{label}</span>
+      <div className="flex items-center justify-between gap-2 md:w-28 md:shrink-0">
+        <span className="text-xs text-gray-500">{label}</span>
+        {labelExtra}
+      </div>
       <div className="flex justify-start md:flex-1">{children}</div>
     </div>
   )
@@ -157,6 +163,7 @@ export function CreateContainerDialog({
   // reachable on mobile too.
   const [portsTooltipOpen, setPortsTooltipOpen] = useState(false)
   const [volumesTooltipOpen, setVolumesTooltipOpen] = useState(false)
+  const [imagesOpen, setImagesOpen] = useState(false)
   // Which mount row's host-path field is showing directory suggestions —
   // at most one at a time, since it only ever follows the focused field.
   const [pathSuggestKey, setPathSuggestKey] = useState<number | null>(null)
@@ -223,6 +230,13 @@ export function CreateContainerDialog({
       })
       .catch(() => {})
   }, [open])
+
+  // Refresh the tag list after the image manager closes, in case the admin
+  // pulled or removed images while it was open.
+  function handleImagesOpenChange(next: boolean) {
+    setImagesOpen(next)
+    if (!next) listContainerImageTags().then(setImageTags).catch(() => {})
+  }
 
   // Resets the mount list to the newly-selected image's own defaults rather
   // than merging into whatever the admin had set up for the previous image —
@@ -347,7 +361,20 @@ export function CreateContainerDialog({
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('containers.create.name.placeholder')} />
         </FormRow>
 
-        <FormRow label={t('containers.create.image')}>
+        <FormRow
+          label={t('containers.create.image')}
+          labelExtra={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('containers.images')}
+              onClick={() => setImagesOpen(true)}
+            >
+              <Images />
+            </Button>
+          }
+        >
           <Combobox
             value={image}
             onChange={setImage}
@@ -616,6 +643,8 @@ export function CreateContainerDialog({
           </div>
         </FormRow>
       </form>
+
+      <ImageManagerDialog open={imagesOpen} onOpenChange={handleImagesOpenChange} />
     </SectionedDialog>
   )
 }
