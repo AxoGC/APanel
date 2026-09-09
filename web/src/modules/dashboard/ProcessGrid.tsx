@@ -31,7 +31,7 @@ function ProcessRow({
 }) {
   const { t } = useI18n()
   return (
-    <div className="flex items-center gap-2 py-0.5">
+    <div className="flex items-center gap-2 border-b border-dashed border-gray-200 py-0.5 last:border-b-0 dark:border-gray-800">
       <div className="flex min-w-0 flex-1 items-center gap-1" style={{ paddingLeft: depth * 16 }}>
         {trigger ? (
           <CollapsibleTrigger asChild>
