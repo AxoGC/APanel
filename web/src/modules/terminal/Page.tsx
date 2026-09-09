@@ -22,8 +22,44 @@ interface TerminalDirectoriesResponse {
   directories: TerminalDirectory[]
 }
 
-function terminalSocketURL(shell: Shell) {
-  return apiWsUrl(`/terminal?shell=${shell}`)
+interface MultiplexerSession {
+  name: string
+}
+
+interface MultiplexerInfo {
+  available: boolean
+  name?: string
+  sessions: MultiplexerSession[]
+}
+
+interface MultiplexerWindow {
+  index: string
+  name: string
+}
+
+// Selecting either "add" sentinel doesn't switch the terminal itself — it
+// kicks off a create call whose result becomes the new session/window.
+// TEMPORARY is a stand-in for session === '' since Radix's Select.Item
+// rejects an empty-string value outright.
+const ADD_SESSION = '__add_session__'
+const ADD_WINDOW = '__add_window__'
+const TEMPORARY = '__temporary__'
+
+function nextSessionName(existing: string[]): string {
+  let n = 1
+  while (existing.includes(`session-${n}`)) n++
+  return `session-${n}`
+}
+
+function terminalSocketURL(shell: Shell, session: string, win: string) {
+  const params = new URLSearchParams()
+  if (session) {
+    params.set('session', session)
+    if (win) params.set('window', win)
+  } else {
+    params.set('shell', shell)
+  }
+  return apiWsUrl(`/terminal?${params.toString()}`)
 }
 
 function terminalTheme(mode: ThemeMode) {
@@ -62,6 +98,11 @@ export default function TerminalPage() {
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
   const [cwd, setCwd] = useState('')
   const [directories, setDirectories] = useState<TerminalDirectory[] | null>(null)
+  const [multiplexerAvailable, setMultiplexerAvailable] = useState(false)
+  const [sessions, setSessions] = useState<string[]>([])
+  const [session, setSession] = useState('')
+  const [windows, setWindows] = useState<MultiplexerWindow[]>([])
+  const [win, setWin] = useState('')
 
   // Probe once on entry for which shells are actually installed on this
   // system, then default to whichever one it lists first — the terminal
@@ -86,9 +127,87 @@ export default function TerminalPage() {
     }
   }, [])
 
+  // Probe once on entry for a terminal multiplexer (tmux today) on the
+  // backend — its session list drives the session select below, and its
+  // absence means falling back to the plain-shell mode above entirely (no
+  // session/window selects at all).
+  useEffect(() => {
+    let cancelled = false
+    void apiFetch<MultiplexerInfo>('/terminal/multiplexer/sessions')
+      .then((info) => {
+        if (cancelled) return
+        setMultiplexerAvailable(info.available)
+        setSessions(info.sessions.map((s) => s.name))
+      })
+      .catch(() => {
+        if (!cancelled) setMultiplexerAvailable(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Refresh the window list whenever the selected session changes — an
+  // empty session (temporary mode) has no windows to list.
+  useEffect(() => {
+    if (!session) {
+      setWindows([])
+      setWin('')
+      return
+    }
+    let cancelled = false
+    void apiFetch<MultiplexerWindow[]>(`/terminal/multiplexer/windows?session=${encodeURIComponent(session)}`)
+      .then((list) => {
+        if (cancelled) return
+        setWindows(list)
+        setWin((current) => (list.some((w) => w.index === current) ? current : (list[0]?.index ?? ''))
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setWindows([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session])
+
+  function selectSession(value: string) {
+    if (value === TEMPORARY) {
+      setSession('')
+      return
+    }
+    if (value !== ADD_SESSION) {
+      setSession(value)
+      return
+    }
+    const name = nextSessionName(sessions)
+    void apiFetch('/terminal/multiplexer/sessions', { method: 'POST', body: JSON.stringify({ name }) })
+      .then(() => {
+        setSessions((current) => [...current, name])
+        setSession(name)
+      })
+      .catch(() => {})
+  }
+
+  function selectWindow(value: string) {
+    if (value !== ADD_WINDOW) {
+      setWin(value)
+      return
+    }
+    void apiFetch<MultiplexerWindow>('/terminal/multiplexer/windows', {
+      method: 'POST',
+      body: JSON.stringify({ session }),
+    })
+      .then((created) => {
+        setWindows((current) => [...current, created])
+        setWin(created.index)
+      })
+      .catch(() => {})
+  }
+
   useEffect(() => {
     const container = containerRef.current
-    if (!container || !shell) return
+    if (!container || (!session && !shell)) return
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -103,7 +222,7 @@ export default function TerminalPage() {
     setTerminalInstance(terminal)
     setConnectionState('connecting')
 
-    const socket = new WebSocket(terminalSocketURL(shell))
+    const socket = new WebSocket(terminalSocketURL(shell, session, win))
     socketRef.current = socket
     socket.binaryType = 'arraybuffer'
 
@@ -142,7 +261,7 @@ export default function TerminalPage() {
       terminal.dispose()
       setTerminalInstance(null)
     }
-  }, [shell])
+  }, [shell, session, win])
 
   useEffect(() => {
     let cancelled = false
@@ -186,27 +305,68 @@ export default function TerminalPage() {
       <div className="flex flex-col gap-3 border-b border-gray-200 p-4 sm:p-6 dark:border-gray-800">
         <div className="flex flex-wrap items-center gap-3">
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.shell')}</span>
-            <Select
-              value={shell}
-              disabled={!shell}
-              onValueChange={(value) => {
-                setCwd('')
-                setDirectories(null)
-                setShell(value)
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {shells?.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {multiplexerAvailable && (
+              <>
+                <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.session')}</span>
+                <Select value={session || TEMPORARY} onValueChange={selectSession}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TEMPORARY}>{t('terminal.session.temporary')}</SelectItem>
+                    {sessions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={ADD_SESSION}>{t('terminal.session.add')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+            {session && (
+              <>
+                <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.window')}</span>
+                <Select value={win} onValueChange={selectWindow}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {windows.map((w) => (
+                      <SelectItem key={w.index} value={w.index}>
+                        {w.name || w.index}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={ADD_WINDOW}>{t('terminal.window.add')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+            {!session && (
+              <>
+                <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.shell')}</span>
+                <Select
+                  value={shell}
+                  disabled={!shell}
+                  onValueChange={(value) => {
+                    setCwd('')
+                    setDirectories(null)
+                    setShell(value)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shells?.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
             <span className="hidden text-xs text-gray-500 md:inline">{t('terminal.theme')}</span>
             <Select value={themeMode} onValueChange={(value) => setThemeMode(value as ThemeMode)}>
               <SelectTrigger>

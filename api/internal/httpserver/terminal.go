@@ -72,6 +72,81 @@ func (s *Server) listTerminalShells(w http.ResponseWriter, r *http.Request) {
 	response.WriteOK(w, availableTerminalShells())
 }
 
+type terminalMultiplexerInfo struct {
+	Available bool                 `json:"available"`
+	Name      string               `json:"name,omitempty"`
+	Sessions  []multiplexerSession `json:"sessions"`
+}
+
+func (s *Server) listTerminalMultiplexerSessions(w http.ResponseWriter, r *http.Request) {
+	mux := availableTerminalMultiplexer()
+	if mux == nil {
+		response.WriteOK(w, terminalMultiplexerInfo{Sessions: []multiplexerSession{}})
+		return
+	}
+	sessions, err := mux.Sessions()
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, terminalMultiplexerInfo{Available: true, Name: mux.Name(), Sessions: sessions})
+}
+
+func (s *Server) createTerminalMultiplexerSession(w http.ResponseWriter, r *http.Request) {
+	mux := availableTerminalMultiplexer()
+	if mux == nil {
+		http.Error(w, "no terminal multiplexer available", http.StatusBadRequest)
+		return
+	}
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	if err := mux.NewSession(body.Name); err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, multiplexerSession{Name: body.Name})
+}
+
+func (s *Server) listTerminalMultiplexerWindows(w http.ResponseWriter, r *http.Request) {
+	mux := availableTerminalMultiplexer()
+	if mux == nil {
+		response.WriteOK(w, []multiplexerWindow{})
+		return
+	}
+	windows, err := mux.Windows(r.URL.Query().Get("session"))
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, windows)
+}
+
+func (s *Server) createTerminalMultiplexerWindow(w http.ResponseWriter, r *http.Request) {
+	mux := availableTerminalMultiplexer()
+	if mux == nil {
+		http.Error(w, "no terminal multiplexer available", http.StatusBadRequest)
+		return
+	}
+	var body struct {
+		Session string `json:"session"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Session == "" {
+		http.Error(w, "session is required", http.StatusBadRequest)
+		return
+	}
+	window, err := mux.NewWindow(body.Session)
+	if err != nil {
+		response.WriteInternalError(w, err)
+		return
+	}
+	response.WriteOK(w, window)
+}
+
 func (s *Server) listTerminalDirectories(w http.ResponseWriter, r *http.Request) {
 	cwd := r.URL.Query().Get("cwd")
 	if cwd == "" {
@@ -108,10 +183,23 @@ func (s *Server) listTerminalDirectories(w http.ResponseWriter, r *http.Request)
 // local shell attached to a pseudo-terminal. The browser exchanges JSON
 // input and resize messages, while PTY output is streamed as binary frames.
 func (s *Server) terminal(w http.ResponseWriter, r *http.Request) {
-	shell, err := terminalShell(r.URL.Query().Get("shell"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	session := r.URL.Query().Get("session")
+
+	var cmd *exec.Cmd
+	if session != "" {
+		mux := availableTerminalMultiplexer()
+		if mux == nil {
+			http.Error(w, "no terminal multiplexer available", http.StatusBadRequest)
+			return
+		}
+		cmd = mux.AttachCmd(session, r.URL.Query().Get("window"))
+	} else {
+		shell, err := terminalShell(r.URL.Query().Get("shell"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		cmd = exec.Command(shell)
 	}
 
 	conn, err := terminalUpgrader.Upgrade(w, r, nil)
@@ -120,7 +208,6 @@ func (s *Server) terminal(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	cmd := exec.Command(shell)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	ptmx, err := pty.Start(cmd)
 	if err != nil {

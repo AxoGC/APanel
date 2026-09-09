@@ -124,6 +124,10 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/terminal", s.auth.Middleware(http.HandlerFunc(s.terminal)))
 	s.mux.Handle("GET /api/terminal/directories", s.auth.Middleware(http.HandlerFunc(s.listTerminalDirectories)))
 	s.mux.Handle("GET /api/terminal/shells", s.auth.Middleware(http.HandlerFunc(s.listTerminalShells)))
+	s.mux.Handle("GET /api/terminal/multiplexer/sessions", s.auth.Middleware(http.HandlerFunc(s.listTerminalMultiplexerSessions)))
+	s.mux.Handle("POST /api/terminal/multiplexer/sessions", s.auth.Middleware(http.HandlerFunc(s.createTerminalMultiplexerSession)))
+	s.mux.Handle("GET /api/terminal/multiplexer/windows", s.auth.Middleware(http.HandlerFunc(s.listTerminalMultiplexerWindows)))
+	s.mux.Handle("POST /api/terminal/multiplexer/windows", s.auth.Middleware(http.HandlerFunc(s.createTerminalMultiplexerWindow)))
 
 	for _, r := range s.registrars {
 		r.RegisterRoutes(s.mux, s.auth.Middleware)
