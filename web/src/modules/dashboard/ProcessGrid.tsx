@@ -31,7 +31,7 @@ function ProcessRow({
 }) {
   const { t } = useI18n()
   return (
-    <div className="flex items-center gap-2 border-b border-dashed border-gray-200 py-0.5 last:border-b-0 dark:border-gray-800">
+    <div className="flex items-center gap-2 border-b border-gray-100 py-0.5 last:border-b-0 dark:border-gray-900">
       <div className="flex min-w-0 flex-1 items-center gap-1" style={{ paddingLeft: depth * 16 }}>
         {trigger ? (
           <CollapsibleTrigger asChild>
@@ -138,7 +138,7 @@ export function ProcessGridHeader() {
   const { t } = useI18n()
 
   return (
-  <div className="flex items-center gap-2 pb-1.5">
+  <div className="flex items-center gap-2 border-b border-gray-200 pb-1.5 dark:border-gray-800">
     <div className="flex min-w-0 flex-1 items-center gap-1 pl-[calc(0.875rem+0.25rem)] text-xs text-gray-500">
       {t('dashboard.process')}
     </div>
