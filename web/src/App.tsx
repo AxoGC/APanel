@@ -7,18 +7,18 @@ import { AuthProvider, useAuth } from '@/lib/auth'
 import { ErrorFeedbackDialog } from '@/lib/errorFeedback'
 import { FeaturesProvider } from '@/lib/features'
 import { I18nProvider } from '@/lib/i18n'
-import AuditLogPage from '@/modules/auditlog/Page'
-import ContainersPage from '@/modules/containers/Page'
-import DashboardPage from '@/modules/dashboard/Page'
-import DatabasePage from '@/modules/database/Page'
-import FilesPage from '@/modules/files/Page'
-import FirewallPage from '@/modules/firewall/Page'
-import HistoryPage from '@/modules/history/Page'
-import LoginPage from '@/modules/login/Page'
-import ProxyPage from '@/modules/proxy/Page'
-import ServicesPage from '@/modules/services/Page'
-import SettingsPage from '@/modules/settings/Page'
 
+const LoginPage = lazy(() => import('@/modules/login/Page'))
+const DashboardPage = lazy(() => import('@/modules/dashboard/Page'))
+const ServicesPage = lazy(() => import('@/modules/services/Page'))
+const FilesPage = lazy(() => import('@/modules/files/Page'))
+const ContainersPage = lazy(() => import('@/modules/containers/Page'))
+const HistoryPage = lazy(() => import('@/modules/history/Page'))
+const FirewallPage = lazy(() => import('@/modules/firewall/Page'))
+const ProxyPage = lazy(() => import('@/modules/proxy/Page'))
+const DatabasePage = lazy(() => import('@/modules/database/Page'))
+const AuditLogPage = lazy(() => import('@/modules/auditlog/Page'))
+const SettingsPage = lazy(() => import('@/modules/settings/Page'))
 const TerminalPage = lazy(() => import('@/modules/terminal/Page'))
 
 function Shell() {
@@ -40,22 +40,26 @@ function Shell() {
       <HttpRiskDialog />
       <ErrorFeedbackDialog />
       {state === 'loading' ? null : state === 'unauthenticated' ? (
-        <LoginPage />
+        <Suspense fallback={null}>
+          <LoginPage />
+        </Suspense>
       ) : (
         <div className="mx-auto flex h-dvh max-w-5xl flex-col md:flex-row-reverse">
           <ScrollArea className="min-h-0 grow" viewportClassName="[&>div]:h-full [&>div]:block!">
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/files" element={<FilesPage />} />
-              <Route path="/containers" element={<ContainersPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/firewall" element={<FirewallPage />} />
-              <Route path="/proxy" element={<ProxyPage />} />
-              <Route path="/database" element={<DatabasePage />} />
-              <Route path="/auditlog" element={<AuditLogPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
+            <Suspense fallback={null}>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/files" element={<FilesPage />} />
+                <Route path="/containers" element={<ContainersPage />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/firewall" element={<FirewallPage />} />
+                <Route path="/proxy" element={<ProxyPage />} />
+                <Route path="/database" element={<DatabasePage />} />
+                <Route path="/auditlog" element={<AuditLogPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Routes>
+            </Suspense>
             {terminalStarted && (
               <div hidden={location.pathname !== '/terminal'} className="h-full">
                 <Suspense fallback={null}>
