@@ -15,11 +15,7 @@ func TestOpenCreatesMissingSQLiteParentDirectory(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	sqlDB, err := database.DB()
-	if err != nil {
-		t.Fatalf("DB() error = %v", err)
-	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
+	t.Cleanup(func() { _ = database.Close() })
 
 	if _, err := os.Stat(dbPath); err != nil {
 		t.Fatalf("database file was not created: %v", err)

@@ -1,4 +1,6 @@
-// Package model holds the database schema.
+// Package model holds the database schema. Table/column names here must
+// match the CREATE TABLE statements in internal/db.Open exactly — there's no
+// migration tool inferring one from the other.
 package model
 
 import "time"
@@ -6,8 +8,8 @@ import "time"
 // ConfigEntry overrides a non-startup-critical default. Startup-critical
 // settings come from env/YAML instead (see config.Config).
 type ConfigEntry struct {
-	Key   string `gorm:"primaryKey"`
-	Value string
+	Key   string `db:"key"`
+	Value string `db:"value"`
 }
 
 // User is a login credential plus a human-readable label. There is no
@@ -15,18 +17,18 @@ type ConfigEntry struct {
 // exists only so a Session (and, in turn, an AuditLog entry) can say who did
 // something. See internal/users.
 type User struct {
-	ID           uint `gorm:"primaryKey;autoIncrement"`
-	PasswordHash string
-	Remark       string
-	CreatedAt    time.Time
+	ID           uint      `db:"id"`
+	PasswordHash string    `db:"password_hash"`
+	Remark       string    `db:"remark"`
+	CreatedAt    time.Time `db:"created_at"`
 }
 
 // Session is an issued login token, tied to the User who logged in.
 type Session struct {
-	Token     string `gorm:"primaryKey"`
-	UserID    uint
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	Token     string    `db:"token"`
+	UserID    uint      `db:"user_id"`
+	CreatedAt time.Time `db:"created_at"`
+	ExpiresAt time.Time `db:"expires_at"`
 }
 
 // AuditLog is one recorded mutating (POST/PUT/PATCH/DELETE) API request —
@@ -35,12 +37,12 @@ type Session struct {
 // time of the action, not a foreign key, so the record stays meaningful
 // even after that user's remark changes or the user is deleted.
 type AuditLog struct {
-	ID         uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	At         time.Time `json:"at" gorm:"index"`
-	UserRemark string    `json:"userRemark"`
-	Action     string    `json:"action,omitempty"`
-	Method     string    `json:"method"`
-	Path       string    `json:"path"`
-	Status     int       `json:"status"`
-	IP         string    `json:"ip"`
+	ID         uint      `json:"id" db:"id"`
+	At         time.Time `json:"at" db:"at"`
+	UserRemark string    `json:"userRemark" db:"user_remark"`
+	Action     string    `json:"action,omitempty" db:"action"`
+	Method     string    `json:"method" db:"method"`
+	Path       string    `json:"path" db:"path"`
+	Status     int       `json:"status" db:"status"`
+	IP         string    `json:"ip" db:"ip"`
 }

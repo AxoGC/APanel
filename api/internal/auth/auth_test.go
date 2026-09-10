@@ -23,11 +23,11 @@ import (
 func newTestService(t *testing.T) *Service {
 	t.Helper()
 	t.Setenv("APANEL_DB_PATH", filepath.Join(t.TempDir(), "apanel.db"))
-	gormDB, err := db.Open()
+	sqliteDB, err := db.Open()
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc, err := New(gormDB, users.New(gormDB), auditlog.New(gormDB, settings.New(gormDB)))
+	svc, err := New(sqliteDB, users.New(sqliteDB), auditlog.New(sqliteDB, settings.New(sqliteDB)))
 	if err != nil {
 		t.Fatal(err)
 	}

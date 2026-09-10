@@ -11,11 +11,11 @@ import (
 func newTestManager(t *testing.T) *Manager {
 	t.Helper()
 	t.Setenv("APANEL_DB_PATH", filepath.Join(t.TempDir(), "apanel.db"))
-	gormDB, err := db.Open()
+	sqliteDB, err := db.Open()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(gormDB)
+	return New(sqliteDB)
 }
 
 func TestCreateRejectsShortPassword(t *testing.T) {

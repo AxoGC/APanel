@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/jmoiron/sqlx"
 
 	"apanel/internal/auditlog"
 	"apanel/internal/model"
@@ -46,7 +46,7 @@ const (
 )
 
 type Service struct {
-	db    *gorm.DB
+	db    *sqlx.DB
 	users *users.Manager
 	audit *auditlog.Manager
 
@@ -64,9 +64,9 @@ type loginChallenge struct {
 	expiresAt  time.Time
 }
 
-func New(db *gorm.DB, usersMgr *users.Manager, auditMgr *auditlog.Manager) (*Service, error) {
+func New(db *sqlx.DB, usersMgr *users.Manager, auditMgr *auditlog.Manager) (*Service, error) {
 	var sessions []model.Session
-	if err := db.Where("expires_at > ?", time.Now()).Find(&sessions).Error; err != nil {
+	if err := db.Select(&sessions, `SELECT * FROM sessions WHERE expires_at > ?`, time.Now()); err != nil {
 		return nil, err
 	}
 
@@ -260,7 +260,11 @@ func (s *Service) Login(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(sessionTTL),
 	}
-	if err := s.db.Create(&session).Error; err != nil {
+	_, err = s.db.Exec(
+		`INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)`,
+		session.Token, session.UserID, session.CreatedAt, session.ExpiresAt,
+	)
+	if err != nil {
 		response.WriteInternalError(w, err)
 		return
 	}
@@ -283,7 +287,7 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 		if session, ok := s.check(r); ok {
 			s.audit.Record(s.users.Remark(session.UserID), "POST /api/logout", r.Method, r.URL.Path, http.StatusOK, auditlog.ClientIP(r))
 		}
-		s.db.Delete(&model.Session{}, "token = ?", token)
+		_, _ = s.db.Exec(`DELETE FROM sessions WHERE token = ?`, token)
 		s.mu.Lock()
 		delete(s.sessions, token)
 		s.mu.Unlock()
@@ -362,7 +366,7 @@ func (s *Service) check(r *http.Request) (model.Session, bool) {
 		s.mu.Lock()
 		delete(s.sessions, token)
 		s.mu.Unlock()
-		s.db.Delete(&model.Session{}, "token = ?", token)
+		_, _ = s.db.Exec(`DELETE FROM sessions WHERE token = ?`, token)
 		return model.Session{}, false
 	}
 	return session, true

@@ -6,17 +6,19 @@
 package settings
 
 import (
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"database/sql"
+	"errors"
+
+	"github.com/jmoiron/sqlx"
 
 	"apanel/internal/model"
 )
 
 type Manager struct {
-	db *gorm.DB
+	db *sqlx.DB
 }
 
-func New(db *gorm.DB) *Manager {
+func New(db *sqlx.DB) *Manager {
 	return &Manager{db: db}
 }
 
@@ -24,9 +26,9 @@ func New(db *gorm.DB) *Manager {
 // never been set.
 func (m *Manager) Get(key string) (string, bool, error) {
 	var entry model.ConfigEntry
-	err := m.db.First(&entry, "key = ?", key).Error
+	err := m.db.Get(&entry, `SELECT * FROM config_entries WHERE key = ?`, key)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, sql.ErrNoRows) {
 			return "", false, nil
 		}
 		return "", false, err
@@ -36,14 +38,16 @@ func (m *Manager) Get(key string) (string, bool, error) {
 
 // Set upserts the key's value.
 func (m *Manager) Set(key, value string) error {
-	entry := model.ConfigEntry{Key: key, Value: value}
-	return m.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "key"}},
-		DoUpdates: clause.AssignmentColumns([]string{"value"}),
-	}).Create(&entry).Error
+	_, err := m.db.Exec(
+		`INSERT INTO config_entries (key, value) VALUES (?, ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		key, value,
+	)
+	return err
 }
 
 // Delete removes an override so callers can fall back to their default.
 func (m *Manager) Delete(key string) error {
-	return m.db.Delete(&model.ConfigEntry{}, "key = ?", key).Error
+	_, err := m.db.Exec(`DELETE FROM config_entries WHERE key = ?`, key)
+	return err
 }

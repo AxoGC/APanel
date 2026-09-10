@@ -20,8 +20,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
 	"apanel/internal/model"
 )
@@ -43,10 +43,10 @@ type Info struct {
 }
 
 type Manager struct {
-	db *gorm.DB
+	db *sqlx.DB
 }
 
-func New(db *gorm.DB) *Manager {
+func New(db *sqlx.DB) *Manager {
 	return &Manager{db: db}
 }
 
@@ -54,8 +54,8 @@ func New(db *gorm.DB) *Manager {
 // fresh install (no users exist yet), printing the plaintext once so the
 // operator can log in and change it.
 func (m *Manager) Bootstrap() error {
-	var count int64
-	if err := m.db.Model(&model.User{}).Count(&count).Error; err != nil {
+	var count int
+	if err := m.db.Get(&count, `SELECT COUNT(*) FROM users`); err != nil {
 		return err
 	}
 	if count > 0 {
@@ -88,7 +88,7 @@ func generatePassword() (string, error) {
 
 func (m *Manager) List() ([]Info, error) {
 	var rows []model.User
-	if err := m.db.Order("id asc").Find(&rows).Error; err != nil {
+	if err := m.db.Select(&rows, `SELECT * FROM users ORDER BY id ASC`); err != nil {
 		return nil, err
 	}
 	infos := make([]Info, 0, len(rows))
@@ -102,7 +102,7 @@ func (m *Manager) List() ([]Info, error) {
 // package doc for why this can't be an indexed lookup.
 func (m *Manager) FindByPassword(password string) (model.User, bool, error) {
 	var rows []model.User
-	if err := m.db.Find(&rows).Error; err != nil {
+	if err := m.db.Select(&rows, `SELECT * FROM users`); err != nil {
 		return model.User{}, false, err
 	}
 	for _, u := range rows {
@@ -117,7 +117,7 @@ func (m *Manager) FindByPassword(password string) (model.User, bool, error) {
 // excludeID (0 excludes nothing, since it's never a real row's id).
 func (m *Manager) isDuplicate(password string, excludeID uint) (bool, error) {
 	var rows []model.User
-	if err := m.db.Find(&rows).Error; err != nil {
+	if err := m.db.Select(&rows, `SELECT * FROM users`); err != nil {
 		return false, err
 	}
 	for _, u := range rows {
@@ -147,11 +147,18 @@ func (m *Manager) Create(password, remark string) (Info, error) {
 	if err != nil {
 		return Info{}, err
 	}
-	u := model.User{PasswordHash: string(hash), Remark: remark, CreatedAt: time.Now()}
-	if err := m.db.Create(&u).Error; err != nil {
+	res, err := m.db.Exec(
+		`INSERT INTO users (password_hash, remark, created_at) VALUES (?, ?, ?)`,
+		string(hash), remark, time.Now(),
+	)
+	if err != nil {
 		return Info{}, err
 	}
-	return Info{ID: u.ID, Remark: u.Remark}, nil
+	id, err := res.LastInsertId()
+	if err != nil {
+		return Info{}, err
+	}
+	return Info{ID: uint(id), Remark: remark}, nil
 }
 
 // SetPassword resets any user's password from the users-management
@@ -174,22 +181,30 @@ func (m *Manager) SetPassword(id uint, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	res := m.db.Model(&model.User{}).Where("id = ?", id).Update("password_hash", string(hash))
-	if res.Error != nil {
-		return res.Error
+	res, err := m.db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, string(hash), id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
 		return ErrNotFound
 	}
 	return nil
 }
 
 func (m *Manager) SetRemark(id uint, remark string) error {
-	res := m.db.Model(&model.User{}).Where("id = ?", id).Update("remark", remark)
-	if res.Error != nil {
-		return res.Error
+	res, err := m.db.Exec(`UPDATE users SET remark = ? WHERE id = ?`, remark, id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
 		return ErrNotFound
 	}
 	return nil
@@ -199,8 +214,8 @@ func (m *Manager) SetRemark(id uint, remark string) error {
 // check so a deleted user's outstanding session stops working immediately
 // instead of staying valid until it naturally expires.
 func (m *Manager) Exists(id uint) bool {
-	var count int64
-	m.db.Model(&model.User{}).Where("id = ?", id).Count(&count)
+	var count int
+	_ = m.db.Get(&count, `SELECT COUNT(*) FROM users WHERE id = ?`, id)
 	return count > 0
 }
 
@@ -209,25 +224,29 @@ func (m *Manager) Exists(id uint) bool {
 // the request that's being logged.
 func (m *Manager) Remark(id uint) string {
 	var u model.User
-	if err := m.db.First(&u, "id = ?", id).Error; err != nil {
+	if err := m.db.Get(&u, `SELECT * FROM users WHERE id = ?`, id); err != nil {
 		return ""
 	}
 	return u.Remark
 }
 
 func (m *Manager) Delete(id uint) error {
-	var count int64
-	if err := m.db.Model(&model.User{}).Count(&count).Error; err != nil {
+	var count int
+	if err := m.db.Get(&count, `SELECT COUNT(*) FROM users`); err != nil {
 		return err
 	}
 	if count <= 1 {
 		return ErrLastUser
 	}
-	res := m.db.Delete(&model.User{}, "id = ?", id)
-	if res.Error != nil {
-		return res.Error
+	res, err := m.db.Exec(`DELETE FROM users WHERE id = ?`, id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
 		return ErrNotFound
 	}
 	return nil

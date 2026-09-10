@@ -8,17 +8,13 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/glebarez/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"github.com/jmoiron/sqlx"
 
-	"apanel/internal/model"
+	_ "github.com/glebarez/go-sqlite" // registers the "sqlite" database/sql driver
 )
 
 // defaultPath is where apanel's sqlite database lives by default. It can be
@@ -26,7 +22,47 @@ import (
 // production deployments should not need to touch this.
 const defaultPath = "/var/lib/apanel/apanel.db"
 
-func Open() (*gorm.DB, error) {
+// schema creates every table apanel's own storage needs, matching
+// internal/model's field tags exactly. CREATE TABLE/INDEX IF NOT EXISTS
+// makes this idempotent, standing in for a migration tool: there's only ever
+// been one shape for each of these tables, so a plain "create it if it's
+// missing" has been sufficient. Timestamp columns are declared DATETIME
+// (rather than TEXT) so the sqlite driver round-trips them as time.Time
+// automatically — see modernc.org/sqlite's rows.Next/ColumnTypeScanType.
+const schema = `
+CREATE TABLE IF NOT EXISTS config_entries (
+	key   TEXT PRIMARY KEY,
+	value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+	id            INTEGER PRIMARY KEY AUTOINCREMENT,
+	password_hash TEXT NOT NULL,
+	remark        TEXT NOT NULL,
+	created_at    DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+	token      TEXT PRIMARY KEY,
+	user_id    INTEGER NOT NULL,
+	created_at DATETIME NOT NULL,
+	expires_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	at          DATETIME NOT NULL,
+	user_remark TEXT NOT NULL,
+	action      TEXT NOT NULL,
+	method      TEXT NOT NULL,
+	path        TEXT NOT NULL,
+	status      INTEGER NOT NULL,
+	ip          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_at ON audit_logs (at);
+`
+
+func Open() (*sqlx.DB, error) {
 	path := os.Getenv("APANEL_DB_PATH")
 	if path == "" {
 		path = defaultPath
@@ -35,21 +71,15 @@ func Open() (*gorm.DB, error) {
 		return nil, fmt.Errorf("prepare sqlite database directory: %w", err)
 	}
 
-	// IgnoreRecordNotFoundError: internal/settings.Manager.Get uses "record
-	// not found" as its normal signal for "this key was never set" — without
-	// this, GORM's default logger would warn-log every single lookup of an
-	// unset setting as if it were an error.
-	gormLogger := logger.New(log.New(os.Stderr, "", log.LstdFlags), logger.Config{
-		SlowThreshold:             200 * time.Millisecond,
-		LogLevel:                  logger.Warn,
-		IgnoreRecordNotFoundError: true,
-	})
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{Logger: gormLogger})
+	db, err := sqlx.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("open database: %w", err)
+	}
 
-	if err := db.AutoMigrate(&model.ConfigEntry{}, &model.User{}, &model.Session{}, &model.AuditLog{}); err != nil {
+	if _, err := db.Exec(schema); err != nil {
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}
 	return db, nil

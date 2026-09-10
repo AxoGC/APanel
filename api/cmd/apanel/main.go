@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
-	gormDB, err := db.Open()
+	sqliteDB, err := db.Open()
 	if err != nil {
 		log.Fatalf("database: %v", err)
 	}
@@ -44,7 +44,7 @@ func main() {
 		log.Fatalf("docker: %v", err)
 	}
 
-	settingsMgr := settings.New(gormDB)
+	settingsMgr := settings.New(sqliteDB)
 	historyMgr := history.New(settingsMgr)
 	firewallMgr := firewall.New()
 	filesMgr := files.New()
@@ -52,10 +52,10 @@ func main() {
 	databaseMgr := database.New(settingsMgr)
 	updateMgr := update.New(settingsMgr)
 	updateMgr.Start(context.Background())
-	usersMgr := users.New(gormDB)
-	auditMgr := auditlog.New(gormDB, settingsMgr)
+	usersMgr := users.New(sqliteDB)
+	auditMgr := auditlog.New(sqliteDB, settingsMgr)
 
-	authSvc, err := auth.New(gormDB, usersMgr, auditMgr)
+	authSvc, err := auth.New(sqliteDB, usersMgr, auditMgr)
 	if err != nil {
 		log.Fatalf("auth: %v", err)
 	}

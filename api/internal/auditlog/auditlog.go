@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/jmoiron/sqlx"
 
 	"apanel/internal/model"
 	"apanel/internal/settings"
@@ -43,14 +43,14 @@ const defaultRetentionDays = 7
 const cleanupDelay = time.Hour
 
 type Manager struct {
-	db       *gorm.DB
+	db       *sqlx.DB
 	settings *settings.Manager
 
 	mu           sync.Mutex
 	cleanupTimer *time.Timer
 }
 
-func New(db *gorm.DB, settingsMgr *settings.Manager) *Manager {
+func New(db *sqlx.DB, settingsMgr *settings.Manager) *Manager {
 	return &Manager{db: db, settings: settingsMgr}
 }
 
@@ -61,16 +61,11 @@ func New(db *gorm.DB, settingsMgr *settings.Manager) *Manager {
 // with no label yet. Failures are only logged, not surfaced: a broken audit
 // write should never take down the request it's trying to record.
 func (m *Manager) Record(remark, pattern, method, path string, status int, ip string) {
-	entry := model.AuditLog{
-		At:         time.Now(),
-		UserRemark: remark,
-		Action:     actionFor(pattern),
-		Method:     method,
-		Path:       path,
-		Status:     status,
-		IP:         ip,
-	}
-	if err := m.db.Create(&entry).Error; err != nil {
+	_, err := m.db.Exec(
+		`INSERT INTO audit_logs (at, user_remark, action, method, path, status, ip) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		time.Now(), remark, actionFor(pattern), method, path, status, ip,
+	)
+	if err != nil {
 		log.Printf("auditlog: record failed: %v", err)
 		return
 	}
@@ -102,7 +97,7 @@ func (m *Manager) runCleanup() {
 
 	days := m.RetentionDays()
 	cutoff := time.Now().AddDate(0, 0, -days)
-	if err := m.db.Where("at < ?", cutoff).Delete(&model.AuditLog{}).Error; err != nil {
+	if _, err := m.db.Exec(`DELETE FROM audit_logs WHERE at < ?`, cutoff); err != nil {
 		log.Printf("auditlog: cleanup failed: %v", err)
 	}
 }
@@ -162,13 +157,14 @@ func (m *Manager) List(limit int, beforeID uint) ([]model.AuditLog, error) {
 		limit = maxLimit
 	}
 
-	q := m.db.Order("id desc").Limit(limit)
-	if beforeID > 0 {
-		q = q.Where("id < ?", beforeID)
-	}
-
 	entries := make([]model.AuditLog, 0, limit)
-	if err := q.Find(&entries).Error; err != nil {
+	var err error
+	if beforeID > 0 {
+		err = m.db.Select(&entries, `SELECT * FROM audit_logs WHERE id < ? ORDER BY id DESC LIMIT ?`, beforeID, limit)
+	} else {
+		err = m.db.Select(&entries, `SELECT * FROM audit_logs ORDER BY id DESC LIMIT ?`, limit)
+	}
+	if err != nil {
 		return nil, err
 	}
 	return entries, nil
