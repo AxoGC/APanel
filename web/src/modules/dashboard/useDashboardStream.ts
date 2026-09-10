@@ -20,6 +20,9 @@ export interface Overview {
   netInterface: string
   netRxBytesPerSec: number
   netTxBytesPerSec: number
+  load1: number
+  load5: number
+  load15: number
   processes: ProcessInfo[]
 }
 

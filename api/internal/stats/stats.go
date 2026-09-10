@@ -38,6 +38,9 @@ type Overview struct {
 	NetInterface     string    `json:"netInterface"`
 	NetRxBytesPerSec float64   `json:"netRxBytesPerSec"`
 	NetTxBytesPerSec float64   `json:"netTxBytesPerSec"`
+	Load1            float64   `json:"load1"`
+	Load5            float64   `json:"load5"`
+	Load15           float64   `json:"load15"`
 	Processes        []Process `json:"processes"`
 }
 
@@ -156,6 +159,11 @@ func (c *Collector) Sample(sortBy ProcessSort) (Overview, error) {
 
 	netIface, netRxBps, netTxBps := c.sampleNetwork(now)
 
+	load1, load5, load15, err := readLoadAvg()
+	if err != nil {
+		return Overview{}, err
+	}
+
 	c.prevAt = now
 	return Overview{
 		CPUPercent:       cpuPercent,
@@ -166,8 +174,28 @@ func (c *Collector) Sample(sortBy ProcessSort) (Overview, error) {
 		NetInterface:     netIface,
 		NetRxBytesPerSec: netRxBps,
 		NetTxBytesPerSec: netTxBps,
+		Load1:            load1,
+		Load5:            load5,
+		Load15:           load15,
 		Processes:        procs,
 	}, nil
+}
+
+// readLoadAvg reads the 1/5/15-minute load averages from /proc/loadavg
+// ("1min 5min 15min running/total lastpid").
+func readLoadAvg() (load1, load5, load15 float64, err error) {
+	data, err := os.ReadFile("/proc/loadavg")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	fields := strings.Fields(string(data))
+	if len(fields) < 3 {
+		return 0, 0, 0, fmt.Errorf("unexpected /proc/loadavg format")
+	}
+	load1, _ = strconv.ParseFloat(fields[0], 64)
+	load5, _ = strconv.ParseFloat(fields[1], 64)
+	load15, _ = strconv.ParseFloat(fields[2], 64)
+	return load1, load5, load15, nil
 }
 
 func (c *Collector) sampleCPU() (float64, error) {

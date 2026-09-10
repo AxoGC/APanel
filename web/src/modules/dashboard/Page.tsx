@@ -130,6 +130,14 @@ export default function DashboardPage() {
             value={overview?.cpuPercent ?? 0}
             mainText={overview ? overview.cpuPercent.toFixed(1) : '–'}
             unitText={overview ? '%' : undefined}
+            details={
+              overview
+                ? [
+                    `${t('dashboard.load')} 1min: ${overview.load1.toFixed(2)}`,
+                    `5min: ${overview.load5.toFixed(2)}, 15min: ${overview.load15.toFixed(2)}`,
+                  ]
+                : undefined
+            }
           />
         </div>
         <div className="min-w-0 flex-1">
