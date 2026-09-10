@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { formatBytes, formatPercent } from '@/lib/format'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { buildProcessForest, sortProcessForest, type ProcessNode } from './processTree'
+import { buildProcessForest, collectDescendantNames, sortProcessForest, type ProcessNode } from './processTree'
 import type { ProcessInfo, ProcessSort } from './useDashboardStream'
 
 function ProcessRow({
@@ -15,6 +15,7 @@ function ProcessRow({
   cpuPercent,
   memRSS,
   count,
+  descendantNames,
   depth,
   trigger,
   onShowDetail,
@@ -25,6 +26,7 @@ function ProcessRow({
   cpuPercent: number
   memRSS: number
   count?: number
+  descendantNames?: string[]
   depth: number
   trigger?: { expanded: boolean; onToggle: () => void }
   onShowDetail: (pid: number) => void
@@ -55,7 +57,12 @@ function ProcessRow({
           onClick={trigger?.onToggle}
         >
           {name}
-          {count !== undefined && <span className="text-gray-400"> ({count})</span>}
+          {count !== undefined && (
+            <span className="text-gray-400 sm:hidden"> ({count})</span>
+          )}
+          {descendantNames && (
+            <span className="hidden text-gray-400 sm:inline"> ({collapsedChildrenLabel(descendantNames)})</span>
+          )}
         </span>
       </div>
       <div className="hidden w-20 shrink-0 truncate text-sm text-gray-700 sm:block dark:text-gray-300">{user}</div>
@@ -72,18 +79,29 @@ function ProcessRow({
   )
 }
 
+// collapsedChildrenLabel picks what a collapsed parent's wide-screen label
+// shows in place of the narrow-screen "(N)" count: every descendant's name
+// when there are 2 or fewer of them, otherwise the first two (by whichever
+// metric the tree is sorted on) followed by "...等{n}个".
+function collapsedChildrenLabel(descendantNames: string[]): string {
+  if (descendantNames.length <= 2) return descendantNames.join(', ')
+  return `${descendantNames.slice(0, 2).join(', ')}...等${descendantNames.length}个`
+}
+
 function ProcessTreeRow({
   node,
   depth,
   expanded,
   onToggle,
   onShowDetail,
+  sort,
 }: {
   node: ProcessNode
   depth: number
   expanded: ReadonlySet<number>
   onToggle: (pid: number) => void
   onShowDetail: (pid: number) => void
+  sort: ProcessSort
 }) {
   const hasChildren = node.children.length > 0
   const collapsible = hasChildren
@@ -98,6 +116,7 @@ function ProcessTreeRow({
       cpuPercent={collapsed ? node.totalCpuPercent : node.cpuPercent}
       memRSS={collapsed ? node.totalMemRSS : node.memRSS}
       count={collapsed ? node.totalCount : undefined}
+      descendantNames={collapsed ? collectDescendantNames(node, sort) : undefined}
       depth={depth}
       trigger={collapsible ? { expanded: isExpanded, onToggle: () => onToggle(node.pid) } : undefined}
       onShowDetail={onShowDetail}
@@ -114,6 +133,7 @@ function ProcessTreeRow({
       expanded={expanded}
       onToggle={onToggle}
       onShowDetail={onShowDetail}
+      sort={sort}
     />
   ))
 
@@ -192,6 +212,7 @@ export function ProcessGrid({
               depth={0}
               expanded={expanded}
               onToggle={onToggle}
+              sort={sort}
               onShowDetail={onShowDetail}
             />
           ))

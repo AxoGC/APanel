@@ -48,6 +48,22 @@ function metricValue(node: ProcessNode, metric: ProcessMetric): number {
   return metric === 'cpu' ? node.totalCpuPercent : node.totalMemRSS
 }
 
+/** Flattens every descendant of `node` (not just direct children), sorted by
+ * the given metric — used to pick which child names to surface in a
+ * collapsed parent's label on wide screens (see ProcessGrid's ProcessRow). */
+export function collectDescendantNames(node: ProcessNode, metric: ProcessMetric): string[] {
+  const descendants: ProcessNode[] = []
+  function visit(n: ProcessNode): void {
+    for (const child of n.children) {
+      descendants.push(child)
+      visit(child)
+    }
+  }
+  visit(node)
+  descendants.sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+  return descendants.map((n) => n.name)
+}
+
 /** Sorts a forest in place, recursively, by the given metric. Always sorts
  * by each node's subtree total (equal to its own value for a leaf), even
  * when expanded — expanding a node changes what's *displayed* for it (see
