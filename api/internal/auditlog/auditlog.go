@@ -157,12 +157,16 @@ func (m *Manager) List(limit int, beforeID uint) ([]model.AuditLog, error) {
 		limit = maxLimit
 	}
 
+	// ip is COALESCEd because rows written before the source-IP feature
+	// (see model.AuditLog's history) have it NULL, which a plain SELECT *
+	// can't scan into IP's non-nullable string field.
+	const columns = `id, at, user_remark, action, method, path, status, COALESCE(ip, '') AS ip`
 	entries := make([]model.AuditLog, 0, limit)
 	var err error
 	if beforeID > 0 {
-		err = m.db.Select(&entries, `SELECT * FROM audit_logs WHERE id < ? ORDER BY id DESC LIMIT ?`, beforeID, limit)
+		err = m.db.Select(&entries, `SELECT `+columns+` FROM audit_logs WHERE id < ? ORDER BY id DESC LIMIT ?`, beforeID, limit)
 	} else {
-		err = m.db.Select(&entries, `SELECT * FROM audit_logs ORDER BY id DESC LIMIT ?`, limit)
+		err = m.db.Select(&entries, `SELECT `+columns+` FROM audit_logs ORDER BY id DESC LIMIT ?`, limit)
 	}
 	if err != nil {
 		return nil, err
