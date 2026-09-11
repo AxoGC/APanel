@@ -149,13 +149,13 @@ export default function ContainersPage() {
 
           {/* Mobile: icon-only buttons collapsed into a single button group. */}
           <ButtonGroup className="h-8 md:hidden">
-            <Button variant="ghost" size="icon-sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
+            <Button variant="ghost" className="px-2" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
               <Images />
             </Button>
-            <Button variant="ghost" size="icon-sm" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
+            <Button variant="ghost" className="px-2" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
               <Network />
             </Button>
-            <Button variant="ghost" size="icon-sm" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
+            <Button variant="ghost" className="px-2" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
               <HardDrive />
             </Button>
           </ButtonGroup>

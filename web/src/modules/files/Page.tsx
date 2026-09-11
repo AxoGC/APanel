@@ -346,23 +346,22 @@ export default function FilesPage() {
 
           {/* Mobile: icon-only buttons collapsed into a single button group. */}
           <ButtonGroup className={cn('h-8 md:hidden', mobileSearchOpen && 'hidden')}>
-            <Button variant="ghost" size="icon-sm" aria-label={t('files.search')} onClick={() => setMobileSearchOpen(true)}>
+            <Button variant="ghost" className="px-2" aria-label={t('files.search')} onClick={() => setMobileSearchOpen(true)}>
               <Search />
             </Button>
             <Button
               variant="ghost"
-              size="icon-sm"
+              className={cn('px-2', showHidden && 'text-theme-600 dark:text-theme-400')}
               aria-pressed={showHidden}
               aria-label={t('files.showHidden')}
               onClick={() => setShowHidden((v) => !v)}
-              className={cn(showHidden && 'text-theme-600 dark:text-theme-400')}
             >
               <Eye />
             </Button>
-            <Button variant="ghost" size="icon-sm" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)}>
+            <Button variant="ghost" className="px-2" aria-label={t('files.newFolder')} onClick={() => setMkdirOpen(true)}>
               <FolderPlus />
             </Button>
-            <Button variant="ghost" size="icon-sm" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+            <Button variant="ghost" className="px-2" aria-label={t('files.upload')} disabled={uploading} onClick={() => fileInputRef.current?.click()}>
               {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
             </Button>
           </ButtonGroup>
