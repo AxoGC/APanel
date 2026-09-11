@@ -131,18 +131,32 @@ export default function ContainersPage() {
           </Select>
         </div>
         <div className={cn('ml-auto flex items-center gap-2', mobileSearchOpen && 'max-md:hidden')}>
-          <ButtonGroup className="h-8">
-            <Button variant="ghost" size="sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
+          {/* Desktop: individually bordered buttons with labels. */}
+          <div className="hidden items-center gap-2 md:flex">
+            <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
               <Images />
-              <span className="hidden md:inline">{t('containers.images')}</span>
+              <span>{t('containers.images')}</span>
             </Button>
-            <Button variant="ghost" size="sm" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
+            <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
               <Network />
-              <span className="hidden md:inline">{t('containers.networks')}</span>
+              <span>{t('containers.networks')}</span>
             </Button>
-            <Button variant="ghost" size="sm" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
+            <Button variant="outline" size="sm" className="h-8" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
               <HardDrive />
-              <span className="hidden md:inline">{t('containers.volumes')}</span>
+              <span>{t('containers.volumes')}</span>
+            </Button>
+          </div>
+
+          {/* Mobile: icon-only buttons collapsed into a single button group. */}
+          <ButtonGroup className="h-8 md:hidden">
+            <Button variant="ghost" size="icon-sm" aria-label={t('containers.images')} onClick={() => setImagesOpen(true)}>
+              <Images />
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label={t('containers.networks')} onClick={() => setNetworksOpen(true)}>
+              <Network />
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label={t('containers.volumes')} onClick={() => setVolumesOpen(true)}>
+              <HardDrive />
             </Button>
           </ButtonGroup>
           <Button

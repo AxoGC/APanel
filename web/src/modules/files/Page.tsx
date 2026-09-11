@@ -345,7 +345,7 @@ export default function FilesPage() {
           </div>
 
           {/* Mobile: icon-only buttons collapsed into a single button group. */}
-          <ButtonGroup className={cn('md:hidden', mobileSearchOpen && 'hidden')}>
+          <ButtonGroup className={cn('h-8 md:hidden', mobileSearchOpen && 'hidden')}>
             <Button variant="ghost" size="icon-sm" aria-label={t('files.search')} onClick={() => setMobileSearchOpen(true)}>
               <Search />
             </Button>
