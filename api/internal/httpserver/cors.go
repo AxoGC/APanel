@@ -20,6 +20,10 @@ import (
 // doesn't — that flag also blocks mixed content, breaking requests to the
 // plain-HTTP LAN servers apanel supports), so https://tauri.localhost is
 // kept too only in case a build ever does turn that on.
+// http://localhost:5173 is also allowed unconditionally: it's the fixed
+// Vite dev server address the Tauri webview loads as its origin during
+// `tauri dev` (see src-tauri/tauri.conf.json's devUrl) — again a fixed
+// dev-tooling origin, not user data.
 // APANEL_CORS_ORIGINS extends the list, for anyone running a custom or dev
 // build under a different origin.
 func corsAllowedOrigins() map[string]bool {
@@ -27,6 +31,7 @@ func corsAllowedOrigins() map[string]bool {
 		"tauri://localhost":       true,
 		"http://tauri.localhost":  true,
 		"https://tauri.localhost": true,
+		"http://localhost:5173":   true,
 	}
 	for _, origin := range strings.Split(os.Getenv("APANEL_CORS_ORIGINS"), ",") {
 		if origin = strings.TrimSpace(origin); origin != "" {
