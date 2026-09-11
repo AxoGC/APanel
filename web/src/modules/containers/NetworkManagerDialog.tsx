@@ -58,7 +58,7 @@ export function NetworkManagerDialog({ open, onOpenChange }: { open: boolean; on
   }
 
   return (
-    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.networks.title')} className="max-w-3xl" height="85vh" drawer>
+    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('containers.networks.title')} className="sm:max-w-3xl" height="85vh" drawer>
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="flex items-center gap-2">
           <span className="hidden text-xs text-gray-500 sm:inline">{t('containers.networks.filter')}</span>
