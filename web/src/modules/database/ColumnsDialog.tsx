@@ -52,7 +52,7 @@ export function ColumnsDialog({
       open={table !== null}
       onOpenChange={onOpenChange}
       title={table ? displayName(table) : t('database.columns.action')}
-      className="max-w-2xl"
+      className="sm:max-w-2xl"
       drawer
     >
       <div className="flex items-center gap-1 border-b border-gray-200 pb-1.5 md:gap-3 dark:border-gray-800">

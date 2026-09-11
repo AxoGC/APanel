@@ -355,7 +355,6 @@ export function CreateContainerDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('containers.create.title')}
-      className="sm:max-w-xl"
       drawer
       onOpenAutoFocus={(event) => {
         if (!window.matchMedia('(min-width: 768px)').matches) event.preventDefault()

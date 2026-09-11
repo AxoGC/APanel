@@ -53,7 +53,7 @@ export function EnableModulesDialog({ open, onOpenChange }: { open: boolean; onO
   }
 
   return (
-    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('settings.enabledFeatures')} className="max-w-sm" drawer>
+    <SectionedDialog open={open} onOpenChange={onOpenChange} title={t('settings.enabledFeatures')} className="sm:max-w-sm" drawer>
       <div role="list" className="flex flex-col gap-0.5">
         {rows.map((row, index) => {
           const meta = MODULE_META[row.key]

@@ -146,7 +146,7 @@ export default function AuditLogPage() {
         open={detail !== null}
         onOpenChange={(nextOpen) => !nextOpen && setDetail(null)}
         title={t('auditlog.detail.title')}
-        className="max-w-sm"
+        className="sm:max-w-sm"
         drawer
       >
         {detail && (

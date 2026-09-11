@@ -47,7 +47,7 @@ export function ServiceDetailDialog({ name, onOpenChange }: { name: string | nul
       open={name !== null}
       onOpenChange={onOpenChange}
       title={detail ? displayName(detail.name) : t('services.detail.title')}
-      className="max-w-lg"
+      className="sm:max-w-lg"
       drawer
     >
       {detail && (

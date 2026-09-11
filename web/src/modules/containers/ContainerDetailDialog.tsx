@@ -47,7 +47,7 @@ export function ContainerDetailDialog({ id, onOpenChange }: { id: string | null;
       open={id !== null}
       onOpenChange={onOpenChange}
       title={detail ? detail.name : t('containers.detail.title')}
-      className="max-w-lg"
+      className="sm:max-w-lg"
       drawer
     >
       {detail && (

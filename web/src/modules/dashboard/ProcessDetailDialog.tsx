@@ -86,7 +86,7 @@ export function ProcessDetailDialog({ pid, onOpenChange }: { pid: number | null;
       open={pid !== null}
       onOpenChange={onOpenChange}
       title={detail ? detail.name : t('dashboard.detail.title')}
-      className="max-w-lg"
+      className="sm:max-w-lg"
       drawer
       footer={
         <div className="flex items-center justify-end gap-2">
