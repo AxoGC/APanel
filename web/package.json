@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:standalone": "vite --mode standalone",
     "build": "tsc -b && vite build",
     "build:standalone": "tsc -b && vite build --mode standalone",
     "lint": "oxlint",
