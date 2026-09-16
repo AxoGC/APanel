@@ -109,20 +109,31 @@ type UnitEnablement struct {
 // a time, so the frontend can fill in List's fast response (and add rows
 // for installed-but-never-loaded services List couldn't see) as results
 // arrive instead of every request blocking on the same slow call.
+//
+// It owns its own D-Bus connection rather than sharing Manager's: systemd
+// processes D-Bus calls on its own side serially regardless of which
+// connection they arrive on, so a client that disconnects mid-stream (e.g.
+// the page was navigated away from) doesn't stop systemd from spending the
+// full ~550ms+ on the already-sent ListUnitFiles call — and on the shared
+// connection, that left every other request (including the next page load's
+// fast List call) queued behind it. A dedicated, short-lived connection
+// means an abandoned stream can only ever block itself.
 type UnitFileStream struct {
-	m *Manager
+	conn *systemdDbus.Conn
 }
 
-// OpenUnitFileStream does no work itself — there's no cheap step to do
-// upfront here, unlike e.g. the container volume-size stream, since
-// ListUnitFilesContext is the whole cost and can't be split. It exists so
-// the route handler has a place to fail before committing to the SSE
-// response, mirroring the rest of the codebase's stream constructors.
+// OpenUnitFileStream opens the dedicated connection described above. The
+// route handler calling this has a place to fail before committing to the
+// SSE response, mirroring the rest of the codebase's stream constructors.
 func (m *Manager) OpenUnitFileStream(ctx context.Context) (*UnitFileStream, error) {
-	return &UnitFileStream{m: m}, nil
+	conn, err := systemdDbus.NewSystemConnectionContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &UnitFileStream{conn: conn}, nil
 }
 
-func (s *UnitFileStream) Close() {}
+func (s *UnitFileStream) Close() { s.conn.Close() }
 
 // Run does the actual work: one ListUnitFiles call — measured at ~550ms for
 // a few hundred units, since it walks and parses every unit file on disk,
@@ -131,7 +142,7 @@ func (s *UnitFileStream) Close() {}
 // to their template's enablement, since an instance has no unit file of its
 // own. This mirrors what List() used to do inline on every request.
 func (s *UnitFileStream) Run(ctx context.Context, emit func(UnitEnablement)) error {
-	files, err := s.m.conn.ListUnitFilesContext(ctx)
+	files, err := s.conn.ListUnitFilesContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -150,7 +161,7 @@ func (s *UnitFileStream) Run(ctx context.Context, emit func(UnitEnablement)) err
 		entries[name] = f.Type
 	}
 
-	if loaded, err := s.m.conn.ListUnitsContext(ctx); err == nil {
+	if loaded, err := s.conn.ListUnitsContext(ctx); err == nil {
 		for _, u := range loaded {
 			if !strings.HasSuffix(u.Name, ".service") || !strings.Contains(u.Name, "@") {
 				continue
